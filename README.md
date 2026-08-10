@@ -29,6 +29,33 @@ KaizenGo is a platform for building integrated operational software: a single ho
 
 Built-in apps include **Clock**, **Counter**, **Settings**, and a **Notes** example. Industry products (e.g. KMiner for mining operations) can be built on the same foundation.
 
+
+## Requirements
+
+- **Go** 1.22+ (module targets 1.26)
+- **Node.js** 20+ and **npm** (core SPA and app builds)
+
+See [Installation](docs/installation.md) for full setup.
+
+## Quick start
+
+Build and serve:
+```bash
+cd apps/core/spa && npm install && cd -
+make cli build
+./bin/server
+# http://localhost:8080/app/
+```
+Or Run with hot-reload during development:
+
+```bash
+cd apps/core/spa && npm install && cd -
+make dev   # Go :8080 + Vite :5173/app/
+```
+
+Open **http://localhost:5173/app/** when using `make dev` (Vite base path is `/app/`).
+
+
 ## Documentation
 
 | Guide | Description |
@@ -42,30 +69,6 @@ Built-in apps include **Clock**, **Counter**, **Settings**, and a **Notes** exam
 | [Svelte apps](docs/svelte.md) | Single-component ESM apps in the shell |
 | [GraphQL](docs/graphql.md) | Runtime field registry and queries |
 | [Whitepaper (v1)](whitepaper_v1.md) | Vision, problem space, and platform design |
-
-## Requirements
-
-- **Go** 1.22+ (module targets 1.26)
-- **Node.js** 20+ and **npm** (core SPA and app builds)
-
-See [Installation](docs/installation.md) for full setup.
-
-## Quick start
-
-```bash
-cd apps/core/spa && npm install && cd -
-make cli build
-./bin/server
-# http://localhost:8080/app/
-```
-
-Hot reload during development:
-
-```bash
-make dev   # Go :8080 + Vite :5173/app/
-```
-
-Open **http://localhost:5173/app/** when using `make dev` (Vite base path is `/app/`).
 
 ## Create a new app
 
