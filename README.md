@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="static/banner.png" alt="KaizenGo logo" width="128" />
+    <img src="static/icon.png" alt="KaizenGo logo" width="160" />
+    <h1 align="center">KaizenGo</h1>
 </p>
 
-<h1 align="center">KaizenGo</h1>
 
 <p align="center">
   <strong>Enterprise Operations Platform</strong> — modular Go host with an apps registry, SPA shell, and GraphQL field plugins.
