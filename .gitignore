@@ -1,0 +1,10 @@
+/bin/
+/tmp/
+*.exe
+*.test
+*_templ.go
+.DS_Store
+apps/core/spa/node_modules/
+apps/core/spa/dist/
+apps/counter/spa/node_modules/
+apps/counter/spa/dist/

@@ -1,0 +1,120 @@
+:root {
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: #111;
+  background: #f5f5f5;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.shell-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 1.25rem;
+  position: relative;
+  z-index: 2;
+}
+
+.brand {
+  font-weight: 700;
+  color: #111;
+  text-decoration: none;
+}
+
+.menu {
+  position: relative;
+}
+
+.menu-btn {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #111;
+  border-radius: 0.25rem;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.caret {
+  margin-left: 0.25rem;
+  opacity: 0.8;
+}
+
+.menu-list {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  min-width: 14rem;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.35rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  z-index: 3;
+}
+
+.menu-list button {
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu-list button:hover,
+.menu-list button.active {
+  background: #f0f0f0;
+}
+
+.empty {
+  padding: 0.5rem 0.6rem;
+  color: #777;
+  font-size: 0.9rem;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  z-index: 1;
+  cursor: default;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+}
+
+.panel h1 {
+  margin-top: 0;
+}
+
+.hint {
+  color: #555;
+}
+
+.error {
+  color: #b00020;
+  margin-bottom: 0.75rem;
+}
+
+.host :global(h1) {
+  margin-top: 0;
+}

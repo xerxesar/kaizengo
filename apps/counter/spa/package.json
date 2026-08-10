@@ -1,0 +1,14 @@
+{
+  "name": "kaizengo-counter-spa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "file:../../core/spa/node_modules/@sveltejs/vite-plugin-svelte",
+    "svelte": "file:../../core/spa/node_modules/svelte",
+    "vite": "file:../../core/spa/node_modules/vite",
+    "typescript": "file:../../core/spa/node_modules/typescript"
+  }
+}
