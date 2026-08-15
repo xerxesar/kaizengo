@@ -28,4 +28,4 @@ pip install -r requirements-docs.txt
 make docs
 ```
 
-Then open [http://localhost:8000](http://localhost:8000).
+Then open [http://localhost:8000](http://localhost:8000). Pushes to `main` publish the site to [GitHub Pages](https://xerxesar.github.io/kaizengo/).

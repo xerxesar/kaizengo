@@ -1,6 +1,7 @@
 [project]
 site_name = "KaizenGo"
 site_description = "Build modular operational apps on the KaizenGo platform."
+site_url = "https://xerxesar.github.io/kaizengo/"
 repo_url = "https://github.com/xerxesar/kaizengo"
 docs_dir = "docs"
 site_dir = "site"
