@@ -1,0 +1,34 @@
+[project]
+site_name = "KaizenGo"
+site_description = "Build modular operational apps on the KaizenGo platform."
+repo_url = "https://github.com/xerxesar/kaizengo"
+docs_dir = "docs"
+site_dir = "site"
+copyright = "KaizenGo"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Tutorial" = [
+    "tutorial/index.md",
+    "tutorial/run-the-platform.md",
+    "tutorial/app-anatomy.md",
+    "tutorial/build-an-app.md",
+    "tutorial/hooks.md",
+    { "Advanced" = [
+      "tutorial/advanced/index.md",
+      { "ORM and services" = "tutorial/advanced/orm-and-services.md" },
+      { "Custom pages" = "tutorial/advanced/custom-pages.md" },
+    ] },
+    "tutorial/whats-next.md",
+  ] },
+]
+
+[project.theme]
+features = [
+  "navigation.sections",
+  "navigation.indexes",
+  "navigation.top",
+  "navigation.path",
+  "content.code.copy",
+  "toc.follow",
+]

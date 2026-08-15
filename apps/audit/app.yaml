@@ -1,0 +1,6 @@
+name: audit
+title: Audit
+summary: Cross-app mutation audit log via global extension points
+depends:
+  - core
+spa: false

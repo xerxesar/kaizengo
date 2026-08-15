@@ -1,0 +1,27 @@
+name: settings
+title: Settings
+summary: Configure platform locale, calendar, and shell title
+depends:
+  - core
+uses:
+  - platform.i18n
+  - platform.config
+autoInstall: true
+nav:
+  labelKey: nav.settings
+  route: settings
+  order: 1000000000
+views:
+  - name: General
+    type: page
+menus:
+  - id: general
+    labelKey: settings.menu.general
+    view: General
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl

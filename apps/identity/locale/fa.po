@@ -1,0 +1,256 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "identity.title"
+msgstr "هویت و سازمان"
+
+msgid "identity.subtitle"
+msgstr "مدیریت کاربران، ساختار سازمانی و تنظیمات مستأجر"
+
+msgid "identity.ping"
+msgstr "وضعیت API"
+
+msgid "identity.no_org"
+msgstr "سازمانی پیکربندی نشده است. یکی را با GraphQL بسازید یا سرور را برای دادهٔ نمونه راه‌اندازی مجدد کنید."
+
+msgid "identity.tab.overview"
+msgstr "نمای کلی"
+
+msgid "identity.tab.structure"
+msgstr "ساختار سازمان"
+
+msgid "identity.tab.users"
+msgstr "کاربران"
+
+msgid "identity.tab.settings"
+msgstr "تنظیمات"
+
+msgid "identity.stat.org"
+msgstr "سازمان"
+
+msgid "identity.stat.users"
+msgstr "کاربران"
+
+msgid "identity.stat.units"
+msgstr "واحدهای سازمانی"
+
+msgid "identity.stat.users_hint"
+msgstr "هویت‌های فعال"
+
+msgid "identity.stat.units_hint"
+msgstr "گره‌های ساختار"
+
+msgid "identity.overview.actions"
+msgstr "اقدامات سریع"
+
+msgid "identity.overview.manage_users"
+msgstr "مدیریت کاربران"
+
+msgid "identity.overview.edit_structure"
+msgstr "ویرایش ساختار"
+
+msgid "identity.overview.org_settings"
+msgstr "تنظیمات سازمان"
+
+msgid "identity.overview.about_title"
+msgstr "درباره این ماژول"
+
+msgid "identity.overview.about"
+msgstr "هویت و سازمان یک قابلیت پلتفرم برای مستأجرها، کاربران و ساختار سازمانی است. از زبانه‌ها برای مدیریت افراد و سلسله‌مراتب استفاده کنید."
+
+msgid "identity.common.cancel"
+msgstr "انصراف"
+
+msgid "identity.users.search"
+msgstr "جستجوی کاربران…"
+
+msgid "identity.users.create"
+msgstr "ایجاد کاربر"
+
+msgid "identity.created"
+msgstr "کاربر ایجاد شد."
+
+msgid "identity.saved"
+msgstr "ذخیره شد."
+
+msgid "identity.create"
+msgstr "ایجاد"
+
+msgid "identity.save"
+msgstr "ذخیره"
+
+msgid "identity.users.empty_search"
+msgstr "هیچ کاربری با جستجوی شما مطابقت ندارد"
+
+msgid "identity.users.empty"
+msgstr "هنوز کاربری نیست"
+
+msgid "identity.users.view"
+msgstr "مشاهده"
+
+msgid "identity.users.count"
+msgstr "%d از %d کاربر"
+
+msgid "identity.users.col.name"
+msgstr "نام"
+
+msgid "identity.users.col.email"
+msgstr "ایمیل"
+
+msgid "identity.users.col.status"
+msgstr "وضعیت"
+
+msgid "identity.users.col.created"
+msgstr "ایجاد شده"
+
+msgid "identity.users.col.id"
+msgstr "شناسه کاربر"
+
+msgid "identity.users.name"
+msgstr "نام کامل"
+
+msgid "identity.users.email"
+msgstr "آدرس ایمیل"
+
+msgid "identity.users.email_hint"
+msgstr "باید در این سازمان یکتا باشد"
+
+msgid "identity.users.placeholder.name"
+msgstr "جهان دوران"
+
+msgid "identity.users.placeholder.email"
+msgstr "jahan@company.com"
+
+msgid "identity.users.detail_title"
+msgstr "جزئیات کاربر"
+
+msgid "identity.users.memberships"
+msgstr "عضویت‌ها"
+
+msgid "identity.users.org_unit"
+msgstr "واحد سازمانی"
+
+msgid "identity.users.role"
+msgstr "نقش"
+
+msgid "identity.users.membership_id"
+msgstr "شناسه عضویت"
+
+msgid "identity.users.no_memberships"
+msgstr "هنوز عضویت واحد سازمانی اختصاص داده نشده است."
+
+msgid "identity.structure.count"
+msgstr "%d واحد سازمانی"
+
+msgid "identity.structure.add"
+msgstr "افزودن واحد"
+
+msgid "identity.structure.add_title"
+msgstr "افزودن واحد سازمانی"
+
+msgid "identity.structure.details"
+msgstr "جزئیات واحد"
+
+msgid "identity.structure.select_hint"
+msgstr "یک واحد سازمانی را برای مشاهده جزئیات انتخاب کنید."
+
+msgid "identity.structure.field.type"
+msgstr "نوع"
+
+msgid "identity.structure.field.id"
+msgstr "شناسه"
+
+msgid "identity.structure.field.parent"
+msgstr "والد"
+
+msgid "identity.structure.field.created"
+msgstr "ایجاد شده"
+
+msgid "identity.structure.root"
+msgstr "— سطح ریشه —"
+
+msgid "identity.structure.name"
+msgstr "نام"
+
+msgid "identity.structure.parent"
+msgstr "واحد والد"
+
+msgid "identity.structure.parent_hint"
+msgstr "برای واحد سطح بالا خالی بگذارید"
+
+msgid "identity.structure.create"
+msgstr "ایجاد واحد"
+
+msgid "identity.structure.name_placeholder"
+msgstr "مثلاً زمین‌شناسی مرکزی"
+
+msgid "identity.unit_type.business_unit"
+msgstr "واحد کسب‌وکار"
+
+msgid "identity.unit_type.department"
+msgstr "دپارتمان"
+
+msgid "identity.unit_type.location"
+msgstr "مکان / سایت"
+
+msgid "identity.unit_type.team"
+msgstr "تیم"
+
+msgid "identity.unit_type.position"
+msgstr "سمت"
+
+msgid "identity.settings.profile"
+msgstr "پروفایل سازمان"
+
+msgid "identity.settings.appearance"
+msgstr "ظاهر"
+
+msgid "identity.settings.security"
+msgstr "مدل امنیتی"
+
+msgid "identity.settings.general"
+msgstr "اطلاعات عمومی"
+
+msgid "identity.settings.general_desc"
+msgstr "نام سازمان و اسلاگ URL را به‌روز کنید."
+
+msgid "identity.settings.name"
+msgstr "نام سازمان"
+
+msgid "identity.settings.slug"
+msgstr "اسلاگ"
+
+msgid "identity.settings.slug_hint"
+msgstr "در URLها و یکپارچه‌سازی‌ها استفاده می‌شود"
+
+msgid "identity.settings.save"
+msgstr "ذخیره تغییرات"
+
+msgid "identity.settings.saved"
+msgstr "تنظیمات سازمان ذخیره شد."
+
+msgid "identity.settings.id"
+msgstr "شناسه سازمان"
+
+msgid "identity.settings.created"
+msgstr "ایجاد شده"
+
+msgid "identity.settings.theme"
+msgstr "پوسته"
+
+msgid "identity.settings.theme_desc"
+msgstr "یک پوسته بصری برای رابط KaizenGo انتخاب کنید. ترجیح شما به‌صورت محلی ذخیره می‌شود."
+
+msgid "identity.settings.theme_label"
+msgstr "پوسته رنگی"
+
+msgid "identity.settings.security_body"
+msgstr "احراز هویت و کنترل دسترسی توسط سرویس‌های هویت و مجوز پلتفرم اعمال می‌شود. اعتبارنامهٔ مدیر از طریق متغیرهای محیطی پیکربندی می‌شود."
+
+msgid "identity.settings.admin_email"
+msgstr "ایمیل مدیر (env)"
+
+msgid "identity.settings.admin_password"
+msgstr "رمز عبور (env)"

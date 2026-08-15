@@ -1,0 +1,48 @@
+{
+  "name": "kaizengo",
+  "displayName": "KaizenGo",
+  "description": "Navigate KaizenGo app.yaml specs — jump to views, models, apps, locales, and handlers.",
+  "version": "0.1.0",
+  "publisher": "kaizengo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xerxesar/kaizengo"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:yaml",
+    "workspaceContains:apps/*/app.yaml"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "kaizengo.reindex",
+        "title": "KaizenGo: Reindex app.yaml catalog"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "watch": "npm run compile -- --watch",
+    "check": "tsc --noEmit",
+    "test": "tsx --test src/*.test.ts",
+    "package": "npm run compile && vsce package --no-dependencies --allow-missing-repository"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.9",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

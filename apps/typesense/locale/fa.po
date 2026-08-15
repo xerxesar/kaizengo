@@ -1,0 +1,85 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "typesense.title"
+msgstr "جستجو"
+
+msgid "typesense.subtitle"
+msgstr "پیکربندی نمایه‌سازی Typesense برای مدل‌ها و فیلدها"
+
+msgid "typesense.ping"
+msgstr "وضعیت API"
+
+msgid "typesense.tab.search"
+msgstr "جستجو (Typesense)"
+
+msgid "typesense.menu.search"
+msgstr "جستجو (Typesense)"
+
+msgid "typesense.search.loading"
+msgstr "در حال بارگذاری پیکربندی جستجو…"
+
+msgid "typesense.search.unavailable"
+msgstr "پیکربندی جستجو در دسترس نیست."
+
+msgid "typesense.search.saved"
+msgstr "تنظیمات نمایه‌سازی جستجو ذخیره شد."
+
+msgid "typesense.search.backend"
+msgstr "بک‌اند"
+
+msgid "typesense.search.connected"
+msgstr "سرور Typesense متصل است"
+
+msgid "typesense.search.memory_hint"
+msgstr "نمایه در حافظه (برای Typesense از KaizenGo_TYPESENSE_URL استفاده کنید)"
+
+msgid "typesense.search.collections"
+msgstr "مدل‌های فعال"
+
+msgid "typesense.search.collections_hint"
+msgstr "مدل‌هایی که جستجو برای آن‌ها فعال است"
+
+msgid "typesense.search.documents"
+msgstr "سندهای نمایه‌شده"
+
+msgid "typesense.search.documents_hint"
+msgstr "مجموع اسناد در بک‌اند فعال"
+
+msgid "typesense.search.models_title"
+msgstr "نمایه‌سازی مدل"
+
+msgid "typesense.search.no_models"
+msgstr "مدل قابل نمایه‌سازی در اپ‌های بارگذاری‌شده یافت نشد."
+
+msgid "typesense.search.fields_hint"
+msgstr "فیلدهایی را که باید در نمایه جستجو باشند انتخاب کنید."
+
+msgid "typesense.search.enabled"
+msgstr "فعال"
+
+msgid "typesense.search.disabled"
+msgstr "غیرفعال"
+
+msgid "typesense.search.enable"
+msgstr "فعال‌سازی"
+
+msgid "typesense.search.disable"
+msgstr "غیرفعال‌سازی"
+
+msgid "typesense.search.save"
+msgstr "ذخیره"
+
+msgid "typesense.search.reindex"
+msgstr "بازسازی ایندکس"
+
+msgid "typesense.search.reindex_field"
+msgstr "بازسازی فیلد"
+
+msgid "typesense.search.reindexed"
+msgstr "%d سند بازسازی ایندکس شد."
+
+msgid "typesense.search.reindexed_field"
+msgstr "فیلد %s بازسازی ایندکس شد (%d سند)."

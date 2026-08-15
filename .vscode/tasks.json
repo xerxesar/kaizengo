@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "vscode-kaizengo: compile",
+      "type": "npm",
+      "script": "compile",
+      "path": "packages/vscode-kaizengo/",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent"
+      }
+    }
+  ]
+}

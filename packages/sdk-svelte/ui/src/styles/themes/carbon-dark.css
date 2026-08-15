@@ -1,0 +1,59 @@
+/* IBM Carbon — Gray 100 theme (dark) */
+
+[data-kg-theme='carbon-dark'] {
+  --kg-primary: #4589ff;
+  --kg-primary-hover: #0f62fe;
+  --kg-primary-active: #0043ce;
+  --kg-primary-subtle: #001d6c;
+  --kg-accent: #4589ff;
+
+  --kg-bg: #161616;
+  --kg-bg-subtle: #262626;
+  --kg-surface: #262626;
+  --kg-surface-muted: #393939;
+  --kg-surface-elevated: #393939;
+  --kg-surface-hover: #4c4c4c;
+
+  --kg-shell-bg: #161616;
+  --kg-shell-text: #f4f4f4;
+  --kg-shell-text-muted: #c6c6c6;
+  --kg-shell-border: #525252;
+  --kg-shell-hover: #262626;
+
+  --kg-border: #393939;
+  --kg-border-strong: #6f6f6f;
+  --kg-border-subtle: #262626;
+
+  --kg-text: #f4f4f4;
+  --kg-text-secondary: #c6c6c6;
+  --kg-text-muted: #a8a8a8;
+  --kg-text-placeholder: #6f6f6f;
+  --kg-text-on-color: #ffffff;
+
+  --kg-field: #393939;
+  --kg-field-hover: #4c4c4c;
+
+  --kg-success: #42be65;
+  --kg-success-bg: #071908;
+  --kg-success-border: #24a148;
+  --kg-warning: #f1c21b;
+  --kg-warning-bg: #1c1500;
+  --kg-warning-border: #d2a106;
+  --kg-danger: #fa4d56;
+  --kg-danger-bg: #2d0709;
+  --kg-danger-border: #da1e28;
+  --kg-info: #4589ff;
+  --kg-info-bg: #001141;
+  --kg-info-border: #0f62fe;
+
+  --kg-tab-indicator: var(--kg-primary);
+  --kg-tab-hover: #393939;
+  --kg-header-bg: #262626;
+  --kg-toolbar-bg: #262626;
+
+  --kg-shadow-sm: none;
+  --kg-shadow: none;
+  --kg-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}

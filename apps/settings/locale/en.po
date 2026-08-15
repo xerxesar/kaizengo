@@ -1,0 +1,31 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "settings.title"
+msgstr "Settings"
+
+msgid "settings.subtitle"
+msgstr "Configure platform locale, calendar, and shell title"
+
+msgid "settings.locale"
+msgstr "Locale"
+
+msgid "settings.calendar"
+msgstr "Default calendar"
+
+msgid "settings.shell"
+msgstr "Shell title"
+
+msgid "settings.save"
+msgstr "Save"
+
+msgid "settings.saved"
+msgstr "Saved."
+
+msgid "settings.ping"
+msgstr "API status"
+
+msgid "settings.menu.general"
+msgstr "General"

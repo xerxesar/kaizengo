@@ -8,10 +8,6 @@
 | Node.js | 20+ | for the core SPA and Svelte app builds |
 | npm | comes with Node | |
 
-Optional:
-
-- `templ` — only if you add templ SSR later (`go install github.com/a-h/templ/cmd/templ@latest`)
-
 ## Get the code
 
 ```bash
@@ -27,6 +23,8 @@ npm install
 cd -
 ```
 
+App SPAs install their own deps the first time you build them (`make spa-build` or `make build`).
+
 ## Build the server + SPAs
 
 ```bash
@@ -37,7 +35,7 @@ This:
 
 1. Runs GraphQL Code Generator for the core shell (optional typed client)
 2. Builds `apps/core/spa` → `apps/core/spa/dist`
-3. Builds the counter Svelte app → `apps/counter/spa/dist`
+3. Builds every app listed in `APP_SPAS` (counter, identity, notes, clock, status, settings, oracle, …)
 4. Compiles `./cmd/server` → `bin/server`
 
 ## Install the CLI
@@ -58,14 +56,28 @@ go build -o bin/kaizengo ./cmd/kaizengo
 
 ```bash
 ./bin/server
-curl -s http://localhost:8080/health          # ok
-curl -s http://localhost:8080/api/apps        # nav catalog JSON
-open http://localhost:8080/app/               # SPA shell
+# open http://localhost:8080/app/
+# sign in: admin@kaizengo.local / changeme
 ```
+
+```bash
+curl -s http://localhost:8080/health
+# ok
+
+curl -c cookies.txt -s http://localhost:8080/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"admin@kaizengo.local","password":"changeme"}'
+
+curl -b cookies.txt -s http://localhost:8080/api/apps
+```
+
+`/api/apps` and `/graphql` require a session. See [auth.md](auth.md).
 
 ## Select which apps load
 
 ```bash
-KaizenGo_APPS=core,counter ./bin/server
-# empty / * = all installable apps
+KaizenGo_APPS=core,identity,auth,permissions,appman ./bin/server
+# empty = installed apps + autoInstall (core, identity, auth, permissions, appman, settings)
 ```
+
+For a usable shell with login, always include at least `core`, `identity`, and `auth` (add `permissions` for RBAC-gated fields).

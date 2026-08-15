@@ -21,6 +21,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "gen-types":
+		if err := runGenTypes(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "version", "-v", "--version":
 		fmt.Println(version)
 	case "help", "-h", "--help":
@@ -40,6 +45,7 @@ Usage:
 
 Commands:
   new-app    Bootstrap a new app under apps/
+  gen-types  Generate apps/<app>/__types__ and locale/template.pot
   version    Print CLI version
   help       Show this help
 
@@ -47,6 +53,8 @@ Examples:
   kaizengo new-app notes
   kaizengo new-app notes --type svelte
   kaizengo new-app notes --type svelte --with-graphql
+  kaizengo gen-types
+  kaizengo gen-types identity
 
 See docs/ for full guides.
 `, version)
@@ -59,6 +67,8 @@ func runNewApp(args []string) error {
 	title := fs.String("title", "", "Apps menu title (default: name)")
 	summary := fs.String("summary", "", "manifest summary")
 	withGQL := fs.Bool("with-graphql", false, "register sample GraphQL query/mutation")
+	eventSourced := fs.Bool("event-sourced", true, "scaffold event-sourced app using sdk/appspec pattern")
+	addon := fs.Bool("addon", false, "scaffold a cross-app addon (extension points, no SPA)")
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, `Usage:
   kaizengo new-app <name> [flags]
@@ -92,10 +102,12 @@ Flags:
 	}
 
 	return createApp(AppOptions{
-		Name:        name,
-		Type:        *typ,
-		Title:       *title,
-		Summary:     *summary,
-		WithGraphQL: *withGQL,
+		Name:         name,
+		Type:         *typ,
+		Title:        *title,
+		Summary:      *summary,
+		WithGraphQL:  *withGQL,
+		EventSourced: *eventSourced,
+		Addon:        *addon,
 	})
 }

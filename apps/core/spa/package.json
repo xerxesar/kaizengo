@@ -7,17 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "codegen": "graphql-codegen --config codegen.ts",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
+  "dependencies": {
+    "@kaizengo/sdk-svelte": "file:../../../packages/sdk-svelte"
+  },
   "devDependencies": {
-    "@graphql-codegen/cli": "^5.0.7",
-    "@graphql-codegen/client-preset": "^4.8.2",
     "@sveltejs/vite-plugin-svelte": "^5.1.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/svelte": "^5.0.4",
-    "graphql": "^16.11.0",
     "svelte": "^5.34.7",
     "svelte-check": "^4.2.1",
+    "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^6.3.5"
   }

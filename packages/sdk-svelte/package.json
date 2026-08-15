@@ -1,0 +1,19 @@
+{
+  "name": "@kaizengo/sdk-svelte",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./ui": "./ui/index.ts",
+    "./ui/styles.css": "./ui/styles.css",
+    "./ui/*": "./ui/src/lib/*",
+    "./identity": "./identity/index.ts",
+    "./identity/*": "./identity/*",
+    "./search": "./search/index.ts",
+    "./search/*": "./search/*",
+    "./spa-config/app-vite.js": "./spa-config/app-vite.ts"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  }
+}

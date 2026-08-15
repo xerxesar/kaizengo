@@ -1,0 +1,23 @@
+name: permissions
+title: Permissions
+summary: Role-based access control and authorization
+depends:
+  - core
+  - identity
+provides:
+  - permissions.rbac
+uses:
+  - identity.users
+spa: false
+i18n: false
+autoInstall: true
+models:
+  - name: user_role
+    fields:
+      - name: userId
+        type: string
+        required: true
+      - name: role
+        type: enum
+        values: [admin, member]
+        required: true

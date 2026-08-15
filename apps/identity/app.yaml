@@ -1,0 +1,101 @@
+name: identity
+title: Identity
+summary: Identity and organization — users, org structure, memberships
+depends:
+  - core
+provides:
+  - identity.users
+  - identity.organizations
+  - identity.memberships
+uses:
+  - platform.i18n
+autoInstall: true
+nav:
+  labelKey: nav.identity
+  route: identity
+
+models:
+  - name: user
+    search:
+      collection: identity.user
+      fields: [name, email]
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: email
+        type: string
+        required: true
+      - name: status
+        type: enum
+        values: [active, suspended, invited]
+        default: active
+  - name: organization
+    search:
+      collection: identity.organization
+      fields: [name, slug]
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: slug
+        type: string
+        required: true
+  - name: org_unit
+    search:
+      collection: identity.org_unit
+      fields: [name, type]
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: type
+        type: enum
+        values: [business_unit, department, location, team, position]
+        required: true
+      - name: parentId
+        type: string
+  - name: membership
+    fields:
+      - name: userId
+        type: string
+        required: true
+      - name: orgUnitId
+        type: string
+        required: true
+      - name: role
+        type: string
+      - name: effectiveFrom
+        type: datetime
+      - name: effectiveTo
+        type: datetime
+
+views:
+  - name: Overview
+    type: page
+  - name: Structure
+    type: page
+  - name: Users
+    type: page
+  - name: Settings
+    type: page
+menus:
+  - id: overview
+    labelKey: identity.tab.overview
+    view: Overview
+  - id: structure
+    labelKey: identity.tab.structure
+    view: Structure
+  - id: users
+    labelKey: identity.tab.users
+    view: Users
+  - id: settings
+    labelKey: identity.tab.settings
+    view: Settings
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl

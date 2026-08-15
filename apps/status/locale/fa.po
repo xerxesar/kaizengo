@@ -1,0 +1,22 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "status.title"
+msgstr "وضعیت"
+
+msgid "status.subtitle"
+msgstr "ماژول نمونه Svelte در پوسته اصلی"
+
+msgid "status.health"
+msgstr "سلامت ماژول"
+
+msgid "status.lead"
+msgstr "بارگذاری‌شده با import() و قرارداد استاندارد SPA در Svelte."
+
+msgid "status.loaded"
+msgstr "بارگذاری:"
+
+msgid "status.ping"
+msgstr "وضعیت API"

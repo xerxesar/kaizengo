@@ -14,23 +14,24 @@ import (
 var nameRe = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 type AppOptions struct {
-	Name        string
-	Type        string
-	Title       string
-	Summary     string
-	WithGraphQL bool
+	Name         string
+	Type         string
+	Title        string
+	Summary      string
+	WithGraphQL  bool
+	EventSourced bool
+	Addon        bool
 }
 
 type appData struct {
-	Name        string
-	Pkg         string
-	Title       string
-	Summary     string
-	Route       string
-	ModuleURL   string
-	AssetsDir   string
-	WithGraphQL bool
-	IsSvelte    bool
+	Name         string
+	Pkg          string
+	Title        string
+	Summary      string
+	Route        string
+	WithGraphQL  bool
+	IsSvelte     bool
+	EventSourced bool
 }
 
 func createApp(opts AppOptions) error {
@@ -52,13 +53,6 @@ func createApp(opts AppOptions) error {
 		return err
 	}
 
-	appDir := filepath.Join(root, "apps", name)
-	if _, err := os.Stat(appDir); err == nil {
-		return fmt.Errorf("app already exists: %s", appDir)
-	} else if !os.IsNotExist(err) {
-		return err
-	}
-
 	title := opts.Title
 	if title == "" {
 		title = strings.ToUpper(name[:1]) + name[1:]
@@ -69,43 +63,57 @@ func createApp(opts AppOptions) error {
 		summary = title + " app"
 	}
 
-	assetsDir := "apps/" + name + "/spa"
-	moduleURL := "/app-assets/" + name + "/spa.js"
-	if typ == "svelte" {
-		assetsDir = "apps/" + name + "/spa/dist"
+	if opts.Addon {
+		return createAddon(root, name, title, summary)
 	}
 
-	data := appData{
-		Name:        name,
-		Pkg:         name,
-		Title:       title,
-		Summary:     summary,
-		Route:       strings.ReplaceAll(name, "_", "-"),
-		ModuleURL:   moduleURL,
-		AssetsDir:   assetsDir,
-		WithGraphQL: opts.WithGraphQL,
-		IsSvelte:    typ == "svelte",
-	}
-
-	if err := os.MkdirAll(filepath.Join(appDir, "spa"), 0o755); err != nil {
+	appDir := filepath.Join(root, "apps", name)
+	if _, err := os.Stat(appDir); err == nil {
+		return fmt.Errorf("app already exists: %s", appDir)
+	} else if !os.IsNotExist(err) {
 		return err
 	}
 
-	files := map[string]string{
-		"module.go": render(moduleGoTmpl, data),
+	data := appData{
+		Name:         name,
+		Pkg:          name,
+		Title:        title,
+		Summary:      summary,
+		Route:        strings.ReplaceAll(name, "_", "-"),
+		WithGraphQL:  opts.WithGraphQL,
+		IsSvelte:     typ == "svelte",
+		EventSourced: opts.EventSourced,
+	}
+
+	if err := os.MkdirAll(filepath.Join(appDir, "views"), 0o755); err != nil {
+		return err
+	}
+
+	files := map[string]string{}
+	if opts.EventSourced {
+		files["app.yaml"] = render(appSpecYAMLTmpl, data)
+		files["module.go"] = render(eventSourcedModuleGoTmpl, data)
+		files["hooks.go"] = render(eventSourcedHooksGoTmpl, data)
+		files["migrations/001_events.sql"] = render(eventsMigrationSQLTmpl, data)
+		files["migrations/002_items_read.sql"] = render(readModelMigrationSQLTmpl, data)
+		files["locale/en.po"] = render(localeEnTmpl, data)
+		files["locale/fa.po"] = render(localeFaTmpl, data)
+		files["views/Items.svelte"] = render(svelteListViewTmpl, data)
+		files["views/NewItem.svelte"] = render(svelteFormViewTmpl, data)
+	} else {
+		files["module.go"] = render(moduleGoTmpl, data)
 	}
 	if typ == "vanilla" {
-		files["spa/spa.js"] = render(vanillaSpaJSTmpl, data)
-	} else {
-		files["spa/main.ts"] = render(svelteMainTmpl, data)
-		files["spa/App.svelte"] = render(svelteAppTmpl, data)
-		files["spa/vite.config.ts"] = svelteViteConfig
-		files["spa/svelte.config.js"] = svelteConfigJS
-		files["spa/tsconfig.json"] = svelteTSConfig
-		files["spa/package.json"] = render(sveltePackageJSONTmpl, data)
-		if opts.WithGraphQL {
-			files["spa/graphql.ts"] = render(svelteGraphQLTSTmpl, data)
+		return fmt.Errorf("vanilla apps are no longer supported; use --type svelte")
+	}
+	if !opts.EventSourced {
+		files["views/Index.svelte"] = render(svelteViewTmpl, data)
+	}
+	if opts.WithGraphQL {
+		if err := os.MkdirAll(filepath.Join(appDir, "lib"), 0o755); err != nil {
+			return err
 		}
+		files["lib/graphql.ts"] = render(svelteGraphQLTSTmpl, data)
 	}
 
 	for rel, content := range files {
@@ -131,13 +139,64 @@ func createApp(opts AppOptions) error {
 	}
 	fmt.Println("updated apps/apps.go")
 
+	if opts.EventSourced {
+		if err := runGenTypes([]string{name}); err != nil {
+			return fmt.Errorf("gen-types: %w", err)
+		}
+	}
+
 	fmt.Printf("\nNext steps:\n")
 	if typ == "svelte" {
-		fmt.Printf("  cd apps/%s/spa && npm install && npm run build\n", name)
-		fmt.Printf("  # or: make spa-build  (after adding this app to Makefile if desired)\n")
+		fmt.Printf("  make spa-build   # rebuild the central SPA (includes app views)\n")
 	}
+	fmt.Printf("  make generate     # refresh __types__ after app.yaml changes\n")
 	fmt.Printf("  go run ./cmd/server\n")
 	fmt.Printf("  open http://localhost:8080/app/%s\n", data.Route)
+	return nil
+}
+
+func createAddon(root, name, title, summary string) error {
+	appDir := filepath.Join(root, "apps", name)
+	if _, err := os.Stat(appDir); err == nil {
+		return fmt.Errorf("app already exists: %s", appDir)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	data := appData{
+		Name:    name,
+		Pkg:     name,
+		Title:   title,
+		Summary: summary,
+	}
+	files := map[string]string{
+		"app.yaml":  render(addonAppYamlTmpl, data),
+		"module.go": render(addonModuleGoTmpl, data),
+	}
+	for rel, content := range files {
+		path := filepath.Join(appDir, rel)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return err
+		}
+		if strings.HasSuffix(rel, ".go") {
+			formatted, err := format.Source([]byte(content))
+			if err != nil {
+				return fmt.Errorf("format %s: %w\n----\n%s", rel, err, content)
+			}
+			content = string(formatted)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			return err
+		}
+		fmt.Println("created", filepath.Join("apps", name, rel))
+	}
+	if err := registerBlankImport(root, name); err != nil {
+		return err
+	}
+	fmt.Println("updated apps/apps.go")
+	fmt.Printf("\nNext steps:\n")
+	fmt.Printf("  Implement named handlers and call extension.RegisterNamed in init()\n")
+	fmt.Printf("  Wire handlers in app.yaml extends: entries\n")
+	fmt.Printf("  go run ./cmd/server\n")
 	return nil
 }
 

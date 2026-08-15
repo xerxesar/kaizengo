@@ -1,0 +1,58 @@
+name: hellospec
+title: HelloSpec
+summary: Spec-driven greetings demo (sdk/engine)
+depends:
+  - core
+  - identity
+  - auth
+  - permissions
+extensions: true
+uses:
+  - identity.users
+  - permissions.rbac
+
+nav:
+  labelKey: nav.hellospec
+  route: hellospec
+  order: 45
+
+models:
+  - name: greeting
+    search:
+      collection: hellospec.greeting
+      fields: [message]
+    fields:
+      - name: message
+        type: string
+        required: true
+        validate:
+          minLength: 1
+          maxLength: 500
+
+views:
+  - name: GreetingList
+    type: page
+  - name: GreetingForm
+    type: page
+
+menus:
+  - id: greetings
+    labelKey: hellospec.menu.greetings
+    children:
+      - id: greeting_group
+        labelKey: hellospec.menu.group
+        children:
+          - id: greeting_list
+            labelKey: hellospec.menu.list
+            view: GreetingList
+          - id: greeting_new
+            labelKey: hellospec.menu.new
+            view: GreetingForm
+
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl

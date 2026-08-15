@@ -1,53 +1,48 @@
 package core
 
+//go:generate go run ../../cmd/godino gen-types core
+
 import (
 	"fmt"
 	"net/http"
 	"strings"
 
-	"kaizengo/apps/core/handlers"
-	"kaizengo/apps/core/service"
+	"kaizengo/internal/auth"
 	"kaizengo/internal/module"
+	i18ngql "kaizengo/internal/platform/i18n/gql"
+	searchgql "kaizengo/internal/platform/search/gql"
+	"kaizengo/packages/sdk-go/app"
+	"kaizengo/packages/sdk-go/engine"
 
-	"github.com/graphql-go/graphql"
+	"github.com/go-chi/chi/v5"
 )
 
-const ServiceGreeting = "core.greeting"
+const appName = "core"
+const appVersion = "0.1.0"
 
 func init() {
 	module.Register(&App{})
 }
 
-// App is the base kaizengo shell (SPA launcher + shared services).
-type App struct {
-	greeting *service.Greeting
-}
+// App is the base kaizengo shell (SPA launcher + platform GraphQL fields).
+type App struct{}
 
 func (a *App) Manifest() module.Manifest {
-	return module.Manifest{
-		Name:        "core",
-		Version:     "0.1.0",
-		Summary:     "Core SPA shell that hosts other apps",
-		Depends:     nil,
-		Installable: true,
-	}
+	return app.ManifestFromSpec(app.MustAppSpec(appName), appVersion)
 }
 
 func (a *App) Setup(host *module.Host) error {
-	a.greeting = service.NewGreeting()
-	host.Provide(ServiceGreeting, a.greeting)
+	spec := app.MustAppSpec(appName)
+	if spec.EnableI18n {
+		app.MustLoadLocales(appName)
+	}
 
-	// Apps register their own GraphQL fields on host.GQL — core only owns hello.
-	host.GQL.RegisterQuery("hello", &graphql.Field{
-		Type: graphql.NewNonNull(graphql.String),
-		Args: graphql.FieldConfigArgument{
-			"name": &graphql.ArgumentConfig{Type: graphql.String},
-		},
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			name, _ := p.Args["name"].(string)
-			return a.greeting.Hello(name), nil
-		},
-	})
+	if _, err := engine.SetupEvents(host, appName, spec, nil); err != nil {
+		return err
+	}
+
+	i18ngql.Register(host)
+	searchgql.Register(host)
 	return nil
 }
 
@@ -55,21 +50,25 @@ func (a *App) Mount(host *module.Host) error {
 	r := host.Router
 
 	r.Get("/", http.RedirectHandler("/app/", http.StatusFound).ServeHTTP)
-	r.Get("/health", handlers.Health)
+	r.Get("/health", module.Health)
 
 	gql, err := host.GQL.Handler()
 	if err != nil {
 		return fmt.Errorf("graphql schema: %w", err)
 	}
-	r.Handle("/graphql", gql)
-	r.Get("/api/apps", module.NavHandler(host))
+
+	r.Group(func(protected chi.Router) {
+		protected.Use(auth.RequireAuth)
+		protected.Handle("/graphql", gql)
+		protected.Get("/api/apps", module.NavHandler(host))
+	})
 
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	r.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
 		http.ServeFile(w, req, "static/icon.ico")
 	})
 
-	spa := handlers.SPA("apps/core/spa/dist")
+	spa := module.SPA("apps/core/spa/dist")
 	r.Handle("/app", http.RedirectHandler("/app/", http.StatusMovedPermanently))
 	r.Handle("/app/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/app")
@@ -80,17 +79,4 @@ func (a *App) Mount(host *module.Host) error {
 	}))
 
 	return nil
-}
-
-// GreetingFromHost looks up the core greeting service (for other apps).
-func GreetingFromHost(host *module.Host) (*service.Greeting, error) {
-	svc, ok := host.Lookup(ServiceGreeting)
-	if !ok {
-		return nil, fmt.Errorf("core greeting service not registered")
-	}
-	g, ok := svc.(*service.Greeting)
-	if !ok {
-		return nil, fmt.Errorf("core greeting service has unexpected type")
-	}
-	return g, nil
 }

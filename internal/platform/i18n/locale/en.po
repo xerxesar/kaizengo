@@ -1,0 +1,38 @@
+# Platform / shell strings (navigation and shared labels).
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "nav.clock"
+msgstr "Clock"
+
+msgid "nav.settings"
+msgstr "Settings"
+
+msgid "nav.counter"
+msgstr "Counter"
+
+msgid "nav.identity"
+msgstr "Organization"
+
+msgid "nav.notes"
+msgstr "Notes"
+
+msgid "nav.oracle"
+msgstr "Oracle"
+
+msgid "nav.status"
+msgstr "Status"
+
+msgid "nav.hello"
+msgstr "Hello"
+
+msgid "nav.hellospec"
+msgstr "HelloSpec"
+
+msgid "nav.appman"
+msgstr "Apps"
+
+msgid "nav.inventory"
+msgstr "Inventory"

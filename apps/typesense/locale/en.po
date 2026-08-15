@@ -1,0 +1,85 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "typesense.title"
+msgstr "Search"
+
+msgid "typesense.subtitle"
+msgstr "Configure Typesense indexing for models and fields"
+
+msgid "typesense.ping"
+msgstr "API status"
+
+msgid "typesense.tab.search"
+msgstr "Search (Typesense)"
+
+msgid "typesense.menu.search"
+msgstr "Search (Typesense)"
+
+msgid "typesense.search.loading"
+msgstr "Loading search configuration…"
+
+msgid "typesense.search.unavailable"
+msgstr "Search configuration is unavailable."
+
+msgid "typesense.search.saved"
+msgstr "Search indexing settings saved."
+
+msgid "typesense.search.backend"
+msgstr "Backend"
+
+msgid "typesense.search.connected"
+msgstr "Typesense server connected"
+
+msgid "typesense.search.memory_hint"
+msgstr "Using in-memory index (set KaizenGo_TYPESENSE_URL for remote)"
+
+msgid "typesense.search.collections"
+msgstr "Enabled models"
+
+msgid "typesense.search.collections_hint"
+msgstr "Models with search enabled"
+
+msgid "typesense.search.documents"
+msgstr "Indexed documents"
+
+msgid "typesense.search.documents_hint"
+msgstr "Total documents in the active backend"
+
+msgid "typesense.search.models_title"
+msgstr "Model indexing"
+
+msgid "typesense.search.no_models"
+msgstr "No indexable models found in loaded apps."
+
+msgid "typesense.search.fields_hint"
+msgstr "Select fields to include in the search index."
+
+msgid "typesense.search.enabled"
+msgstr "enabled"
+
+msgid "typesense.search.disabled"
+msgstr "disabled"
+
+msgid "typesense.search.enable"
+msgstr "Enable"
+
+msgid "typesense.search.disable"
+msgstr "Disable"
+
+msgid "typesense.search.save"
+msgstr "Save"
+
+msgid "typesense.search.reindex"
+msgstr "Reindex"
+
+msgid "typesense.search.reindex_field"
+msgstr "Reindex field"
+
+msgid "typesense.search.reindexed"
+msgstr "Reindexed %d documents."
+
+msgid "typesense.search.reindexed_field"
+msgstr "Reindexed field %s (%d documents)."

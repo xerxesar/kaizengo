@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: kaizengo-postgres
+    restart: unless-stopped
+    ports:
+      # Host 6432 avoids conflicting with a local PostgreSQL on :5432.
+      - "6432:5432"
+    environment:
+      POSTGRES_USER: kaizengo
+      POSTGRES_PASSWORD: kaizengo
+      POSTGRES_DB: kaizengo
+    volumes:
+      - kaizengo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kaizengo -d kaizengo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  typesense:
+    image: typesense/typesense:27.1
+    container_name: kaizengo-typesense
+    restart: unless-stopped
+    ports:
+      - "6108:8108"
+    volumes:
+      - kaizengo_typesense_data:/data
+    command: >
+      --data-dir /data
+      --api-key=kaizengo-dev-key
+      --enable-cors
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8108/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  kaizengo_pgdata:
+  kaizengo_typesense_data:

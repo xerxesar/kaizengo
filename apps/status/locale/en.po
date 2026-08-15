@@ -1,0 +1,22 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "status.title"
+msgstr "Status"
+
+msgid "status.subtitle"
+msgstr "Example Svelte module in the core shell"
+
+msgid "status.health"
+msgstr "Module health"
+
+msgid "status.lead"
+msgstr "Mounted via import() and the standard Svelte SPA contract."
+
+msgid "status.loaded"
+msgstr "Loaded:"
+
+msgid "status.ping"
+msgstr "API status"

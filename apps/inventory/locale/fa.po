@@ -1,0 +1,1009 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "nav.inventory"
+msgstr "انبار"
+
+msgid "inventory.title"
+msgstr "انبار"
+
+msgid "inventory.subtitle"
+msgstr "کالای مادر، انبارها، ردیابی، و حسابداری دوطرفه موجودی"
+
+msgid "inventory.ping"
+msgstr "وضعیت API"
+
+msgid "inventory.create"
+msgstr "ایجاد"
+
+msgid "inventory.save"
+msgstr "ذخیره"
+
+msgid "inventory.created"
+msgstr "ایجاد شد."
+
+msgid "inventory.saved"
+msgstr "ذخیره شد."
+
+msgid "inventory.form.new"
+msgstr "رکورد جدید"
+
+msgid "inventory.empty"
+msgstr "هنوز رکوردی نیست."
+
+msgid "inventory.empty.products"
+msgstr "هنوز محصولی نیست."
+
+msgid "inventory.empty.variants"
+msgstr "هنوز SKUای نیست."
+
+msgid "inventory.empty.uom_groups"
+msgstr "هنوز گروه واحدی نیست."
+
+msgid "inventory.empty.uoms"
+msgstr "هنوز واحد اندازه‌گیری نیست."
+
+msgid "inventory.empty.attributes"
+msgstr "هنوز ویژگی‌ای نیست."
+
+msgid "inventory.empty.attribute_values"
+msgstr "هنوز مقدار ویژگی نیست."
+
+msgid "inventory.empty.stock"
+msgstr "موجودی ثبت نشده. یک رسید یا تعدیل را کامل کنید."
+
+msgid "inventory.empty.lots"
+msgstr "هنوز لات/بچ نیست."
+
+msgid "inventory.empty.serials"
+msgstr "هنوز شماره سریال نیست."
+
+msgid "inventory.empty.operations"
+msgstr "هنوز عملیات انبار نیست."
+
+msgid "inventory.empty.moves"
+msgstr "هنوز حرکت موجودی نیست. سطرها را اضافه کنید و عملیات را «انجام‌شده» کنید."
+
+msgid "inventory.empty.adjustments"
+msgstr "هنوز تعدیلی نیست."
+
+msgid "inventory.empty.returns"
+msgstr "هنوز مرجوعی نیست."
+
+msgid "inventory.empty.planning"
+msgstr "هنوز قاعده سفارش مجدد نیست."
+
+msgid "inventory.empty.ledger"
+msgstr "هنوز سند دفتر موجودی نیست. تکمیل عملیات سطر بدهکار و بستانکار می‌زند."
+
+msgid "inventory.empty.cost_layers"
+msgstr "هنوز لایه هزینه نیست."
+
+msgid "inventory.empty.hardware"
+msgstr "دستگاهی ثبت نشده."
+
+msgid "inventory.empty.integrations"
+msgstr "یکپارچه‌سازی پیکربندی نشده."
+
+msgid "inventory.menu.overview"
+msgstr "نمای کلی"
+
+msgid "inventory.menu.catalog"
+msgstr "کاتالوگ"
+
+msgid "inventory.menu.products"
+msgstr "محصولات"
+
+msgid "inventory.menu.units"
+msgstr "واحدهای اندازه‌گیری"
+
+msgid "inventory.menu.attributes"
+msgstr "ویژگی‌ها"
+
+msgid "inventory.menu.warehouse"
+msgstr "انبار"
+
+msgid "inventory.menu.locations"
+msgstr "محل‌ها"
+
+msgid "inventory.menu.stock"
+msgstr "موجودی"
+
+msgid "inventory.menu.traceability"
+msgstr "لات و سریال"
+
+msgid "inventory.menu.operations"
+msgstr "عملیات"
+
+msgid "inventory.menu.all_operations"
+msgstr "همه عملیات"
+
+msgid "inventory.menu.receipts"
+msgstr "رسید"
+
+msgid "inventory.menu.fulfillment"
+msgstr "خروج"
+
+msgid "inventory.menu.transfers"
+msgstr "انتقال"
+
+msgid "inventory.menu.adjustments"
+msgstr "تعدیل"
+
+msgid "inventory.menu.returns"
+msgstr "مرجوعی"
+
+msgid "inventory.menu.planning"
+msgstr "برنامه‌ریزی"
+
+msgid "inventory.menu.accounting"
+msgstr "ارزش‌گذاری"
+
+msgid "inventory.menu.ledger"
+msgstr "دفتر موجودی"
+
+msgid "inventory.menu.cost_layers"
+msgstr "لایه‌های هزینه"
+
+msgid "inventory.menu.configuration"
+msgstr "پیکربندی"
+
+msgid "inventory.menu.hardware"
+msgstr "دستگاه‌ها"
+
+msgid "inventory.menu.integrations"
+msgstr "یکپارچه‌سازی"
+
+msgid "inventory.stat.skus"
+msgstr "SKU فعال"
+
+msgid "inventory.stat.skus_hint"
+msgstr "تنوع محصول"
+
+msgid "inventory.stat.onhand"
+msgstr "موجودی"
+
+msgid "inventory.stat.onhand_hint"
+msgstr "مقدار در همه محل‌ها"
+
+msgid "inventory.stat.value"
+msgstr "ارزش موجودی"
+
+msgid "inventory.stat.value_hint"
+msgstr "از دفتر موجودی"
+
+msgid "inventory.stat.open"
+msgstr "عملیات باز"
+
+msgid "inventory.stat.open_hint"
+msgstr "ناتمام یا لغوشده"
+
+msgid "inventory.stat.stockout"
+msgstr "خطر کمبود"
+
+msgid "inventory.stat.stockout_hint"
+msgstr "زیر نقطه سفارش"
+
+msgid "inventory.stat.expiring"
+msgstr "لات در حال انقضا"
+
+msgid "inventory.stat.expiring_hint"
+msgstr "تا ۳۰ روز"
+
+msgid "inventory.stat.carrying"
+msgstr "هزینه نگهداری"
+
+msgid "inventory.stat.carrying_hint"
+msgstr "برآورد ۲۰٪ ارزش موجودی در سال"
+
+msgid "inventory.stat.gmroi"
+msgstr "نرخ گردش"
+
+msgid "inventory.stat.gmroi_hint"
+msgstr "GMROI واقعی به تاریخچه فروش نیاز دارد"
+
+msgid "inventory.overview.actions"
+msgstr "اقدام سریع"
+
+msgid "inventory.overview.receive"
+msgstr "ورود کالا"
+
+msgid "inventory.overview.fulfill"
+msgstr "خروج سفارش"
+
+msgid "inventory.overview.stock"
+msgstr "موجودی"
+
+msgid "inventory.overview.plan"
+msgstr "قواعد سفارش"
+
+msgid "inventory.overview.about_title"
+msgstr "موجودی چگونه نگه داشته می‌شود"
+
+msgid "inventory.overview.about"
+msgstr "مقدار موجودی تصویر دفتر کل دوطرفه و تغییرناپذیر است. رسید، تحویل، انتقال، تعدیل و مرجوعی سطر بدهکار و بستانکار می‌زنند. ارزش‌گذاری از روش بهای تمام‌شده هر محصول پیروی می‌کند. تکمیل عملیات سند را ثبت می‌کند؛ سطرهای دفتر دستی ویرایش نمی‌شوند."
+
+msgid "inventory.products.title"
+msgstr "محصولات"
+
+msgid "inventory.products.subtitle"
+msgstr "قالب با ردیابی، روش بها، و استراتژی خروج. تنوع‌ها SKUهایی هستند که انبار می‌کنید."
+
+msgid "inventory.variants.title"
+msgstr "SKU / تنوع"
+
+msgid "inventory.variants.subtitle"
+msgstr "واحد خرید، انبار و فروش، بارکد (UPC/EAN)، و بهای استاندارد."
+
+msgid "inventory.uom_groups.title"
+msgstr "گروه واحد"
+
+msgid "inventory.uom_groups.subtitle"
+msgstr "تبدیل فقط داخل یک گروه (تعداد، وزن، حجم) مجاز است."
+
+msgid "inventory.uoms.title"
+msgstr "واحد اندازه‌گیری"
+
+msgid "inventory.uoms.subtitle"
+msgstr "نسبت یعنی چند واحد مرجع در این واحد است (دوجین = ۱۲)."
+
+msgid "inventory.attributes.title"
+msgstr "ویژگی‌ها"
+
+msgid "inventory.attributes.subtitle"
+msgstr "ویژگی پویای کاتالوگ (رنگ، اندازه، درجه) برای تنوع محصول."
+
+msgid "inventory.attribute_values.title"
+msgstr "مقادیر ویژگی"
+
+msgid "inventory.attribute_values.subtitle"
+msgstr "مقادیر مجاز برای ویژگی انتخابی."
+
+msgid "inventory.locations.title"
+msgstr "محل‌ها"
+
+msgid "inventory.locations.subtitle"
+msgstr "از انبار تا خانه، به‌علاوه محل‌های مجازی تأمین‌کننده، مشتری، ترانزیت، ضایعات و تعدیل."
+
+msgid "inventory.locations.tree"
+msgstr "سلسله‌مراتب"
+
+msgid "inventory.locations.add"
+msgstr "افزودن محل"
+
+msgid "inventory.locations.detail"
+msgstr "محل"
+
+msgid "inventory.locations.count"
+msgstr "%d محل"
+
+msgid "inventory.stock.title"
+msgstr "موجودی"
+
+msgid "inventory.stock.subtitle"
+msgstr "مانده بر اساس SKU، محل و لات. مقدار تحت کنترل دفتر است."
+
+msgid "inventory.lots.title"
+msgstr "لات / بچ"
+
+msgid "inventory.lots.subtitle"
+msgstr "تاریخ انقضا و تولید برای FEFO و فراخوانی."
+
+msgid "inventory.serials.title"
+msgstr "شماره سریال"
+
+msgid "inventory.serials.subtitle"
+msgstr "هویت سرتاسری کالای سریالی."
+
+msgid "inventory.operations.title"
+msgstr "عملیات انبار"
+
+msgid "inventory.operations.subtitle"
+msgstr "عملیات بسازید، حرکت اضافه کنید، سپس وضعیت را «انجام‌شده» کنید تا دفتر ثبت شود."
+
+msgid "inventory.operations.header"
+msgstr "عملیات"
+
+msgid "inventory.operations.hint"
+msgstr "پیش‌نویس → تخصیص (رزرو) → انجام‌شده (ثبت بدهکار/بستانکار). عملیات لغوشده قابل تکمیل نیست."
+
+msgid "inventory.moves.title"
+msgstr "حرکت موجودی"
+
+msgid "inventory.moves.hint"
+msgstr "هر سطر محل مبدأ را بستانکار و مقصد را بدهکار می‌کند. کالای لات‌دار به لات و کالای سریالی به سریال نیاز دارد."
+
+msgid "inventory.receipts.title"
+msgstr "رسید"
+
+msgid "inventory.receipts.subtitle"
+msgstr "ورود کالا: مبدأ سفارش خرید، وضعیت کنترل کیفیت اختیاری، سپس تکمیل برای جانمایی."
+
+msgid "inventory.fulfillment.title"
+msgstr "خروج"
+
+msgid "inventory.fulfillment.subtitle"
+msgstr "برداشت خروجی. موج و دسته را روی عملیات برای برداشت موجی/ناحیه‌ای/دسته‌ای بگذارید."
+
+msgid "inventory.transfers.title"
+msgstr "انتقال داخلی"
+
+msgid "inventory.transfers.subtitle"
+msgstr "جابجایی بین محل‌ها یا انبارها. محل ترانزیت موجودی در راه را نگه می‌دارد."
+
+msgid "inventory.adjustments.title"
+msgstr "تعدیل و شمارش"
+
+msgid "inventory.adjustments.subtitle"
+msgstr "مقدار شمارش‌شده را بگذارید و «انجام‌شده» کنید. اختلاف به محل تعدیل موجودی می‌رود."
+
+msgid "inventory.returns.title"
+msgstr "مرجوعی / RMA"
+
+msgid "inventory.returns.subtitle"
+msgstr "وضعیت «دریافت‌شده» موجودی را برمی‌گرداند. تعیین تکلیف: موجودی مجدد، تعمیر، قرنطینه، ضایعات یا فقط اعتبار."
+
+msgid "inventory.planning.title"
+msgstr "قواعد سفارش مجدد"
+
+msgid "inventory.planning.subtitle"
+msgstr "موجودی ایمنی: نقطه سفارش = تقاضا × زمان تأمین + موجودی ایمنی. حداقل/حداکثر از حداقل به‌عنوان نقطه سفارش استفاده می‌کند. پیش‌بینی تا اتصال خوراک تاریخچه تقاضا همان مدل زمان تأمین را به کار می‌برد."
+
+msgid "inventory.ledger.title"
+msgstr "دفتر موجودی"
+
+msgid "inventory.ledger.subtitle"
+msgstr "سطرهای بدهکار و بستانکار تغییرناپذیر؛ مسیر حسابرسی مقدار و ارزش."
+
+msgid "inventory.cost_layers.title"
+msgstr "لایه‌های هزینه"
+
+msgid "inventory.cost_layers.subtitle"
+msgstr "لایه‌های FIFO/LIFO/میانگین که در ورود ساخته و در خروج مصرف می‌شوند."
+
+msgid "inventory.hardware.title"
+msgstr "دستگاه‌های انبار"
+
+msgid "inventory.hardware.subtitle"
+msgstr "ثبت اسکنر بارکد، خواننده RFID، اپ موبایل و حسگر MQTT/بلوتوث. جفت‌سازی و تله‌متری نقطه توسعه است."
+
+msgid "inventory.integrations.title"
+msgstr "یکپارچه‌سازی"
+
+msgid "inventory.integrations.subtitle"
+msgstr "وب‌هوک و کانکتور ERP (SAP، NetSuite، Odoo، فروشگاه، CRM). ارسال رویداد از دفتر موجودی است."
+
+msgid "inventory.field.name"
+msgstr "نام"
+
+msgid "inventory.field.code"
+msgstr "کد"
+
+msgid "inventory.field.sku"
+msgstr "SKU"
+
+msgid "inventory.field.description"
+msgstr "شرح"
+
+msgid "inventory.field.category"
+msgstr "دسته"
+
+msgid "inventory.field.tracking"
+msgstr "ردیابی"
+
+msgid "inventory.field.costingMethod"
+msgstr "روش بها"
+
+msgid "inventory.field.dispatchStrategy"
+msgstr "استراتژی خروج"
+
+msgid "inventory.field.shelfLifeDays"
+msgstr "عمر قفسه (روز)"
+
+msgid "inventory.field.attributeSchema"
+msgstr "طرح ویژگی"
+
+msgid "inventory.field.status"
+msgstr "وضعیت"
+
+msgid "inventory.field.notes"
+msgstr "یادداشت"
+
+msgid "inventory.field.productId"
+msgstr "محصول"
+
+msgid "inventory.field.upc"
+msgstr "UPC"
+
+msgid "inventory.field.ean"
+msgstr "EAN"
+
+msgid "inventory.field.barcode"
+msgstr "بارکد"
+
+msgid "inventory.field.attributes"
+msgstr "ویژگی‌ها"
+
+msgid "inventory.field.buyUomId"
+msgstr "واحد خرید"
+
+msgid "inventory.field.stockUomId"
+msgstr "واحد انبار"
+
+msgid "inventory.field.sellUomId"
+msgstr "واحد فروش"
+
+msgid "inventory.field.standardCost"
+msgstr "بهای استاندارد"
+
+msgid "inventory.field.listPrice"
+msgstr "قیمت فروش"
+
+msgid "inventory.field.weight"
+msgstr "وزن"
+
+msgid "inventory.field.averageCost"
+msgstr "بهای میانگین"
+
+msgid "inventory.field.locationType"
+msgstr "نوع محل"
+
+msgid "inventory.field.parentId"
+msgstr "والد"
+
+msgid "inventory.field.usage"
+msgstr "کاربرد"
+
+msgid "inventory.field.active"
+msgstr "فعال"
+
+msgid "inventory.field.id"
+msgstr "شناسه"
+
+msgid "inventory.field.variantId"
+msgstr "SKU"
+
+msgid "inventory.field.locationId"
+msgstr "محل"
+
+msgid "inventory.field.lotId"
+msgstr "لات"
+
+msgid "inventory.field.serial"
+msgstr "سریال"
+
+msgid "inventory.field.serialId"
+msgstr "سریال"
+
+msgid "inventory.field.quantity"
+msgstr "مقدار"
+
+msgid "inventory.field.reservedQty"
+msgstr "مقدار رزرو"
+
+msgid "inventory.field.uomId"
+msgstr "واحد"
+
+msgid "inventory.field.unitCost"
+msgstr "بهای واحد"
+
+msgid "inventory.field.value"
+msgstr "ارزش"
+
+msgid "inventory.field.pickingType"
+msgstr "نوع عملیات"
+
+msgid "inventory.field.state"
+msgstr "وضعیت"
+
+msgid "inventory.field.sourceLocationId"
+msgstr "از"
+
+msgid "inventory.field.destLocationId"
+msgstr "به"
+
+msgid "inventory.field.fromLocationId"
+msgstr "از"
+
+msgid "inventory.field.toLocationId"
+msgstr "به"
+
+msgid "inventory.field.scheduledDate"
+msgstr "زمان برنامه‌ریزی"
+
+msgid "inventory.field.doneDate"
+msgstr "زمان انجام"
+
+msgid "inventory.field.origin"
+msgstr "مبدأ"
+
+msgid "inventory.field.partnerName"
+msgstr "طرف حساب"
+
+msgid "inventory.field.qcStatus"
+msgstr "کنترل کیفیت"
+
+msgid "inventory.field.wave"
+msgstr "موج"
+
+msgid "inventory.field.batch"
+msgstr "دسته"
+
+msgid "inventory.field.pickingId"
+msgstr "عملیات"
+
+msgid "inventory.field.moveId"
+msgstr "حرکت"
+
+msgid "inventory.field.doneQty"
+msgstr "مقدار انجام‌شده"
+
+msgid "inventory.field.countedQty"
+msgstr "مقدار شمارش"
+
+msgid "inventory.field.systemQty"
+msgstr "مقدار سیستم"
+
+msgid "inventory.field.reason"
+msgstr "دلیل"
+
+msgid "inventory.field.customerName"
+msgstr "مشتری"
+
+msgid "inventory.field.disposition"
+msgstr "تعیین تکلیف"
+
+msgid "inventory.field.method"
+msgstr "روش"
+
+msgid "inventory.field.minQty"
+msgstr "حداقل"
+
+msgid "inventory.field.maxQty"
+msgstr "حداکثر"
+
+msgid "inventory.field.safetyStock"
+msgstr "موجودی ایمنی"
+
+msgid "inventory.field.leadTimeDays"
+msgstr "زمان تأمین (روز)"
+
+msgid "inventory.field.avgDailyDemand"
+msgstr "تقاضای روزانه میانگین"
+
+msgid "inventory.field.reorderPoint"
+msgstr "نقطه سفارش"
+
+msgid "inventory.field.qtyToOrder"
+msgstr "مقدار سفارش"
+
+msgid "inventory.field.deviceType"
+msgstr "نوع دستگاه"
+
+msgid "inventory.field.identifier"
+msgstr "شناسه دستگاه"
+
+msgid "inventory.field.kind"
+msgstr "گونه"
+
+msgid "inventory.field.endpoint"
+msgstr "نقطه پایانی"
+
+msgid "inventory.field.events"
+msgstr "رویدادها"
+
+msgid "inventory.field.secret"
+msgstr "رمز"
+
+msgid "inventory.field.config"
+msgstr "پیکربندی"
+
+msgid "inventory.field.lastSeen"
+msgstr "آخرین مشاهده"
+
+msgid "inventory.field.symbol"
+msgstr "نماد"
+
+msgid "inventory.field.ratio"
+msgstr "نسبت"
+
+msgid "inventory.field.rounding"
+msgstr "گرد کردن"
+
+msgid "inventory.field.uomType"
+msgstr "نوع واحد"
+
+msgid "inventory.field.groupId"
+msgstr "گروه"
+
+msgid "inventory.field.attributeType"
+msgstr "نوع ویژگی"
+
+msgid "inventory.field.attributeId"
+msgstr "ویژگی"
+
+msgid "inventory.field.expiryDate"
+msgstr "تاریخ انقضا"
+
+msgid "inventory.field.manufacturedDate"
+msgstr "تاریخ تولید"
+
+msgid "inventory.field.side"
+msgstr "سمت"
+
+msgid "inventory.field.occurredAt"
+msgstr "زمان وقوع"
+
+msgid "inventory.field.memo"
+msgstr "یادداشت سند"
+
+msgid "inventory.field.originalQty"
+msgstr "مقدار اولیه"
+
+msgid "inventory.field.receivedAt"
+msgstr "زمان دریافت"
+
+msgid "inventory.field.sourceMoveId"
+msgstr "حرکت مبدأ"
+
+msgid "inventory.enum.uom.uomType.reference"
+msgstr "مرجع"
+
+msgid "inventory.enum.uom.uomType.bigger"
+msgstr "بزرگ‌تر"
+
+msgid "inventory.enum.uom.uomType.smaller"
+msgstr "کوچک‌تر"
+
+msgid "inventory.enum.attribute.attributeType.select"
+msgstr "انتخابی"
+
+msgid "inventory.enum.attribute.attributeType.text"
+msgstr "متن"
+
+msgid "inventory.enum.attribute.attributeType.number"
+msgstr "عدد"
+
+msgid "inventory.enum.product.tracking.none"
+msgstr "بدون ردیابی"
+
+msgid "inventory.enum.product.tracking.lot"
+msgstr "لات / بچ"
+
+msgid "inventory.enum.product.tracking.serial"
+msgstr "سریال"
+
+msgid "inventory.enum.product.tracking.both"
+msgstr "لات و سریال"
+
+msgid "inventory.enum.product.costingMethod.fifo"
+msgstr "FIFO"
+
+msgid "inventory.enum.product.costingMethod.lifo"
+msgstr "LIFO"
+
+msgid "inventory.enum.product.costingMethod.moving_average"
+msgstr "میانگین متحرک"
+
+msgid "inventory.enum.product.costingMethod.standard"
+msgstr "بهای استاندارد"
+
+msgid "inventory.enum.product.dispatchStrategy.fifo"
+msgstr "FIFO"
+
+msgid "inventory.enum.product.dispatchStrategy.fefo"
+msgstr "FEFO"
+
+msgid "inventory.enum.product.dispatchStrategy.lifo"
+msgstr "LIFO"
+
+msgid "inventory.enum.product.status.draft"
+msgstr "پیش‌نویس"
+
+msgid "inventory.enum.product.status.active"
+msgstr "فعال"
+
+msgid "inventory.enum.product.status.discontinued"
+msgstr "متوقف"
+
+msgid "inventory.enum.product_variant.status.active"
+msgstr "فعال"
+
+msgid "inventory.enum.product_variant.status.inactive"
+msgstr "غیرفعال"
+
+msgid "inventory.enum.location.locationType.warehouse"
+msgstr "انبار"
+
+msgid "inventory.enum.location.locationType.zone"
+msgstr "ناحیه"
+
+msgid "inventory.enum.location.locationType.aisle"
+msgstr "راهرو"
+
+msgid "inventory.enum.location.locationType.rack"
+msgstr "قفسه"
+
+msgid "inventory.enum.location.locationType.shelf"
+msgstr "طبقه"
+
+msgid "inventory.enum.location.locationType.bin"
+msgstr "خانه"
+
+msgid "inventory.enum.location.locationType.supplier"
+msgstr "تأمین‌کننده"
+
+msgid "inventory.enum.location.locationType.customer"
+msgstr "مشتری"
+
+msgid "inventory.enum.location.locationType.transit"
+msgstr "ترانزیت"
+
+msgid "inventory.enum.location.locationType.scrap"
+msgstr "ضایعات"
+
+msgid "inventory.enum.location.locationType.inventory"
+msgstr "کسری/تعدیل موجودی"
+
+msgid "inventory.enum.location.locationType.quarantine"
+msgstr "قرنطینه"
+
+msgid "inventory.enum.location.locationType.production"
+msgstr "تولید"
+
+msgid "inventory.enum.location.usage.internal"
+msgstr "داخلی"
+
+msgid "inventory.enum.location.usage.virtual"
+msgstr "مجازی"
+
+msgid "inventory.enum.stock_serial.status.available"
+msgstr "موجود"
+
+msgid "inventory.enum.stock_serial.status.reserved"
+msgstr "رزرو"
+
+msgid "inventory.enum.stock_serial.status.in_transit"
+msgstr "در راه"
+
+msgid "inventory.enum.stock_serial.status.sold"
+msgstr "فروخته"
+
+msgid "inventory.enum.stock_serial.status.scrapped"
+msgstr "ضایعات"
+
+msgid "inventory.enum.stock_serial.status.quarantine"
+msgstr "قرنطینه"
+
+msgid "inventory.enum.stock_ledger.side.debit"
+msgstr "بدهکار"
+
+msgid "inventory.enum.stock_ledger.side.credit"
+msgstr "بستانکار"
+
+msgid "inventory.enum.picking.pickingType.incoming"
+msgstr "رسید"
+
+msgid "inventory.enum.picking.pickingType.outgoing"
+msgstr "تحویل"
+
+msgid "inventory.enum.picking.pickingType.internal"
+msgstr "داخلی"
+
+msgid "inventory.enum.picking.pickingType.return"
+msgstr "مرجوعی"
+
+msgid "inventory.enum.picking.state.draft"
+msgstr "پیش‌نویس"
+
+msgid "inventory.enum.picking.state.confirmed"
+msgstr "تأییدشده"
+
+msgid "inventory.enum.picking.state.assigned"
+msgstr "تخصیص‌یافته"
+
+msgid "inventory.enum.picking.state.done"
+msgstr "انجام‌شده"
+
+msgid "inventory.enum.picking.state.cancelled"
+msgstr "لغوشده"
+
+msgid "inventory.enum.picking.qcStatus.pending"
+msgstr "در انتظار"
+
+msgid "inventory.enum.picking.qcStatus.passed"
+msgstr "قبول"
+
+msgid "inventory.enum.picking.qcStatus.failed"
+msgstr "رد"
+
+msgid "inventory.enum.picking.qcStatus.skipped"
+msgstr "نادیده"
+
+msgid "inventory.enum.stock_move.state.draft"
+msgstr "پیش‌نویس"
+
+msgid "inventory.enum.stock_move.state.done"
+msgstr "انجام‌شده"
+
+msgid "inventory.enum.stock_move.state.cancelled"
+msgstr "لغوشده"
+
+msgid "inventory.enum.adjustment.reason.cycle_count"
+msgstr "شمارش دوره‌ای"
+
+msgid "inventory.enum.adjustment.reason.physical"
+msgstr "شمارش فیزیکی"
+
+msgid "inventory.enum.adjustment.reason.damage"
+msgstr "آسیب"
+
+msgid "inventory.enum.adjustment.reason.found"
+msgstr "یافت‌شده"
+
+msgid "inventory.enum.adjustment.reason.data_fix"
+msgstr "اصلاح داده"
+
+msgid "inventory.enum.adjustment.state.draft"
+msgstr "پیش‌نویس"
+
+msgid "inventory.enum.adjustment.state.confirmed"
+msgstr "تأییدشده"
+
+msgid "inventory.enum.adjustment.state.done"
+msgstr "انجام‌شده"
+
+msgid "inventory.enum.rma.state.draft"
+msgstr "پیش‌نویس"
+
+msgid "inventory.enum.rma.state.received"
+msgstr "دریافت‌شده"
+
+msgid "inventory.enum.rma.state.dispositioned"
+msgstr "تعیین‌تکلیف‌شده"
+
+msgid "inventory.enum.rma.state.closed"
+msgstr "بسته"
+
+msgid "inventory.enum.rma.disposition.restock"
+msgstr "موجودی مجدد"
+
+msgid "inventory.enum.rma.disposition.repair"
+msgstr "تعمیر"
+
+msgid "inventory.enum.rma.disposition.quarantine"
+msgstr "قرنطینه"
+
+msgid "inventory.enum.rma.disposition.scrap"
+msgstr "ضایعات"
+
+msgid "inventory.enum.rma.disposition.credit"
+msgstr "فقط اعتبار"
+
+msgid "inventory.enum.reorder_rule.method.min_max"
+msgstr "حداقل / حداکثر"
+
+msgid "inventory.enum.reorder_rule.method.safety_stock"
+msgstr "موجودی ایمنی"
+
+msgid "inventory.enum.reorder_rule.method.forecast"
+msgstr "پیش‌بینی"
+
+msgid "inventory.enum.iot_device.deviceType.barcode_scanner"
+msgstr "اسکنر بارکد"
+
+msgid "inventory.enum.iot_device.deviceType.rfid_reader"
+msgstr "خواننده RFID"
+
+msgid "inventory.enum.iot_device.deviceType.mobile"
+msgstr "موبایل"
+
+msgid "inventory.enum.iot_device.deviceType.mqtt_sensor"
+msgstr "حسگر MQTT"
+
+msgid "inventory.enum.iot_device.deviceType.bluetooth_sensor"
+msgstr "حسگر بلوتوث"
+
+msgid "inventory.enum.iot_device.status.online"
+msgstr "آنلاین"
+
+msgid "inventory.enum.iot_device.status.offline"
+msgstr "آفلاین"
+
+msgid "inventory.enum.iot_device.status.disabled"
+msgstr "غیرفعال"
+
+msgid "inventory.enum.integration.kind.webhook"
+msgstr "وب‌هوک"
+
+msgid "inventory.enum.integration.kind.sap"
+msgstr "SAP"
+
+msgid "inventory.enum.integration.kind.netsuite"
+msgstr "NetSuite"
+
+msgid "inventory.enum.integration.kind.odoo"
+msgstr "Odoo"
+
+msgid "inventory.enum.integration.kind.shopify"
+msgstr "Shopify"
+
+msgid "inventory.enum.integration.kind.crm"
+msgstr "CRM"
+
+msgid "inventory.enum.integration.kind.custom"
+msgstr "سفارشی"
+
+msgid "inventory.error.ledger_immutable"
+msgstr "ردیف‌های دفتر موجودی تغییرناپذیرند"
+
+msgid "inventory.error.quant_create"
+msgstr "موجودی روی دست با ثبت عملیات انبار ساخته می‌شود"
+
+msgid "inventory.error.ledger_create"
+msgstr "ردیف‌های دفتر با عملیات انبار ثبت می‌شوند، نه به‌صورت دستی"
+
+msgid "inventory.error.quant_update"
+msgstr "موجودی روی دست از دفتر کنترل می‌شود؛ از تعدیل یا عملیات انبار استفاده کنید"
+
+msgid "inventory.error.quant_delete"
+msgstr "موجودی روی دست را نمی‌توان حذف کرد؛ از تعدیل استفاده کنید"
+
+msgid "inventory.error.cost_layer"
+msgstr "لایه‌های بها با ثبت موجودی نگهداری می‌شوند"
+
+msgid "inventory.error.move_done"
+msgstr "حرکت‌های تکمیل‌شده را نمی‌توان تغییر داد"
+
+msgid "inventory.error.uom_ratio"
+msgstr "نسبت واحد اندازه‌گیری باید مثبت باشد"
+
+msgid "inventory.error.picking_cancelled_complete"
+msgstr "عملیات لغوشده را نمی‌توان تکمیل کرد"
+
+msgid "inventory.error.picking_done_cancel"
+msgstr "عملیات تکمیل‌شده را نمی‌توان لغو کرد؛ یک انتقال معکوس بسازید"
+
+msgid "inventory.error.picking_done_delete"
+msgstr "عملیات تکمیل‌شده را نمی‌توان حذف کرد"
+
+msgid "inventory.error.qty_positive"
+msgstr "مقدار باید مثبت باشد"
+
+msgid "inventory.error.uom_convert"
+msgstr "نمی‌توان بین واحدهای اندازه‌گیری متفاوت تبدیل کرد"
+
+msgid "inventory.error.serial_required"
+msgstr "این محصول به شماره سریال نیاز دارد"
+
+msgid "inventory.error.lot_required"
+msgstr "این محصول به شماره لات/بچ نیاز دارد"
+
+msgid "inventory.error.lot_and_serial_required"
+msgstr "این محصول به لات و سریال نیاز دارد"
+
+msgid "inventory.error.move_locations"
+msgstr "حرکت موجودی به مبدأ و مقصد نیاز دارد"
+
+msgid "inventory.error.move_qty"
+msgstr "مقدار حرکت موجودی باید مثبت باشد"
+
+msgid "inventory.error.picking_no_moves"
+msgstr "نمی‌توان عملیاتی بدون حرکت موجودی را تکمیل کرد"
+
+msgid "inventory.error.no_qty_reserve"
+msgstr "موجودی روی دستی برای رزرو این حرکت نیست"
+
+msgid "inventory.error.insufficient_reserve"
+msgstr "موجودی قابل رزرو کافی نیست"
+
+msgid "inventory.error.rma_location"
+msgstr "مرجوعی به محل مقصد نیاز دارد"
+
+msgid "inventory.error.rma_qty"
+msgstr "مقدار مرجوعی باید مثبت باشد"
+
+msgid "inventory.error.no_location"
+msgstr "محل از نوع %s پیکربندی نشده است"

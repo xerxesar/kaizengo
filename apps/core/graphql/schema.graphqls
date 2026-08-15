@@ -1,6 +1,0 @@
-type Query {
-  hello(name: String): String!
-}
-
-# App-owned fields (e.g. counter) are registered at runtime via host.GQL
-# and do not live in this file. This schema is only for optional client codegen.

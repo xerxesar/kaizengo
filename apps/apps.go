@@ -2,11 +2,14 @@
 package apps
 
 import (
-	_ "kaizengo/apps/clock"
+	_ "kaizengo/apps/appman"
+	_ "kaizengo/apps/audit"
+	_ "kaizengo/apps/auth"
 	_ "kaizengo/apps/core"
-	_ "kaizengo/apps/counter"
-	_ "kaizengo/apps/notes"
-	_ "kaizengo/apps/oracle"
+	_ "kaizengo/apps/hellospec"
+	_ "kaizengo/apps/identity"
+	_ "kaizengo/apps/inventory"
+	_ "kaizengo/apps/permissions"
 	_ "kaizengo/apps/settings"
-	_ "kaizengo/apps/status"
+	_ "kaizengo/apps/typesense"
 )

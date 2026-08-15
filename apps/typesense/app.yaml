@@ -1,0 +1,51 @@
+name: typesense
+title: Typesense
+summary: Platform search driver and list-view search bar addon
+depends:
+  - core
+provides:
+  - platform.search.backend
+spa: true
+i18n: true
+extends:
+  - point: model.*.*.afterCreate
+    handler: indexDocument
+    priority: 50
+  - point: model.*.*.afterUpdate
+    handler: indexDocument
+    priority: 50
+  - point: model.*.*.afterDelete
+    handler: deleteDocument
+    priority: 50
+  - point: platform.search.query
+    handler: queryDocuments
+    priority: 50
+exports:
+  components:
+    - id: platform.SearchBar
+      module: "@kaizengo/sdk-svelte/search/SearchBar.svelte"
+    - id: typesense.SearchSettings
+      module: "@apps/typesense/views/SearchSettings.svelte"
+  views:
+    - app: hellospec
+      match: "*.list"
+      slot: toolbar
+      component: platform.SearchBar
+    - app: identity
+      match: "*.list"
+      slot: toolbar
+      component: platform.SearchBar
+  menus:
+    - app: settings
+      id: search
+      labelKey: typesense.menu.search
+      view: SearchSettings
+      component: typesense.SearchSettings
+      order: 50
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl

@@ -1,0 +1,49 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "nav.appman"
+msgstr "Apps"
+
+msgid "appman.menu.apps"
+msgstr "Apps"
+
+msgid "appman.title"
+msgstr "Apps"
+
+msgid "appman.subtitle"
+msgstr "Install or upgrade bundled apps. Install runs migrations and loads the app into this process."
+
+msgid "appman.search"
+msgstr "Search apps…"
+
+msgid "appman.installed"
+msgstr "Installed"
+
+msgid "appman.available"
+msgstr "Available"
+
+msgid "appman.upgrade"
+msgstr "Upgrade"
+
+msgid "appman.system"
+msgstr "System"
+
+msgid "appman.install"
+msgstr "Install"
+
+msgid "appman.version"
+msgstr "Version %s"
+
+msgid "appman.installed_version"
+msgstr "Installed %s"
+
+msgid "appman.depends"
+msgstr "Depends on %s"
+
+msgid "appman.empty"
+msgstr "No apps match."
+
+msgid "appman.loaded"
+msgstr "Loaded"

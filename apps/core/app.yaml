@@ -1,0 +1,20 @@
+name: core
+title: Core
+summary: Core SPA shell that hosts other apps
+depends: []
+provides:
+  - core.shell
+uses:
+  - platform.i18n
+  - platform.time
+  - platform.config
+spa: false
+i18n: true
+autoInstall: true
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl

@@ -1,0 +1,31 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "settings.title"
+msgstr "تنظیمات"
+
+msgid "settings.subtitle"
+msgstr "پیکربندی زبان، تقویم و عنوان پوسته"
+
+msgid "settings.locale"
+msgstr "زبان"
+
+msgid "settings.calendar"
+msgstr "تقویم پیش‌فرض"
+
+msgid "settings.shell"
+msgstr "عنوان پوسته"
+
+msgid "settings.save"
+msgstr "ذخیره"
+
+msgid "settings.saved"
+msgstr "ذخیره شد."
+
+msgid "settings.ping"
+msgstr "وضعیت API"
+
+msgid "settings.menu.general"
+msgstr "عمومی"

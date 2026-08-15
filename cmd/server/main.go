@@ -1,14 +1,24 @@
 package main
 
 import (
+	"context"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	_ "kaizengo/apps"
-	_ "kaizengo/internal/platform/drivers"
+	authsvc "kaizengo/apps/auth"
+	"kaizengo/internal/auth"
 	"kaizengo/internal/module"
+	"kaizengo/internal/platform/config"
+	_ "kaizengo/internal/platform/drivers"
+	"kaizengo/internal/platform/postgres"
+	"kaizengo/packages/sdk-go/app"
+	"kaizengo/packages/sdk-go/engine"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,16 +30,59 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	host := module.NewHost(r, slog.Default())
-	wanted := module.ParseAppList(os.Getenv("KaizenGo_APPS"))
+
+	db, err := postgres.Connect(context.Background(), config.PostgresDSN())
+	if err != nil {
+		log.Fatalf("postgres: %v", err)
+	}
+	postgres.Attach(host, db)
+	r.Use(postgres.Middleware(db))
+
+	r.Use(auth.SessionMiddleware(func(sessionID string) (*auth.Principal, error) {
+		raw, ok := host.Lookup(authsvc.Name)
+		if !ok {
+			return nil, auth.ErrUnauthenticated
+		}
+		svc, ok := raw.(*authsvc.Service)
+		if !ok {
+			return nil, auth.ErrUnauthenticated
+		}
+		return svc.ValidateSession(sessionID)
+	}))
+
+	store, err := app.OpenInstalledStore(context.Background(), db.Pool())
+	if err != nil {
+		log.Fatalf("installed apps: %v", err)
+	}
+	mgr := engine.NewManager(host, module.Default, store)
+	host.Provide(engine.ManagerKey, mgr)
+
+	wanted, err := mgr.Wanted(context.Background(), module.ParseAppList(os.Getenv("KaizenGo_APPS")))
+	if err != nil {
+		log.Fatalf("resolve apps: %v", err)
+	}
 	if err := module.Load(host, module.Default, wanted); err != nil {
 		log.Fatal(err)
+	}
+	if err := mgr.SyncLoaded(context.Background()); err != nil {
+		log.Fatalf("sync installed apps: %v", err)
 	}
 
 	r.Get("/apps", module.AppsHandler(host))
 
 	addr := envOr("ADDR", ":8080")
 	log.Printf("listening on %s (apps: %v)", addr, appNames(host))
-	if err := http.ListenAndServe(addr, r); err != nil {
+	srv := &http.Server{Addr: addr, Handler: r}
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+		<-sig
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = module.Shutdown(ctx, host)
+		_ = srv.Shutdown(ctx)
+	}()
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }

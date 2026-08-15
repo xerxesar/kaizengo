@@ -1,0 +1,1009 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "nav.inventory"
+msgstr "Inventory"
+
+msgid "inventory.title"
+msgstr "Inventory"
+
+msgid "inventory.subtitle"
+msgstr "Product master, warehouses, traceability, and double-entry stock"
+
+msgid "inventory.ping"
+msgstr "API status"
+
+msgid "inventory.create"
+msgstr "Create"
+
+msgid "inventory.save"
+msgstr "Save"
+
+msgid "inventory.created"
+msgstr "Created."
+
+msgid "inventory.saved"
+msgstr "Saved."
+
+msgid "inventory.form.new"
+msgstr "New record"
+
+msgid "inventory.empty"
+msgstr "No records yet."
+
+msgid "inventory.empty.products"
+msgstr "No products yet."
+
+msgid "inventory.empty.variants"
+msgstr "No SKUs yet."
+
+msgid "inventory.empty.uom_groups"
+msgstr "No unit groups yet."
+
+msgid "inventory.empty.uoms"
+msgstr "No units of measure yet."
+
+msgid "inventory.empty.attributes"
+msgstr "No attributes yet."
+
+msgid "inventory.empty.attribute_values"
+msgstr "No attribute values yet."
+
+msgid "inventory.empty.stock"
+msgstr "No on-hand balances. Complete a receipt or adjustment to post stock."
+
+msgid "inventory.empty.lots"
+msgstr "No lots yet."
+
+msgid "inventory.empty.serials"
+msgstr "No serial numbers yet."
+
+msgid "inventory.empty.operations"
+msgstr "No warehouse operations yet."
+
+msgid "inventory.empty.moves"
+msgstr "No stock moves yet. Add lines, then set the operation to Done."
+
+msgid "inventory.empty.adjustments"
+msgstr "No adjustments yet."
+
+msgid "inventory.empty.returns"
+msgstr "No RMAs yet."
+
+msgid "inventory.empty.planning"
+msgstr "No reorder rules yet."
+
+msgid "inventory.empty.ledger"
+msgstr "No ledger entries yet. Completing an operation posts debit and credit lines."
+
+msgid "inventory.empty.cost_layers"
+msgstr "No cost layers yet."
+
+msgid "inventory.empty.hardware"
+msgstr "No devices registered."
+
+msgid "inventory.empty.integrations"
+msgstr "No integrations configured."
+
+msgid "inventory.menu.overview"
+msgstr "Overview"
+
+msgid "inventory.menu.catalog"
+msgstr "Catalog"
+
+msgid "inventory.menu.products"
+msgstr "Products"
+
+msgid "inventory.menu.units"
+msgstr "Units of measure"
+
+msgid "inventory.menu.attributes"
+msgstr "Attributes"
+
+msgid "inventory.menu.warehouse"
+msgstr "Warehouse"
+
+msgid "inventory.menu.locations"
+msgstr "Locations"
+
+msgid "inventory.menu.stock"
+msgstr "Stock on hand"
+
+msgid "inventory.menu.traceability"
+msgstr "Lots & serials"
+
+msgid "inventory.menu.operations"
+msgstr "Operations"
+
+msgid "inventory.menu.all_operations"
+msgstr "All operations"
+
+msgid "inventory.menu.receipts"
+msgstr "Receipts"
+
+msgid "inventory.menu.fulfillment"
+msgstr "Fulfillment"
+
+msgid "inventory.menu.transfers"
+msgstr "Transfers"
+
+msgid "inventory.menu.adjustments"
+msgstr "Adjustments"
+
+msgid "inventory.menu.returns"
+msgstr "Returns"
+
+msgid "inventory.menu.planning"
+msgstr "Planning"
+
+msgid "inventory.menu.accounting"
+msgstr "Valuation"
+
+msgid "inventory.menu.ledger"
+msgstr "Stock ledger"
+
+msgid "inventory.menu.cost_layers"
+msgstr "Cost layers"
+
+msgid "inventory.menu.configuration"
+msgstr "Configuration"
+
+msgid "inventory.menu.hardware"
+msgstr "Devices"
+
+msgid "inventory.menu.integrations"
+msgstr "Integrations"
+
+msgid "inventory.stat.skus"
+msgstr "Active SKUs"
+
+msgid "inventory.stat.skus_hint"
+msgstr "Product variants"
+
+msgid "inventory.stat.onhand"
+msgstr "On hand"
+
+msgid "inventory.stat.onhand_hint"
+msgstr "Quantity across locations"
+
+msgid "inventory.stat.value"
+msgstr "Inventory value"
+
+msgid "inventory.stat.value_hint"
+msgstr "From the stock ledger"
+
+msgid "inventory.stat.open"
+msgstr "Open operations"
+
+msgid "inventory.stat.open_hint"
+msgstr "Not done or cancelled"
+
+msgid "inventory.stat.stockout"
+msgstr "Stockout risk"
+
+msgid "inventory.stat.stockout_hint"
+msgstr "Below reorder point"
+
+msgid "inventory.stat.expiring"
+msgstr "Lots expiring"
+
+msgid "inventory.stat.expiring_hint"
+msgstr "Within 30 days"
+
+msgid "inventory.stat.carrying"
+msgstr "Carrying cost"
+
+msgid "inventory.stat.carrying_hint"
+msgstr "Estimated 20% of on-hand value / year"
+
+msgid "inventory.stat.gmroi"
+msgstr "Turnover proxy"
+
+msgid "inventory.stat.gmroi_hint"
+msgstr "Needs sales history for true GMROI"
+
+msgid "inventory.overview.actions"
+msgstr "Quick actions"
+
+msgid "inventory.overview.receive"
+msgstr "Receive stock"
+
+msgid "inventory.overview.fulfill"
+msgstr "Fulfill orders"
+
+msgid "inventory.overview.stock"
+msgstr "Stock on hand"
+
+msgid "inventory.overview.plan"
+msgstr "Reorder rules"
+
+msgid "inventory.overview.about_title"
+msgstr "How stock is kept"
+
+msgid "inventory.overview.about"
+msgstr "On-hand quantity is a projection of an immutable double-entry ledger. Receipts, deliveries, transfers, adjustments, and RMAs post debit and credit lines. Valuation follows each product’s costing method (FIFO, LIFO, moving average, or standard). Completing an operation posts the journal; you cannot edit ledger rows by hand."
+
+msgid "inventory.products.title"
+msgstr "Products"
+
+msgid "inventory.products.subtitle"
+msgstr "Templates with tracking, costing, and dispatch strategy. Variants are the SKUs you stock."
+
+msgid "inventory.variants.title"
+msgstr "SKUs / variants"
+
+msgid "inventory.variants.subtitle"
+msgstr "Buy, stock, and sell units, barcodes (UPC/EAN), and standard cost."
+
+msgid "inventory.uom_groups.title"
+msgstr "Unit groups"
+
+msgid "inventory.uom_groups.subtitle"
+msgstr "Conversions only apply inside the same group (count, weight, volume)."
+
+msgid "inventory.uoms.title"
+msgstr "Units of measure"
+
+msgid "inventory.uoms.subtitle"
+msgstr "Ratio is how many reference units one of this UoM contains (dozen = 12)."
+
+msgid "inventory.attributes.title"
+msgstr "Attributes"
+
+msgid "inventory.attributes.subtitle"
+msgstr "Dynamic catalog attributes (color, size, grade) for product variants."
+
+msgid "inventory.attribute_values.title"
+msgstr "Attribute values"
+
+msgid "inventory.attribute_values.subtitle"
+msgstr "Allowed values for select-type attributes."
+
+msgid "inventory.locations.title"
+msgstr "Locations"
+
+msgid "inventory.locations.subtitle"
+msgstr "Warehouses down to bins, plus virtual locations for suppliers, customers, transit, scrap, and adjustments."
+
+msgid "inventory.locations.tree"
+msgstr "Hierarchy"
+
+msgid "inventory.locations.add"
+msgstr "Add location"
+
+msgid "inventory.locations.detail"
+msgstr "Location"
+
+msgid "inventory.locations.count"
+msgstr "%d locations"
+
+msgid "inventory.stock.title"
+msgstr "Stock on hand"
+
+msgid "inventory.stock.subtitle"
+msgstr "Balances by SKU, location, and lot. Quantity is ledger-controlled."
+
+msgid "inventory.lots.title"
+msgstr "Lots / batches"
+
+msgid "inventory.lots.subtitle"
+msgstr "Expiry and manufactured dates drive FEFO dispatch and recalls."
+
+msgid "inventory.serials.title"
+msgstr "Serial numbers"
+
+msgid "inventory.serials.subtitle"
+msgstr "End-to-end identity for serialized items."
+
+msgid "inventory.operations.title"
+msgstr "Warehouse operations"
+
+msgid "inventory.operations.subtitle"
+msgstr "Create an operation, add stock moves, then set state to Done to post the ledger."
+
+msgid "inventory.operations.header"
+msgstr "Operation"
+
+msgid "inventory.operations.hint"
+msgstr "Draft → Assigned (reserves quantity) → Done (posts debit/credit). Cancelled operations cannot be completed."
+
+msgid "inventory.moves.title"
+msgstr "Stock moves"
+
+msgid "inventory.moves.hint"
+msgstr "Each line credits the source location and debits the destination. Lot-tracked products require a lot; serial-tracked products require a serial."
+
+msgid "inventory.receipts.title"
+msgstr "Receipts"
+
+msgid "inventory.receipts.subtitle"
+msgstr "Inbound receiving: match a PO origin, optional QC status, then complete to put away."
+
+msgid "inventory.fulfillment.title"
+msgstr "Fulfillment"
+
+msgid "inventory.fulfillment.subtitle"
+msgstr "Outbound picks. Use wave and batch on the operation for wave/zone/batch picking."
+
+msgid "inventory.transfers.title"
+msgstr "Internal transfers"
+
+msgid "inventory.transfers.subtitle"
+msgstr "Move stock between locations or warehouses. Transit locations track stock in flight."
+
+msgid "inventory.adjustments.title"
+msgstr "Adjustments & cycle counts"
+
+msgid "inventory.adjustments.subtitle"
+msgstr "Set counted quantity and mark Done. The difference posts against the inventory-adjustment location."
+
+msgid "inventory.returns.title"
+msgstr "Returns / RMA"
+
+msgid "inventory.returns.subtitle"
+msgstr "Set state to Received to bring stock back. Disposition chooses restock, repair, quarantine, scrap, or credit-only."
+
+msgid "inventory.planning.title"
+msgstr "Reorder rules"
+
+msgid "inventory.planning.subtitle"
+msgstr "Safety stock: reorder point = demand × lead time + safety stock. Min/max uses min as the reorder point. Forecast uses the same lead-time model until a demand history feed is connected."
+
+msgid "inventory.ledger.title"
+msgstr "Stock ledger"
+
+msgid "inventory.ledger.subtitle"
+msgstr "Immutable debit and credit lines. This is the audit trail for quantity and value."
+
+msgid "inventory.cost_layers.title"
+msgstr "Cost layers"
+
+msgid "inventory.cost_layers.subtitle"
+msgstr "Remaining FIFO/LIFO/average layers created on inbound and consumed on outbound."
+
+msgid "inventory.hardware.title"
+msgstr "Warehouse devices"
+
+msgid "inventory.hardware.subtitle"
+msgstr "Registry for barcode scanners, RFID readers, mobile apps, and MQTT/Bluetooth sensors. Pairing and telemetry are extension points."
+
+msgid "inventory.integrations.title"
+msgstr "Integrations"
+
+msgid "inventory.integrations.subtitle"
+msgstr "Webhook and ERP connector records (SAP, NetSuite, Odoo, commerce, CRM). Delivery is event-driven from the stock ledger."
+
+msgid "inventory.field.name"
+msgstr "Name"
+
+msgid "inventory.field.code"
+msgstr "Code"
+
+msgid "inventory.field.sku"
+msgstr "SKU"
+
+msgid "inventory.field.description"
+msgstr "Description"
+
+msgid "inventory.field.category"
+msgstr "Category"
+
+msgid "inventory.field.tracking"
+msgstr "Tracking"
+
+msgid "inventory.field.costingMethod"
+msgstr "Costing method"
+
+msgid "inventory.field.dispatchStrategy"
+msgstr "Dispatch"
+
+msgid "inventory.field.shelfLifeDays"
+msgstr "Shelf life (days)"
+
+msgid "inventory.field.attributeSchema"
+msgstr "Attribute schema"
+
+msgid "inventory.field.status"
+msgstr "Status"
+
+msgid "inventory.field.notes"
+msgstr "Notes"
+
+msgid "inventory.field.productId"
+msgstr "Product"
+
+msgid "inventory.field.upc"
+msgstr "UPC"
+
+msgid "inventory.field.ean"
+msgstr "EAN"
+
+msgid "inventory.field.barcode"
+msgstr "Barcode"
+
+msgid "inventory.field.attributes"
+msgstr "Attributes"
+
+msgid "inventory.field.buyUomId"
+msgstr "Buy UoM"
+
+msgid "inventory.field.stockUomId"
+msgstr "Stock UoM"
+
+msgid "inventory.field.sellUomId"
+msgstr "Sell UoM"
+
+msgid "inventory.field.standardCost"
+msgstr "Standard cost"
+
+msgid "inventory.field.listPrice"
+msgstr "List price"
+
+msgid "inventory.field.weight"
+msgstr "Weight"
+
+msgid "inventory.field.averageCost"
+msgstr "Average cost"
+
+msgid "inventory.field.locationType"
+msgstr "Type"
+
+msgid "inventory.field.parentId"
+msgstr "Parent"
+
+msgid "inventory.field.usage"
+msgstr "Usage"
+
+msgid "inventory.field.active"
+msgstr "Active"
+
+msgid "inventory.field.id"
+msgstr "ID"
+
+msgid "inventory.field.variantId"
+msgstr "SKU"
+
+msgid "inventory.field.locationId"
+msgstr "Location"
+
+msgid "inventory.field.lotId"
+msgstr "Lot"
+
+msgid "inventory.field.serial"
+msgstr "Serial"
+
+msgid "inventory.field.serialId"
+msgstr "Serial"
+
+msgid "inventory.field.quantity"
+msgstr "Quantity"
+
+msgid "inventory.field.reservedQty"
+msgstr "Reserved qty"
+
+msgid "inventory.field.uomId"
+msgstr "UoM"
+
+msgid "inventory.field.unitCost"
+msgstr "Unit cost"
+
+msgid "inventory.field.value"
+msgstr "Value"
+
+msgid "inventory.field.pickingType"
+msgstr "Type"
+
+msgid "inventory.field.state"
+msgstr "State"
+
+msgid "inventory.field.sourceLocationId"
+msgstr "From"
+
+msgid "inventory.field.destLocationId"
+msgstr "To"
+
+msgid "inventory.field.fromLocationId"
+msgstr "From"
+
+msgid "inventory.field.toLocationId"
+msgstr "To"
+
+msgid "inventory.field.scheduledDate"
+msgstr "Scheduled"
+
+msgid "inventory.field.doneDate"
+msgstr "Completed"
+
+msgid "inventory.field.origin"
+msgstr "Origin"
+
+msgid "inventory.field.partnerName"
+msgstr "Partner"
+
+msgid "inventory.field.qcStatus"
+msgstr "QC"
+
+msgid "inventory.field.wave"
+msgstr "Wave"
+
+msgid "inventory.field.batch"
+msgstr "Batch"
+
+msgid "inventory.field.pickingId"
+msgstr "Operation"
+
+msgid "inventory.field.moveId"
+msgstr "Move"
+
+msgid "inventory.field.doneQty"
+msgstr "Done qty"
+
+msgid "inventory.field.countedQty"
+msgstr "Counted qty"
+
+msgid "inventory.field.systemQty"
+msgstr "System qty"
+
+msgid "inventory.field.reason"
+msgstr "Reason"
+
+msgid "inventory.field.customerName"
+msgstr "Customer"
+
+msgid "inventory.field.disposition"
+msgstr "Disposition"
+
+msgid "inventory.field.method"
+msgstr "Method"
+
+msgid "inventory.field.minQty"
+msgstr "Min qty"
+
+msgid "inventory.field.maxQty"
+msgstr "Max qty"
+
+msgid "inventory.field.safetyStock"
+msgstr "Safety stock"
+
+msgid "inventory.field.leadTimeDays"
+msgstr "Lead time (days)"
+
+msgid "inventory.field.avgDailyDemand"
+msgstr "Avg daily demand"
+
+msgid "inventory.field.reorderPoint"
+msgstr "Reorder point"
+
+msgid "inventory.field.qtyToOrder"
+msgstr "Qty to order"
+
+msgid "inventory.field.deviceType"
+msgstr "Device type"
+
+msgid "inventory.field.identifier"
+msgstr "Identifier"
+
+msgid "inventory.field.kind"
+msgstr "Kind"
+
+msgid "inventory.field.endpoint"
+msgstr "Endpoint"
+
+msgid "inventory.field.events"
+msgstr "Events"
+
+msgid "inventory.field.secret"
+msgstr "Secret"
+
+msgid "inventory.field.config"
+msgstr "Config"
+
+msgid "inventory.field.lastSeen"
+msgstr "Last seen"
+
+msgid "inventory.field.symbol"
+msgstr "Symbol"
+
+msgid "inventory.field.ratio"
+msgstr "Ratio"
+
+msgid "inventory.field.rounding"
+msgstr "Rounding"
+
+msgid "inventory.field.uomType"
+msgstr "UoM type"
+
+msgid "inventory.field.groupId"
+msgstr "Group"
+
+msgid "inventory.field.attributeType"
+msgstr "Attribute type"
+
+msgid "inventory.field.attributeId"
+msgstr "Attribute"
+
+msgid "inventory.field.expiryDate"
+msgstr "Expiry date"
+
+msgid "inventory.field.manufacturedDate"
+msgstr "Manufactured date"
+
+msgid "inventory.field.side"
+msgstr "Side"
+
+msgid "inventory.field.occurredAt"
+msgstr "Occurred at"
+
+msgid "inventory.field.memo"
+msgstr "Memo"
+
+msgid "inventory.field.originalQty"
+msgstr "Original qty"
+
+msgid "inventory.field.receivedAt"
+msgstr "Received at"
+
+msgid "inventory.field.sourceMoveId"
+msgstr "Source move"
+
+msgid "inventory.enum.uom.uomType.reference"
+msgstr "Reference"
+
+msgid "inventory.enum.uom.uomType.bigger"
+msgstr "Bigger"
+
+msgid "inventory.enum.uom.uomType.smaller"
+msgstr "Smaller"
+
+msgid "inventory.enum.attribute.attributeType.select"
+msgstr "Select"
+
+msgid "inventory.enum.attribute.attributeType.text"
+msgstr "Text"
+
+msgid "inventory.enum.attribute.attributeType.number"
+msgstr "Number"
+
+msgid "inventory.enum.product.tracking.none"
+msgstr "None"
+
+msgid "inventory.enum.product.tracking.lot"
+msgstr "Lot / batch"
+
+msgid "inventory.enum.product.tracking.serial"
+msgstr "Serial"
+
+msgid "inventory.enum.product.tracking.both"
+msgstr "Lot and serial"
+
+msgid "inventory.enum.product.costingMethod.fifo"
+msgstr "FIFO"
+
+msgid "inventory.enum.product.costingMethod.lifo"
+msgstr "LIFO"
+
+msgid "inventory.enum.product.costingMethod.moving_average"
+msgstr "Moving average"
+
+msgid "inventory.enum.product.costingMethod.standard"
+msgstr "Standard cost"
+
+msgid "inventory.enum.product.dispatchStrategy.fifo"
+msgstr "FIFO"
+
+msgid "inventory.enum.product.dispatchStrategy.fefo"
+msgstr "FEFO"
+
+msgid "inventory.enum.product.dispatchStrategy.lifo"
+msgstr "LIFO"
+
+msgid "inventory.enum.product.status.draft"
+msgstr "Draft"
+
+msgid "inventory.enum.product.status.active"
+msgstr "Active"
+
+msgid "inventory.enum.product.status.discontinued"
+msgstr "Discontinued"
+
+msgid "inventory.enum.product_variant.status.active"
+msgstr "Active"
+
+msgid "inventory.enum.product_variant.status.inactive"
+msgstr "Inactive"
+
+msgid "inventory.enum.location.locationType.warehouse"
+msgstr "Warehouse"
+
+msgid "inventory.enum.location.locationType.zone"
+msgstr "Zone"
+
+msgid "inventory.enum.location.locationType.aisle"
+msgstr "Aisle"
+
+msgid "inventory.enum.location.locationType.rack"
+msgstr "Rack"
+
+msgid "inventory.enum.location.locationType.shelf"
+msgstr "Shelf"
+
+msgid "inventory.enum.location.locationType.bin"
+msgstr "Bin"
+
+msgid "inventory.enum.location.locationType.supplier"
+msgstr "Supplier"
+
+msgid "inventory.enum.location.locationType.customer"
+msgstr "Customer"
+
+msgid "inventory.enum.location.locationType.transit"
+msgstr "Transit"
+
+msgid "inventory.enum.location.locationType.scrap"
+msgstr "Scrap"
+
+msgid "inventory.enum.location.locationType.inventory"
+msgstr "Inventory loss"
+
+msgid "inventory.enum.location.locationType.quarantine"
+msgstr "Quarantine"
+
+msgid "inventory.enum.location.locationType.production"
+msgstr "Production"
+
+msgid "inventory.enum.location.usage.internal"
+msgstr "Internal"
+
+msgid "inventory.enum.location.usage.virtual"
+msgstr "Virtual"
+
+msgid "inventory.enum.stock_serial.status.available"
+msgstr "Available"
+
+msgid "inventory.enum.stock_serial.status.reserved"
+msgstr "Reserved"
+
+msgid "inventory.enum.stock_serial.status.in_transit"
+msgstr "In transit"
+
+msgid "inventory.enum.stock_serial.status.sold"
+msgstr "Sold"
+
+msgid "inventory.enum.stock_serial.status.scrapped"
+msgstr "Scrapped"
+
+msgid "inventory.enum.stock_serial.status.quarantine"
+msgstr "Quarantine"
+
+msgid "inventory.enum.stock_ledger.side.debit"
+msgstr "Debit"
+
+msgid "inventory.enum.stock_ledger.side.credit"
+msgstr "Credit"
+
+msgid "inventory.enum.picking.pickingType.incoming"
+msgstr "Receipt"
+
+msgid "inventory.enum.picking.pickingType.outgoing"
+msgstr "Delivery"
+
+msgid "inventory.enum.picking.pickingType.internal"
+msgstr "Internal"
+
+msgid "inventory.enum.picking.pickingType.return"
+msgstr "Return"
+
+msgid "inventory.enum.picking.state.draft"
+msgstr "Draft"
+
+msgid "inventory.enum.picking.state.confirmed"
+msgstr "Confirmed"
+
+msgid "inventory.enum.picking.state.assigned"
+msgstr "Assigned"
+
+msgid "inventory.enum.picking.state.done"
+msgstr "Done"
+
+msgid "inventory.enum.picking.state.cancelled"
+msgstr "Cancelled"
+
+msgid "inventory.enum.picking.qcStatus.pending"
+msgstr "Pending"
+
+msgid "inventory.enum.picking.qcStatus.passed"
+msgstr "Passed"
+
+msgid "inventory.enum.picking.qcStatus.failed"
+msgstr "Failed"
+
+msgid "inventory.enum.picking.qcStatus.skipped"
+msgstr "Skipped"
+
+msgid "inventory.enum.stock_move.state.draft"
+msgstr "Draft"
+
+msgid "inventory.enum.stock_move.state.done"
+msgstr "Done"
+
+msgid "inventory.enum.stock_move.state.cancelled"
+msgstr "Cancelled"
+
+msgid "inventory.enum.adjustment.reason.cycle_count"
+msgstr "Cycle count"
+
+msgid "inventory.enum.adjustment.reason.physical"
+msgstr "Physical count"
+
+msgid "inventory.enum.adjustment.reason.damage"
+msgstr "Damage"
+
+msgid "inventory.enum.adjustment.reason.found"
+msgstr "Found"
+
+msgid "inventory.enum.adjustment.reason.data_fix"
+msgstr "Data fix"
+
+msgid "inventory.enum.adjustment.state.draft"
+msgstr "Draft"
+
+msgid "inventory.enum.adjustment.state.confirmed"
+msgstr "Confirmed"
+
+msgid "inventory.enum.adjustment.state.done"
+msgstr "Done"
+
+msgid "inventory.enum.rma.state.draft"
+msgstr "Draft"
+
+msgid "inventory.enum.rma.state.received"
+msgstr "Received"
+
+msgid "inventory.enum.rma.state.dispositioned"
+msgstr "Dispositioned"
+
+msgid "inventory.enum.rma.state.closed"
+msgstr "Closed"
+
+msgid "inventory.enum.rma.disposition.restock"
+msgstr "Restock"
+
+msgid "inventory.enum.rma.disposition.repair"
+msgstr "Repair"
+
+msgid "inventory.enum.rma.disposition.quarantine"
+msgstr "Quarantine"
+
+msgid "inventory.enum.rma.disposition.scrap"
+msgstr "Scrap"
+
+msgid "inventory.enum.rma.disposition.credit"
+msgstr "Credit only"
+
+msgid "inventory.enum.reorder_rule.method.min_max"
+msgstr "Min / max"
+
+msgid "inventory.enum.reorder_rule.method.safety_stock"
+msgstr "Safety stock"
+
+msgid "inventory.enum.reorder_rule.method.forecast"
+msgstr "Forecast"
+
+msgid "inventory.enum.iot_device.deviceType.barcode_scanner"
+msgstr "Barcode scanner"
+
+msgid "inventory.enum.iot_device.deviceType.rfid_reader"
+msgstr "RFID reader"
+
+msgid "inventory.enum.iot_device.deviceType.mobile"
+msgstr "Mobile"
+
+msgid "inventory.enum.iot_device.deviceType.mqtt_sensor"
+msgstr "MQTT sensor"
+
+msgid "inventory.enum.iot_device.deviceType.bluetooth_sensor"
+msgstr "Bluetooth sensor"
+
+msgid "inventory.enum.iot_device.status.online"
+msgstr "Online"
+
+msgid "inventory.enum.iot_device.status.offline"
+msgstr "Offline"
+
+msgid "inventory.enum.iot_device.status.disabled"
+msgstr "Disabled"
+
+msgid "inventory.enum.integration.kind.webhook"
+msgstr "Webhook"
+
+msgid "inventory.enum.integration.kind.sap"
+msgstr "SAP"
+
+msgid "inventory.enum.integration.kind.netsuite"
+msgstr "NetSuite"
+
+msgid "inventory.enum.integration.kind.odoo"
+msgstr "Odoo"
+
+msgid "inventory.enum.integration.kind.shopify"
+msgstr "Shopify"
+
+msgid "inventory.enum.integration.kind.crm"
+msgstr "CRM"
+
+msgid "inventory.enum.integration.kind.custom"
+msgstr "Custom"
+
+msgid "inventory.error.ledger_immutable"
+msgstr "Stock ledger entries are immutable"
+
+msgid "inventory.error.quant_create"
+msgstr "On-hand balances are created by stock posting"
+
+msgid "inventory.error.ledger_create"
+msgstr "Stock ledger entries are posted by operations, not entered directly"
+
+msgid "inventory.error.quant_update"
+msgstr "On-hand balances are ledger-controlled; use an adjustment or stock operation"
+
+msgid "inventory.error.quant_delete"
+msgstr "On-hand balances cannot be deleted; use an adjustment"
+
+msgid "inventory.error.cost_layer"
+msgstr "Cost layers are maintained by stock posting"
+
+msgid "inventory.error.move_done"
+msgstr "Completed stock moves cannot be changed"
+
+msgid "inventory.error.uom_ratio"
+msgstr "Unit of measure ratio must be positive"
+
+msgid "inventory.error.picking_cancelled_complete"
+msgstr "Cancelled operations cannot be completed"
+
+msgid "inventory.error.picking_done_cancel"
+msgstr "Completed operations cannot be cancelled; create a reverse transfer"
+
+msgid "inventory.error.picking_done_delete"
+msgstr "Completed operations cannot be deleted"
+
+msgid "inventory.error.qty_positive"
+msgstr "Quantity must be positive"
+
+msgid "inventory.error.uom_convert"
+msgstr "Cannot convert between different units of measure"
+
+msgid "inventory.error.serial_required"
+msgstr "This product requires a serial number"
+
+msgid "inventory.error.lot_required"
+msgstr "This product requires a lot/batch number"
+
+msgid "inventory.error.lot_and_serial_required"
+msgstr "This product requires both a lot and a serial number"
+
+msgid "inventory.error.move_locations"
+msgstr "Stock move needs source and destination locations"
+
+msgid "inventory.error.move_qty"
+msgstr "Stock move quantity must be positive"
+
+msgid "inventory.error.picking_no_moves"
+msgstr "Cannot complete an operation with no stock moves"
+
+msgid "inventory.error.no_qty_reserve"
+msgstr "No on-hand quantity to reserve for this move"
+
+msgid "inventory.error.insufficient_reserve"
+msgstr "Insufficient available quantity to reserve"
+
+msgid "inventory.error.rma_location"
+msgstr "RMA needs a destination location"
+
+msgid "inventory.error.rma_qty"
+msgstr "RMA quantity must be positive"
+
+msgid "inventory.error.no_location"
+msgstr "No %s location configured"

@@ -1,0 +1,58 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "login.brand"
+msgstr "KaizenGo"
+
+msgid "login.tagline"
+msgstr "پلتفرم عملیات سازمانی"
+
+msgid "login.email"
+msgstr "ایمیل"
+
+msgid "login.password"
+msgstr "رمز عبور"
+
+msgid "login.password_placeholder"
+msgstr "رمز عبور"
+
+msgid "login.submit"
+msgstr "ورود"
+
+msgid "login.hint"
+msgstr "مدیر پیش‌فرض: %s / %s"
+
+msgid "shell.loading"
+msgstr "در حال بارگذاری…"
+
+msgid "shell.apps"
+msgstr "برنامه‌ها"
+
+msgid "shell.home"
+msgstr "خانه"
+
+msgid "shell.no_apps"
+msgstr "برنامه‌ای ثبت نشده است"
+
+msgid "shell.admin"
+msgstr "مدیر"
+
+msgid "shell.sign_out"
+msgstr "خروج"
+
+msgid "shell.welcome"
+msgstr "خوش آمدید، %s"
+
+msgid "shell.signed_in"
+msgstr "وارد شده به عنوان %s"
+
+msgid "shell.get_started"
+msgstr "شروع کنید"
+
+msgid "shell.get_started_hint"
+msgstr "منوی برنامه‌ها را باز کنید تا یک ماژول را اجرا کنید."
+
+msgid "shell.close_menu"
+msgstr "بستن منو"

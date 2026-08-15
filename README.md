@@ -10,12 +10,12 @@
 
 <p align="center">
   <a href="whitepaper_v1.md">Whitepaper</a> ·
-  <a href="docs/README.md">Documentation</a>
+  <a href="docs/index.md">Documentation</a>
 </p>
 
 ---
 
-KaizenGo is a platform for building integrated operational software: a single host that registers apps, serves a shared Svelte shell, and composes GraphQL from plugins. The architecture favors **continuous improvement** — add apps without forking the core, wire services through a registry, and ship UI as lazy-loaded modules.
+KaizenGo is a platform for building integrated operational software: a single host that registers apps, serves a shared Svelte shell with login, and composes GraphQL from plugins. The architecture favors **continuous improvement** — add apps without forking the core, wire services through a registry, localize with `.po` catalogs, and ship UI as lazy-loaded modules on `@kaizengo/sdk-svelte`.
 
 ## Features
 
@@ -23,11 +23,14 @@ KaizenGo is a platform for building integrated operational software: a single ho
 |------|--------|
 | HTTP routing | [chi](https://github.com/go-chi/chi) |
 | App lifecycle | Registry, manifests, dependency injection |
-| Frontend shell | Svelte 5 SPA with dynamic `import()` |
-| API | Composable GraphQL field registry |
-| Tooling | `kaizengo` CLI for scaffolding new apps |
+| Auth | Session cookies (`kg_session`), identity + auth apps, RBAC permissions |
+| Frontend shell | Svelte 5 SPA with dynamic `import()` and login gate |
+| Svelte SDK | `@kaizengo/sdk-svelte` — ui, identity/search clients, spa-config |
+| Localization | gettext `.po` catalogs, GraphQL `i18n`, RTL (`fa`) |
+| API | Composable GraphQL field registry (auth-protected) |
+| Tooling | `kaizengo` CLI for scaffolding new apps; VS Code extension for `app.yaml` navigation |
 
-Built-in apps include **Clock**, **Counter**, **Settings**, and a **Notes** example. Industry products (e.g. KMiner for mining operations) can be built on the same foundation.
+Built-in apps include **Identity**, **Clock**, **Counter**, **Settings**, **Status**, **Oracle**, and a **Notes** example, plus a backend **Permissions** service. Industry products (e.g. KMiner for mining operations) can be built on the same foundation.
 
 
 ## Requirements
@@ -46,27 +49,29 @@ make cli build
 ./bin/server
 # http://localhost:8080/app/
 ```
-Or Run with hot-reload during development:
+Or run with hot-reload during development:
 
 ```bash
 cd apps/core/spa && npm install && cd -
-make dev   # Go :8080 + Vite :5173/app/
+make dev APP=clock   # Go :8080 + Vite :5173/app/ + watch one app
 ```
 
-Open **http://localhost:5173/app/** when using `make dev` (Vite base path is `/app/`).
+Open **http://localhost:5173/app/** (Vite `base` is `/app/`). Sign in with `admin@kaizengo.local` / `changeme`. Use `make spa-build` once to browse every module without watchers. See [Development](docs/development.md) and [Auth](docs/auth.md).
 
 
 ## Documentation
 
 | Guide | Description |
 |-------|-------------|
-| [Docs index](docs/README.md) | Overview and quick links |
+| [Docs index](docs/index.md) | Overview and tutorial |
+| [Tutorial](docs/tutorial/index.md) | Build a spec-driven Kaizen app |
 | [Installation](docs/installation.md) | Prerequisites, clone, build |
 | [Development](docs/development.md) | `make` targets, ports, workflow |
+| [Auth & identity](docs/auth.md) | Sessions, identity app, permissions |
 | [Apps system](docs/apps.md) | Architecture and app lifecycle |
 | [Platform](docs/platform.md) | Kernel APIs — time, i18n, config |
 | [CLI](docs/cli.md) | `kaizengo new-app` bootstrapper |
-| [Svelte apps](docs/svelte.md) | Single-component ESM apps in the shell |
+| [Svelte apps](docs/svelte.md) | ESM modules and `@kaizengo/sdk-svelte/ui` |
 | [GraphQL](docs/graphql.md) | Runtime field registry and queries |
 | [Whitepaper (v1)](whitepaper_v1.md) | Vision, problem space, and platform design |
 
@@ -82,10 +87,13 @@ Details: [CLI](docs/cli.md) · [Apps system](docs/apps.md) · [Svelte apps](docs
 ## Project layout
 
 ```text
-apps/           # Registered apps (core shell, clock, counter, settings, …)
+apps/           # Registered apps (core shell, identity, clock, …)
+packages/
+  sdk-go/       # Go app SDK (engine, appspec, extension, events)
+  sdk-svelte/   # Svelte SDK (@kaizengo/sdk-svelte) — ui, identity, search, spa-config
 cmd/            # server and kaizengo CLI entrypoints
 docs/           # Developer guides
-internal/       # Platform kernel (module host, config, i18n, GraphQL)
+internal/       # Platform kernel (module host, auth, config, i18n, GraphQL)
 static/         # Shared assets (favicon, CSS)
 whitepaper_v1.md
 ```

@@ -1,0 +1,17 @@
+name: status
+title: Status
+summary: Example SPA app in the core shell
+depends:
+  - core
+uses:
+  - platform.i18n
+nav:
+  labelKey: nav.status
+  route: status
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl

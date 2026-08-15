@@ -3,8 +3,6 @@ package main
 const moduleGoTmpl = `package {{.Pkg}}
 
 import (
-	"net/http"
-
 	"kaizengo/internal/module"
 {{- if .WithGraphQL}}
 	"github.com/graphql-go/graphql"
@@ -40,18 +38,15 @@ func (a *App) Setup(host *module.Host) error {
 {{- end}}
 	host.RegisterNav(module.NavEntry{
 		ID:        "{{.Name}}",
-		Title:     "{{.Title}}",
+		TitleKey:  "nav.{{.Name}}",
+		Title:     "{{.Title}}", // fallback until nav.{{.Name}} is added to the i18n catalog
 		Route:     "{{.Route}}",
-		ModuleURL: "{{.ModuleURL}}",
 	})
 	return nil
 }
 
 func (a *App) Mount(host *module.Host) error {
-	host.Router.Handle(
-		"/app-assets/{{.Name}}/*",
-		http.StripPrefix("/app-assets/{{.Name}}/", http.FileServer(http.Dir("{{.AssetsDir}}"))),
-	)
+	_ = host
 	return nil
 }
 `
@@ -95,79 +90,44 @@ const vanillaSpaJSTmpl = "/**\n" +
 	"\n" +
 	"export default plugin\n"
 
-const svelteMainTmpl = `import { mount, unmount, type Component } from 'svelte'
-import App from './App.svelte'
-
-type Mounted = Record<string, unknown>
-
-let instance: Mounted | null = null
-
-function ensureCSS() {
-  if (document.querySelector('link[data-app-css="{{.Name}}"]')) return
-  const cssLink = document.createElement('link')
-  cssLink.rel = 'stylesheet'
-  cssLink.href = '/app-assets/{{.Name}}/spa.css'
-  cssLink.dataset.appCss = '{{.Name}}'
-  document.head.appendChild(cssLink)
-}
-
-export default {
-  async mount(el: HTMLElement) {
-    ensureCSS()
-    instance = mount(App as Component, { target: el }) as Mounted
-  },
-  unmount() {
-    if (instance) {
-      unmount(instance)
-      instance = null
-    }
-  },
-}
-`
-
-const svelteAppTmpl = `<script lang="ts">
-{{- if .WithGraphQL}}
-  import { onMount } from 'svelte'
-  import { ping } from './graphql'
-
-  let message = $state('…')
-  let error = $state('')
-
-  onMount(async () => {
-    try {
-      message = await ping()
-    } catch (e) {
-      error = e instanceof Error ? e.message : String(e)
-    }
-  })
-{{- end}}
+const svelteViewTmpl = `<script lang="ts">
+  import { KAppStatus, t } from '@kaizengo/sdk-svelte/ui'
 </script>
 
-<div class="wrap">
-  <h1>{{.Title}}</h1>
-  <p>Bootstrapped Svelte app <code>{{.Name}}</code>.</p>
-{{- if .WithGraphQL}}
-  {#if error}
-    <p class="err">{error}</p>
-  {:else}
-    <p>GraphQL: {message}</p>
-  {/if}
-{{- end}}
-</div>
+<p class="lead">{t('{{.Name}}.subtitle')}</p>
+
+<KAppStatus />
 
 <style>
-  .wrap {
-    text-align: center;
-  }
-  .err {
-    color: #b00020;
+  .lead {
+    margin: 0 0 var(--kg-space-05);
+    color: var(--kg-text-secondary);
   }
 </style>
+`
+
+const svelteListViewTmpl = `<script lang="ts">
+  import { KTable, KAppStatus, t } from '@kaizengo/sdk-svelte/ui'
+</script>
+
+<KTable model="{{.Name}}.item" emptyMessage={t('{{.Name}}.empty')} />
+
+<KAppStatus />
+`
+
+const svelteFormViewTmpl = `<script lang="ts">
+  import { KForm, KAppStatus } from '@kaizengo/sdk-svelte/ui'
+</script>
+
+<KForm model="{{.Name}}.item" />
+
+<KAppStatus />
 `
 
 const svelteGraphQLTSTmpl = `async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch('/graphql', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables }),
   })
@@ -185,28 +145,7 @@ export async function ping(): Promise<string> {
 }
 `
 
-const svelteViteConfig = `import { defineConfig } from 'vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const dir = dirname(fileURLToPath(import.meta.url))
-
-export default defineConfig({
-  root: dir,
-  plugins: [svelte()],
-  build: {
-    lib: {
-      entry: resolve(dir, 'main.ts'),
-      formats: ['es'],
-      fileName: () => 'spa.js',
-      cssFileName: 'spa',
-    },
-    outDir: resolve(dir, 'dist'),
-    emptyOutDir: true,
-    cssCodeSplit: false,
-  },
-})
+const svelteViteConfig = `// Per-app Vite builds are no longer used — views compile into apps/core/spa.
 `
 
 const svelteConfigJS = `import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
@@ -235,7 +174,11 @@ const sveltePackageJSONTmpl = `{
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "dev": "vite build --watch --mode development"
+  },
+  "dependencies": {
+    "@kaizengo/sdk-svelte": "file:../../../packages/sdk-svelte"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "file:../../core/spa/node_modules/@sveltejs/vite-plugin-svelte",
@@ -245,3 +188,255 @@ const sveltePackageJSONTmpl = `{
   }
 }
 `
+
+const eventsMigrationSQLTmpl = `-- Event store tables (per-app schema)
+
+CREATE TABLE IF NOT EXISTS streams (
+    stream_id   TEXT PRIMARY KEY,
+    stream_type TEXT NOT NULL,
+    version     BIGINT NOT NULL DEFAULT 0,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id          BIGSERIAL PRIMARY KEY,
+    event_id    TEXT NOT NULL UNIQUE,
+    stream_id   TEXT NOT NULL,
+    stream_type TEXT NOT NULL,
+    version     BIGINT NOT NULL,
+    event_type  TEXT NOT NULL,
+    payload     JSONB NOT NULL,
+    metadata    JSONB,
+    occurred_at TIMESTAMPTZ NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(stream_id, version)
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_stream_id ON events(stream_id, version);
+CREATE INDEX IF NOT EXISTS idx_events_id ON events(id);
+`
+
+const readModelMigrationSQLTmpl = `-- Read model for {{.Name}}.item
+
+CREATE TABLE IF NOT EXISTS items_read (
+    id         TEXT PRIMARY KEY,
+    org_id     TEXT NOT NULL,
+    author_id  TEXT NOT NULL,
+    deleted    BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    title      TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_items_read_org ON items_read(org_id, updated_at DESC);
+`
+
+const appSpecYAMLTmpl = `name: {{.Name}}
+title: {{.Title}}
+summary: {{.Summary}}
+depends:
+  - core
+  - identity
+  - auth
+  - permissions
+nav:
+  labelKey: nav.{{.Name}}
+  route: {{.Route}}
+models:
+  - name: item
+    fields:
+      - name: title
+        type: string
+        required: true
+views:
+  - name: Items
+    type: page
+  - name: NewItem
+    type: page
+menus:
+  - id: items
+    labelKey: {{.Name}}.menu.items
+    children:
+      - id: item_list
+        labelKey: {{.Name}}.menu.list
+        view: Items
+      - id: item_form
+        labelKey: {{.Name}}.menu.new
+        view: NewItem
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl
+`
+
+const eventSourcedModuleGoTmpl = `package {{.Pkg}}
+
+//go:generate go run ../../cmd/godino gen-types {{.Name}}
+
+import (
+	"kaizengo/internal/module"
+	"kaizengo/packages/sdk-go/engine"
+)
+
+func init() {
+	app := engine.New(engine.Options{
+		AppName: "{{.Name}}",
+		Version: "0.1.0",
+	})
+	module.Register(app.Hooks("item", itemHooks()))
+}
+`
+
+const eventSourcedHooksGoTmpl = `package {{.Pkg}}
+
+import (
+	"strings"
+
+	"kaizengo/packages/sdk-go/engine"
+)
+
+func itemHooks() engine.Hooks {
+	return engine.Hooks{
+		BeforeCreate: trimItemTitle,
+		BeforeUpdate: trimItemTitle,
+	}
+}
+
+func trimItemTitle(hc engine.HookContext) error {
+	if title, ok := hc.Fields["title"].(string); ok {
+		hc.Fields["title"] = strings.TrimSpace(title)
+	}
+	return nil
+}
+`
+
+const localeEnTmpl = `msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "{{.Name}}.title"
+msgstr "{{.Title}}"
+
+msgid "{{.Name}}.subtitle"
+msgstr "{{.Summary}}"
+
+msgid "{{.Name}}.ping"
+msgstr "API status"
+
+msgid "{{.Name}}.empty"
+msgstr "No records yet."
+
+msgid "{{.Name}}.new_placeholder"
+msgstr "Enter a title…"
+
+msgid "{{.Name}}.create"
+msgstr "Add item"
+
+msgid "{{.Name}}.menu.items"
+msgstr "Items"
+
+msgid "{{.Name}}.menu.list"
+msgstr "All items"
+
+msgid "{{.Name}}.menu.new"
+msgstr "New item"
+`
+
+const localeFaTmpl = `msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "{{.Name}}.title"
+msgstr "{{.Title}}"
+
+msgid "{{.Name}}.subtitle"
+msgstr "{{.Summary}}"
+
+msgid "{{.Name}}.ping"
+msgstr "وضعیت API"
+
+msgid "{{.Name}}.empty"
+msgstr "هنوز رکوردی نیست."
+
+msgid "{{.Name}}.new_placeholder"
+msgstr "عنوان را وارد کنید…"
+
+msgid "{{.Name}}.create"
+msgstr "افزودن مورد"
+
+msgid "{{.Name}}.menu.items"
+msgstr "موارد"
+
+msgid "{{.Name}}.menu.list"
+msgstr "همه موارد"
+
+msgid "{{.Name}}.menu.new"
+msgstr "مورد جدید"
+`
+
+const addonAppYamlTmpl = `name: {{.Name}}
+title: {{.Title}}
+summary: {{.Summary}}
+depends:
+  - core
+spa: false
+i18n: false
+events:
+  enabled: false
+extends:
+  - point: model.*.*.afterCreate
+    handler: onAfterCreate
+    priority: 100
+`
+
+const addonModuleGoTmpl = `package {{.Pkg}}
+
+import (
+	"log/slog"
+
+	"kaizengo/internal/module"
+	"kaizengo/packages/sdk-go/app"
+	"kaizengo/packages/sdk-go/extension"
+)
+
+const appName = "{{.Name}}"
+const appVersion = "0.1.0"
+
+func init() {
+	extension.RegisterNamed("onAfterCreate", onAfterCreate)
+	module.Register(&App{})
+}
+
+type App struct{}
+
+func (a *App) Manifest() module.Manifest {
+	return app.ManifestFromSpec(app.MustAppSpec(appName), appVersion)
+}
+
+func (a *App) Setup(host *module.Host) error {
+	_ = host
+	spec := app.MustAppSpec(appName)
+	return extension.SetupAddon(spec)
+}
+
+func (a *App) Mount(host *module.Host) error {
+	_ = host
+	return nil
+}
+
+func onAfterCreate(ctx extension.Context) error {
+	slog.Info("{{.Name}} extension",
+		"point", ctx.Point,
+		"app", ctx.App.Name,
+		"model", ctx.Model.Name,
+		"recordId", ctx.RecordID,
+	)
+	return nil
+}
+`
+

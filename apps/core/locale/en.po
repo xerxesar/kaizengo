@@ -1,0 +1,58 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "login.brand"
+msgstr "KaizenGo"
+
+msgid "login.tagline"
+msgstr "Enterprise Operations Platform"
+
+msgid "login.email"
+msgstr "Email"
+
+msgid "login.password"
+msgstr "Password"
+
+msgid "login.password_placeholder"
+msgstr "Password"
+
+msgid "login.submit"
+msgstr "Sign in"
+
+msgid "login.hint"
+msgstr "Default admin: %s / %s"
+
+msgid "shell.loading"
+msgstr "Loading…"
+
+msgid "shell.apps"
+msgstr "Apps"
+
+msgid "shell.home"
+msgstr "Home"
+
+msgid "shell.no_apps"
+msgstr "No apps registered"
+
+msgid "shell.admin"
+msgstr "Admin"
+
+msgid "shell.sign_out"
+msgstr "Sign out"
+
+msgid "shell.welcome"
+msgstr "Welcome, %s"
+
+msgid "shell.signed_in"
+msgstr "Signed in as %s"
+
+msgid "shell.get_started"
+msgstr "Get started"
+
+msgid "shell.get_started_hint"
+msgstr "Open the Apps menu to launch a module."
+
+msgid "shell.close_menu"
+msgstr "Close menu"

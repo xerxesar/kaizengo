@@ -4,23 +4,11 @@ import (
 	"fmt"
 	gotime "time"
 
-	"kaizengo/internal/platform/i18n"
 	ptime "kaizengo/internal/platform/time"
 )
 
 func init() {
 	ptime.Register(calendar{})
-	i18n.Register("fa", map[string]string{
-		"clock.title":       "ساعت",
-		"clock.subtitle":    "زمان محلی، به‌صورت زنده.",
-		"clock.calendar":    "تقویم",
-		"settings.title":    "تنظیمات",
-		"settings.locale":   "زبان",
-		"settings.calendar": "تقویم پیش‌فرض",
-		"settings.shell":    "عنوان پوسته",
-		"settings.save":     "ذخیره",
-		"settings.saved":    "ذخیره شد.",
-	})
 }
 
 type calendar struct{}

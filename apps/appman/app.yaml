@@ -1,0 +1,31 @@
+name: appman
+title: App Manager
+summary: Install and upgrade bundled apps
+depends:
+  - core
+  - identity
+  - auth
+  - permissions
+provides:
+  - appman.apps
+uses:
+  - permissions.rbac
+autoInstall: true
+nav:
+  labelKey: nav.appman
+  route: appman
+  order: 999999999
+views:
+  - name: Index
+    type: page
+menus:
+  - id: apps
+    labelKey: appman.menu.apps
+    view: Index
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl

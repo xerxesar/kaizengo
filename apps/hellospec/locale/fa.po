@@ -1,0 +1,40 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "hellospec.title"
+msgstr "HelloSpec"
+
+msgid "hellospec.subtitle"
+msgstr "سلام‌های مبتنی بر spec با منوی declarative"
+
+msgid "hellospec.new_placeholder"
+msgstr "سلام بگویید…"
+
+msgid "hellospec.create"
+msgstr "افزودن سلام"
+
+msgid "hellospec.created"
+msgstr "سلام اضافه شد."
+
+msgid "hellospec.saved"
+msgstr "سلام ذخیره شد."
+
+msgid "hellospec.empty"
+msgstr "هنوز سلامی نیست."
+
+msgid "hellospec.ping"
+msgstr "وضعیت API"
+
+msgid "hellospec.menu.greetings"
+msgstr "سلام‌ها"
+
+msgid "hellospec.menu.group"
+msgstr "موارد"
+
+msgid "hellospec.menu.list"
+msgstr "همه سلام‌ها"
+
+msgid "hellospec.menu.new"
+msgstr "سلام جدید"

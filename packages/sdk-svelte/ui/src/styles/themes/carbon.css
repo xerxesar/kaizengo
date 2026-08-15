@@ -1,0 +1,66 @@
+/* IBM Carbon — White theme (g10) */
+
+:root,
+[data-kg-theme='carbon'] {
+  /* Interactive */
+  --kg-primary: #0f62fe;
+  --kg-primary-hover: #0353e9;
+  --kg-primary-active: #002d9c;
+  --kg-primary-subtle: #d0e2ff;
+  --kg-accent: #0f62fe;
+
+  /* Surfaces — Carbon layer model */
+  --kg-bg: #f4f4f4;
+  --kg-bg-subtle: #e0e0e0;
+  --kg-surface: #ffffff;
+  --kg-surface-muted: #f4f4f4;
+  --kg-surface-elevated: #ffffff;
+  --kg-surface-hover: #e8e8e8;
+
+  /* UI shell (Carbon header) */
+  --kg-shell-bg: #f7f7f7;
+  --kg-shell-text: #313131;
+  --kg-shell-text-muted: #4b4b4b;
+  --kg-shell-border: #e2e2e2;
+  --kg-shell-hover: #b8b8b8;
+
+  /* Borders */
+  --kg-border: #e0e0e0;
+  --kg-border-strong: #8d8d8d;
+  --kg-border-subtle: #f4f4f4;
+
+  /* Text */
+  --kg-text: #161616;
+  --kg-text-secondary: #525252;
+  --kg-text-muted: #6f6f6f;
+  --kg-text-placeholder: #a8a8a8;
+  --kg-text-on-color: #ffffff;
+
+  /* Field */
+  --kg-field: #f4f4f4;
+  --kg-field-hover: #e8e8e8;
+
+  /* Status — Carbon support tokens */
+  --kg-success: #24a148;
+  --kg-success-bg: #defbe6;
+  --kg-success-border: #42be65;
+  --kg-warning: #8e6a00;
+  --kg-warning-bg: #fcf4d6;
+  --kg-warning-border: #f1c21b;
+  --kg-danger: #da1e28;
+  --kg-danger-bg: #fff1f1;
+  --kg-danger-border: #fa4d56;
+  --kg-info: #0043ce;
+  --kg-info-bg: #edf5ff;
+  --kg-info-border: #4589ff;
+
+  /* Component-specific */
+  --kg-tab-indicator: var(--kg-primary);
+  --kg-tab-hover: #e8e8e8;
+  --kg-header-bg: #ffffff;
+  --kg-toolbar-bg: #ffffff;
+
+  --kg-shadow-sm: none;
+  --kg-shadow: none;
+  --kg-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.2);
+}

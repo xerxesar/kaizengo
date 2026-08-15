@@ -2,59 +2,108 @@
 
 ## Idea
 
-Core is a small Svelte **shell**. Other apps are separate ESM bundles that implement `mount` / `unmount`. A Svelte app is just a component compiled as a Vite **library**.
+There is **one central Svelte app** at `apps/core/spa`. KaizenGo apps contribute individual `.svelte` view files under `apps/<name>/views/`. The core shell resolves menu selections to these views at build time.
 
 ```text
-core shell  --import()-->  /app-assets/myapp/spa.js
-                              └─ mount(MyComponent, { target: el })
+apps/core/spa          →  single Vite SPA (/app/)
+apps/myapp/views/*.svelte →  compiled into the central bundle
 ```
 
 ## Bootstrap
 
 ```bash
 ./bin/kaizengo new-app myapp --type svelte
-cd apps/myapp/spa && npm install && npm run build
+make spa-build
 ```
 
 ## Layout
 
-| File | Role |
+| Path | Role |
 |------|------|
-| `spa/App.svelte` | Your UI |
-| `spa/main.ts` | Adapts Svelte `mount`/`unmount` to the shell contract; injects `spa.css` |
-| `spa/vite.config.ts` | `build.lib` → `dist/spa.js` + `dist/spa.css` |
-| `module.go` | Registers nav + serves `spa/dist` |
+| `apps/<name>/views/<View>.svelte` | One Svelte file per menu view (matches `app.yaml` `views:` / `menus:`) |
+| `apps/<name>/lib/` | Optional shared TS/helpers for that app's views |
+| `apps/<name>/app.yaml` | Declarative nav, views, menus |
+| `apps/<name>/module.go` | Go setup (nav, GraphQL, services) — no SPA asset routes |
+
+Apps without menus use `apps/<name>/views/Index.svelte` as the default page.
+
+## View registry
+
+`apps/core/spa/src/lib/views/registry.ts` discovers all `apps/*/views/*.svelte` files via Vite's `import.meta.glob` and maps them by `{app}.{view}` (e.g. `identity.Overview`).
+
+Cross-app component exports (`exports.components` in `app.yaml`) are registered in the same file.
 
 ## Build
 
-Uses `file:` deps pointing at `apps/core/spa/node_modules` so you do not duplicate Vite/Svelte installs.
-
 ```bash
-cd apps/myapp/spa
+cd apps/core/spa
 npm install
 npm run build
+# or from repo root:
+make spa-build
 ```
 
-Serve path (from `module.go`):
+Only the core SPA is built. App views are bundled into it automatically.
 
-```go
-http.FileServer(http.Dir("apps/myapp/spa/dist"))
-// URL: /app-assets/myapp/spa.js
+## Dev
+
+```bash
+make dev
 ```
 
-## Dev tip
+Open **http://localhost:5173/app/**. Edits to the shell, SDK UI, or any `apps/*/views/*.svelte` file hot-reload via Vite.
 
-The shell in Vite dev loads `/app-assets/...` through the proxy to Go. Rebuild the app lib after changes (`npm run build` in the app), or add a watch script later.
+## UI (`@kaizengo/sdk-svelte/ui`)
 
-## Other frameworks
+Shared Svelte components for Odoo-style views — pages, tabs, tables, forms, modals, tree views.
 
-Same contract — compile to ESM that exports:
+```bash
+# packages/sdk-svelte/ui is consumed as source (bundled into the central SPA at build time)
+```
+
+In `apps/core/spa/src/main.ts`:
 
 ```ts
-export default {
-  async mount(el: HTMLElement) { /* ReactDOM.createRoot(el).render(...) */ },
-  unmount() { /* root.unmount() */ },
-}
+import '@kaizengo/sdk-svelte/ui/styles.css'
 ```
 
-Static HTML works too: set `el.innerHTML` in `mount`.
+In app views:
+
+```svelte
+<script lang="ts">
+  import { Layout, LayoutMain, Table, Button } from '@kaizengo/sdk-svelte/ui'
+</script>
+```
+
+See `apps/identity/views/` for a full enterprise example.
+
+## i18n
+
+Keep `apps/<name>/locale/*.po` as translations. `make generate` writes `locale/template.pot` from `app.yaml` and static `t('…')` keys. Vite compiles the `.po` files into the shell at build/dev time (`virtual:kaizengo-i18n`); `t('myapp.title')` is synchronous and updates when the locale changes.
+
+```svelte
+<script lang="ts">
+  import { t } from '@kaizengo/sdk-svelte/ui'
+</script>
+
+<h1>{t('myapp.title')}</h1>
+```
+
+Go still loads the same `.po` files for menu labels and the GraphQL `i18n` query.
+
+## Standard view structure
+
+The **core shell** owns `<Page>`; app views use `<Layout>` only (no nested `<Page>`). See the previous layout contract in this doc's history — `Layout`, `LayoutMenu`, `LayoutMain`, etc.
+
+App pages are **left-aligned** by default. Use `Layout variant="centered"` only for auth screens.
+
+## Theming
+
+Initialize at startup in `main.ts`:
+
+```ts
+import { initTheme } from '@kaizengo/sdk-svelte/ui'
+initTheme('carbon')
+```
+
+Themes live in `packages/sdk-svelte/ui/src/styles/themes/`. Switch at runtime with `setTheme()`.

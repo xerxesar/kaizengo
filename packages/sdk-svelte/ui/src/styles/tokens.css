@@ -1,0 +1,46 @@
+/* Structural design tokens — IBM Carbon spacing & type scale */
+
+:root {
+  /* Typography — IBM Plex */
+  --kg-font-display: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --kg-font: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --kg-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Carbon spacing (2px base) */
+  --kg-space-01: 0.125rem; /* 2px */
+  --kg-space-02: 0.25rem; /* 4px */
+  --kg-space-03: 0.5rem; /* 8px */
+  --kg-space-04: 0.75rem; /* 12px */
+  --kg-space-05: 1rem; /* 16px */
+  --kg-space-06: 1.5rem; /* 24px */
+  --kg-space-07: 2rem; /* 32px */
+  --kg-space-08: 2.5rem; /* 40px */
+  --kg-space-09: 3rem; /* 48px */
+
+  /* Layout aliases */
+  --kg-page-padding-x: var(--kg-space-06);
+  --kg-page-padding-y: var(--kg-space-06);
+  --kg-layout-gap: var(--kg-space-05);
+
+  /* Container max widths */
+  --kg-container-sm: 42rem;
+  --kg-container-md: 66rem;
+  --kg-container-lg: 82rem;
+  --kg-container-xl: 99rem;
+
+  /* Controls — Carbon default field/button size */
+  --kg-control-height: 2.5rem; /* 40px */
+  --kg-control-height-sm: 2rem; /* 32px */
+  --kg-control-height-lg: 3rem; /* 48px */
+
+  /* Carbon uses sharp corners */
+  --kg-radius-sm: 0;
+  --kg-radius: 0;
+  --kg-radius-lg: 0;
+
+  /* Focus ring */
+  --kg-focus-ring: 2px solid var(--kg-primary);
+  --kg-focus-offset: -2px;
+
+  color-scheme: light;
+}

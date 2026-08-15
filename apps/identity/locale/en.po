@@ -1,0 +1,256 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "identity.title"
+msgstr "Identity & Organization"
+
+msgid "identity.subtitle"
+msgstr "Manage users, organizational structure, and tenant settings"
+
+msgid "identity.ping"
+msgstr "API status"
+
+msgid "identity.no_org"
+msgstr "No organization configured. Create one via GraphQL or restart the server to seed demo data."
+
+msgid "identity.tab.overview"
+msgstr "Overview"
+
+msgid "identity.tab.structure"
+msgstr "Organization Structure"
+
+msgid "identity.tab.users"
+msgstr "Users"
+
+msgid "identity.tab.settings"
+msgstr "Settings"
+
+msgid "identity.stat.org"
+msgstr "Organization"
+
+msgid "identity.stat.users"
+msgstr "Users"
+
+msgid "identity.stat.units"
+msgstr "Org Units"
+
+msgid "identity.stat.users_hint"
+msgstr "Active identities"
+
+msgid "identity.stat.units_hint"
+msgstr "Structure nodes"
+
+msgid "identity.overview.actions"
+msgstr "Quick actions"
+
+msgid "identity.overview.manage_users"
+msgstr "Manage users"
+
+msgid "identity.overview.edit_structure"
+msgstr "Edit structure"
+
+msgid "identity.overview.org_settings"
+msgstr "Organization settings"
+
+msgid "identity.overview.about_title"
+msgstr "About this module"
+
+msgid "identity.overview.about"
+msgstr "Identity & Organization is a platform capability for tenants, users, and org structure. Use the tabs to manage people and hierarchy."
+
+msgid "identity.common.cancel"
+msgstr "Cancel"
+
+msgid "identity.users.search"
+msgstr "Search users…"
+
+msgid "identity.users.create"
+msgstr "Create user"
+
+msgid "identity.created"
+msgstr "User created."
+
+msgid "identity.saved"
+msgstr "Saved."
+
+msgid "identity.create"
+msgstr "Create"
+
+msgid "identity.save"
+msgstr "Save"
+
+msgid "identity.users.empty_search"
+msgstr "No users match your search"
+
+msgid "identity.users.empty"
+msgstr "No users yet"
+
+msgid "identity.users.view"
+msgstr "View"
+
+msgid "identity.users.count"
+msgstr "%d of %d users"
+
+msgid "identity.users.col.name"
+msgstr "Name"
+
+msgid "identity.users.col.email"
+msgstr "Email"
+
+msgid "identity.users.col.status"
+msgstr "Status"
+
+msgid "identity.users.col.created"
+msgstr "Created"
+
+msgid "identity.users.col.id"
+msgstr "User ID"
+
+msgid "identity.users.name"
+msgstr "Full name"
+
+msgid "identity.users.email"
+msgstr "Email address"
+
+msgid "identity.users.email_hint"
+msgstr "Must be unique within this organization"
+
+msgid "identity.users.placeholder.name"
+msgstr "Jane Smith"
+
+msgid "identity.users.placeholder.email"
+msgstr "jane@company.com"
+
+msgid "identity.users.detail_title"
+msgstr "User details"
+
+msgid "identity.users.memberships"
+msgstr "Memberships"
+
+msgid "identity.users.org_unit"
+msgstr "Org unit"
+
+msgid "identity.users.role"
+msgstr "Role"
+
+msgid "identity.users.membership_id"
+msgstr "Membership ID"
+
+msgid "identity.users.no_memberships"
+msgstr "No org unit memberships assigned yet."
+
+msgid "identity.structure.count"
+msgstr "%d org units"
+
+msgid "identity.structure.add"
+msgstr "Add org unit"
+
+msgid "identity.structure.add_title"
+msgstr "Add organization unit"
+
+msgid "identity.structure.details"
+msgstr "Unit details"
+
+msgid "identity.structure.select_hint"
+msgstr "Select an org unit to view details."
+
+msgid "identity.structure.field.type"
+msgstr "Type"
+
+msgid "identity.structure.field.id"
+msgstr "ID"
+
+msgid "identity.structure.field.parent"
+msgstr "Parent"
+
+msgid "identity.structure.field.created"
+msgstr "Created"
+
+msgid "identity.structure.root"
+msgstr "— Root level —"
+
+msgid "identity.structure.name"
+msgstr "Name"
+
+msgid "identity.structure.parent"
+msgstr "Parent unit"
+
+msgid "identity.structure.parent_hint"
+msgstr "Leave empty for a top-level unit"
+
+msgid "identity.structure.create"
+msgstr "Create unit"
+
+msgid "identity.structure.name_placeholder"
+msgstr "e.g. Central Geology"
+
+msgid "identity.unit_type.business_unit"
+msgstr "Business Unit"
+
+msgid "identity.unit_type.department"
+msgstr "Department"
+
+msgid "identity.unit_type.location"
+msgstr "Location / Site"
+
+msgid "identity.unit_type.team"
+msgstr "Team"
+
+msgid "identity.unit_type.position"
+msgstr "Position"
+
+msgid "identity.settings.profile"
+msgstr "Organization profile"
+
+msgid "identity.settings.appearance"
+msgstr "Appearance"
+
+msgid "identity.settings.security"
+msgstr "Security model"
+
+msgid "identity.settings.general"
+msgstr "General information"
+
+msgid "identity.settings.general_desc"
+msgstr "Update the organization name and URL slug."
+
+msgid "identity.settings.name"
+msgstr "Organization name"
+
+msgid "identity.settings.slug"
+msgstr "Slug"
+
+msgid "identity.settings.slug_hint"
+msgstr "Used in URLs and integrations"
+
+msgid "identity.settings.save"
+msgstr "Save changes"
+
+msgid "identity.settings.saved"
+msgstr "Organization settings saved."
+
+msgid "identity.settings.id"
+msgstr "Organization ID"
+
+msgid "identity.settings.created"
+msgstr "Created"
+
+msgid "identity.settings.theme"
+msgstr "Theme"
+
+msgid "identity.settings.theme_desc"
+msgstr "Choose a visual theme for the KaizenGo UI. Your preference is saved locally."
+
+msgid "identity.settings.theme_label"
+msgstr "Color theme"
+
+msgid "identity.settings.security_body"
+msgstr "Authentication and access control are enforced by the platform identity and permissions services. Admin credentials are configured via environment variables."
+
+msgid "identity.settings.admin_email"
+msgstr "Admin email env"
+
+msgid "identity.settings.admin_password"
+msgstr "Password env"

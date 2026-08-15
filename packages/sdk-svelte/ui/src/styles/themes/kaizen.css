@@ -1,0 +1,61 @@
+/* KaizenGo brand theme — optional alternate */
+
+[data-kg-theme='kaizen'] {
+  --kg-primary: #333021;
+  --kg-primary-hover: #1f1d14;
+  --kg-primary-active: #1f1d14;
+  --kg-primary-subtle: #ebe4cf;
+  --kg-accent: #8b7355;
+
+  --kg-bg: #e9dfb8;
+  --kg-bg-subtle: #f2ebd6;
+  --kg-surface: #faf6eb;
+  --kg-surface-muted: #f0e8d0;
+  --kg-surface-elevated: #fffdf8;
+  --kg-surface-hover: #f0e8d0;
+
+  --kg-shell-bg: #333021;
+  --kg-shell-text: #fffdf8;
+  --kg-shell-text-muted: #d4c9a8;
+  --kg-shell-border: #5c5640;
+  --kg-shell-hover: #1f1d14;
+
+  --kg-border: #d4c9a8;
+  --kg-border-strong: #b8aa85;
+  --kg-border-subtle: #f2ebd6;
+
+  --kg-text: #333021;
+  --kg-text-secondary: #5c5640;
+  --kg-text-muted: #8a8368;
+  --kg-text-placeholder: #8a8368;
+  --kg-text-on-color: #fffdf8;
+
+  --kg-field: #fffdf8;
+  --kg-field-hover: #f0e8d0;
+
+  --kg-success: #2d6a4f;
+  --kg-success-bg: #d8f3dc;
+  --kg-success-border: #2d6a4f;
+  --kg-warning: #9a6700;
+  --kg-warning-bg: #fef3c7;
+  --kg-warning-border: #9a6700;
+  --kg-danger: #9b2226;
+  --kg-danger-bg: #fee2e2;
+  --kg-danger-border: #9b2226;
+  --kg-info: #1d4e89;
+  --kg-info-bg: #dbeafe;
+  --kg-info-border: #1d4e89;
+
+  --kg-tab-indicator: var(--kg-primary);
+  --kg-tab-hover: #f0e8d0;
+  --kg-header-bg: var(--kg-surface);
+  --kg-toolbar-bg: var(--kg-surface);
+
+  --kg-radius-sm: 0.25rem;
+  --kg-radius: 0.375rem;
+  --kg-radius-lg: 0.5rem;
+
+  --kg-shadow-sm: 0 1px 2px rgba(51, 48, 33, 0.06);
+  --kg-shadow: 0 2px 10px rgba(51, 48, 33, 0.08);
+  --kg-shadow-lg: 0 10px 28px rgba(51, 48, 33, 0.12);
+}

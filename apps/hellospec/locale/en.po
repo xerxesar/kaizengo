@@ -1,0 +1,43 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "hellospec.title"
+msgstr "HelloSpec"
+
+msgid "hellospec.subtitle"
+msgstr "Spec-driven greetings with declarative menus"
+
+msgid "hellospec.new_placeholder"
+msgstr "Say hello…"
+
+msgid "hellospec.create"
+msgstr "Add greeting"
+
+msgid "hellospec.created"
+msgstr "Greeting added."
+
+msgid "hellospec.saved"
+msgstr "Greeting saved."
+
+msgid "hellospec.empty"
+msgstr "No greetings yet. Add one above."
+
+msgid "hellospec.search"
+msgstr "Search greetings…"
+
+msgid "hellospec.ping"
+msgstr "API status"
+
+msgid "hellospec.menu.greetings"
+msgstr "Greetings"
+
+msgid "hellospec.menu.group"
+msgstr "Items"
+
+msgid "hellospec.menu.list"
+msgstr "All greetings"
+
+msgid "hellospec.menu.new"
+msgstr "New greeting"

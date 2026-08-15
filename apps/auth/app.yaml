@@ -1,0 +1,13 @@
+name: auth
+title: Auth
+summary: Login, sessions, and credentials
+depends:
+  - core
+  - identity
+provides:
+  - auth.sessions
+uses:
+  - identity.users
+spa: false
+i18n: false
+autoInstall: true

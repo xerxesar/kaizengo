@@ -1,0 +1,49 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "nav.appman"
+msgstr "برنامه‌ها"
+
+msgid "appman.menu.apps"
+msgstr "برنامه‌ها"
+
+msgid "appman.title"
+msgstr "برنامه‌ها"
+
+msgid "appman.subtitle"
+msgstr "نصب یا ارتقای برنامه‌های همراه. نصب مهاجرت‌ها را اجرا می‌کند و برنامه را در همین فرایند بارگذاری می‌کند."
+
+msgid "appman.search"
+msgstr "جستجوی برنامه…"
+
+msgid "appman.installed"
+msgstr "نصب‌شده"
+
+msgid "appman.available"
+msgstr "موجود"
+
+msgid "appman.upgrade"
+msgstr "ارتقا"
+
+msgid "appman.system"
+msgstr "سیستمی"
+
+msgid "appman.install"
+msgstr "نصب"
+
+msgid "appman.version"
+msgstr "نسخه %s"
+
+msgid "appman.installed_version"
+msgstr "نصب‌شده %s"
+
+msgid "appman.depends"
+msgstr "وابسته به %s"
+
+msgid "appman.empty"
+msgstr "برنامه‌ای پیدا نشد."
+
+msgid "appman.loaded"
+msgstr "بارگذاری‌شده"

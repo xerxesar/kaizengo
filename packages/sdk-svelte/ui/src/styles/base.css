@@ -1,0 +1,55 @@
+.kg-app {
+  font-family: var(--kg-font);
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--kg-text);
+  line-height: 1.42857;
+  letter-spacing: 0.16px;
+  -webkit-font-smoothing: antialiased;
+  background: var(--kg-bg);
+}
+
+.kg-app *,
+.kg-app *::before,
+.kg-app *::after {
+  box-sizing: border-box;
+}
+
+.kg-app h1,
+.kg-app h2,
+.kg-app h3,
+.kg-app h4 {
+  margin: 0;
+  font-family: var(--kg-font-display);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: var(--kg-text);
+}
+
+.kg-app p {
+  margin: 0;
+}
+
+.kg-app button,
+.kg-app input,
+.kg-app select,
+.kg-app textarea {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.kg-app :is(.kg-input, .kg-select, .kg-search-input) {
+  min-height: var(--kg-control-height);
+  line-height: 1.29;
+}
+
+.kg-app :is(button, input, select, textarea, a):focus-visible {
+  outline: var(--kg-focus-ring);
+  outline-offset: var(--kg-focus-offset);
+}
+
+/* Writing direction is set on <html dir="…"> via applyLocale / syncDocumentLocale. */
+html[dir='rtl'] .kg-app {
+  letter-spacing: 0;
+}

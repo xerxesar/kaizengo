@@ -1,10 +1,14 @@
 package module
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"kaizengo/packages/sdk-go/appspec"
+	"kaizengo/packages/sdk-go/extension"
 )
 
 // Load sets up and mounts apps from the registry in dependency order.
@@ -17,6 +21,32 @@ func Load(host *Host, reg *Registry, wanted []string) error {
 		return err
 	}
 
+	names := make([]string, 0, len(apps))
+	for _, a := range apps {
+		names = append(names, a.Manifest().Name)
+	}
+	if err := appspec.ValidateLoadedCapabilities(names); err != nil {
+		return err
+	}
+
+	// Register component exports and view slots before wiring yaml extends.
+	for _, name := range names {
+		spec, err := appspec.LoadApp(name)
+		if err != nil {
+			continue
+		}
+		extension.ApplyExports(spec)
+	}
+	for _, name := range names {
+		spec, err := appspec.LoadApp(name)
+		if err != nil {
+			continue
+		}
+		if err := extension.ApplyExtends(spec); err != nil {
+			return err
+		}
+	}
+
 	host.Loaded = make([]Manifest, 0, len(apps))
 	for _, a := range apps {
 		mf := a.Manifest()
@@ -25,6 +55,11 @@ func Load(host *Host, reg *Registry, wanted []string) error {
 			return fmt.Errorf("setup %s: %w", mf.Name, err)
 		}
 		host.Loaded = append(host.Loaded, mf)
+	}
+	for _, fn := range host.startup {
+		if err := fn(context.Background()); err != nil {
+			return fmt.Errorf("startup hook: %w", err)
+		}
 	}
 	for _, a := range apps {
 		mf := a.Manifest()
