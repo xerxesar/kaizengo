@@ -6,27 +6,27 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.available"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.depends"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.empty"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.install"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.installed"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.installed_version"
 msgstr ""
 
@@ -38,15 +38,15 @@ msgstr ""
 msgid "appman.ping"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.search"
 msgstr ""
 
-#: app.yaml views/Index.svelte
+#: app.yaml views/Index.page.svelte
 msgid "appman.subtitle"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.system"
 msgstr ""
 
@@ -54,11 +54,11 @@ msgstr ""
 msgid "appman.title"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.upgrade"
 msgstr ""
 
-#: views/Index.svelte
+#: views/Index.page.svelte
 msgid "appman.version"
 msgstr ""
 

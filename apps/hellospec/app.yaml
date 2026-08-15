@@ -29,12 +29,6 @@ models:
           minLength: 1
           maxLength: 500
 
-views:
-  - name: GreetingList
-    type: page
-  - name: GreetingForm
-    type: page
-
 menus:
   - id: greetings
     labelKey: hellospec.menu.greetings

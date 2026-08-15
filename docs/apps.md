@@ -30,8 +30,8 @@ Every app has an **`app.yaml`** manifest (name, depends, nav, locales, models). 
 apps/<name>/
   app.yaml       # required — declarative manifest
   module.go      # engine.New(...) or custom App
-  hooks.go       # optional Go lifecycle hooks (engine apps)
-  views/         # optional UI — one .svelte file per menu view
+  models/        # optional — per-model spec.yaml + hooks
+  views/         # optional UI — <Name>.page.svelte pages
   lib/           # optional shared TS for views
 ```
 

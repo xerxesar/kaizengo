@@ -1,0 +1,50 @@
+models:
+  - name: product_variant
+    search:
+      collection: inventory.product_variant
+      fields: [sku, name, upc, ean, barcode]
+    fields:
+      - name: productId
+        type: many2one
+        relation: product
+        required: true
+      - name: sku
+        type: string
+        required: true
+        indexed: true
+      - name: name
+        type: string
+        required: true
+      - name: upc
+        type: string
+      - name: ean
+        type: string
+      - name: barcode
+        type: string
+      - name: attributes
+        type: json
+      - name: buyUomId
+        type: many2one
+        relation: uom
+      - name: stockUomId
+        type: many2one
+        relation: uom
+      - name: sellUomId
+        type: many2one
+        relation: uom
+      - name: standardCost
+        type: number
+        default: 0
+      - name: listPrice
+        type: number
+        default: 0
+      - name: weight
+        type: number
+        default: 0
+      - name: averageCost
+        type: number
+        default: 0
+      - name: status
+        type: enum
+        values: [active, inactive]
+        default: active

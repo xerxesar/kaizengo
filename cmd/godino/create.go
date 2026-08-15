@@ -98,8 +98,8 @@ func createApp(opts AppOptions) error {
 		files["migrations/002_items_read.sql"] = render(readModelMigrationSQLTmpl, data)
 		files["locale/en.po"] = render(localeEnTmpl, data)
 		files["locale/fa.po"] = render(localeFaTmpl, data)
-		files["views/Items.svelte"] = render(svelteListViewTmpl, data)
-		files["views/NewItem.svelte"] = render(svelteFormViewTmpl, data)
+		files["views/Items.page.svelte"] = render(svelteListViewTmpl, data)
+		files["views/NewItem.page.svelte"] = render(svelteFormViewTmpl, data)
 	} else {
 		files["module.go"] = render(moduleGoTmpl, data)
 	}
@@ -107,7 +107,7 @@ func createApp(opts AppOptions) error {
 		return fmt.Errorf("vanilla apps are no longer supported; use --type svelte")
 	}
 	if !opts.EventSourced {
-		files["views/Index.svelte"] = render(svelteViewTmpl, data)
+		files["views/Index.page.svelte"] = render(svelteViewTmpl, data)
 	}
 	if opts.WithGraphQL {
 		if err := os.MkdirAll(filepath.Join(appDir, "lib"), 0o755); err != nil {

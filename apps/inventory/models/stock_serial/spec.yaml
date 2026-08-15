@@ -1,0 +1,24 @@
+models:
+  - name: stock_serial
+    search:
+      collection: inventory.stock_serial
+      fields: [serial]
+    fields:
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: lotId
+        type: many2one
+        relation: stock_lot
+      - name: serial
+        type: string
+        required: true
+        indexed: true
+      - name: locationId
+        type: many2one
+        relation: location
+      - name: status
+        type: enum
+        values: [available, reserved, in_transit, sold, scrapped, quarantine]
+        default: available

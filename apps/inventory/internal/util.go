@@ -1,4 +1,4 @@
-package inventory
+package inv
 
 import (
 	"context"
@@ -10,15 +10,8 @@ import (
 	"kaizengo/packages/sdk-go/engine"
 )
 
-type ctxKey struct{}
-
 func withInternal(ctx context.Context) context.Context {
-	return context.WithValue(ctx, ctxKey{}, true)
-}
-
-func isInternal(ctx context.Context) bool {
-	v, _ := ctx.Value(ctxKey{}).(bool)
-	return v
+	return engine.WithInternal(ctx)
 }
 
 func recStr(rec engine.Record, key string) string {

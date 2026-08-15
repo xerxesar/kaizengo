@@ -1,0 +1,10 @@
+models:
+  - name: uom_group
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: uoms
+        type: one2many
+        relation: uom
+        inverse: groupId

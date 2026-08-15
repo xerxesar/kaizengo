@@ -15,9 +15,6 @@ nav:
   labelKey: nav.appman
   route: appman
   order: 999999999
-views:
-  - name: Index
-    type: page
 menus:
   - id: apps
     labelKey: appman.menu.apps

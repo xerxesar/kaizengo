@@ -10,10 +10,10 @@ This site is the developer documentation. Start with the tutorial if you want to
 
 ```text
 apps/<name>/
-  app.yaml       # models, views, menus, locales
+  app.yaml       # models, menus, locales
   module.go      # engine.New(...) — one-liner for spec apps
-  hooks.go       # optional Go callbacks
-  views/         # Svelte pages in the core shell
+  models/        # optional per-model spec.yaml + hooks
+  views/         # <Name>.page.svelte in the core shell
   migrations/    # Postgres event store + read models
 ```
 

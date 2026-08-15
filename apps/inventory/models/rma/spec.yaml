@@ -1,0 +1,33 @@
+models:
+  - name: rma
+    search:
+      collection: inventory.rma
+      fields: [name, customerName, origin]
+    fields:
+      - name: name
+        type: string
+      - name: customerName
+        type: string
+        required: true
+      - name: origin
+        type: string
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: quantity
+        type: number
+        required: true
+      - name: locationId
+        type: many2one
+        relation: location
+      - name: state
+        type: enum
+        values: [draft, received, dispositioned, closed]
+        default: draft
+      - name: disposition
+        type: enum
+        values: [restock, repair, quarantine, scrap, credit]
+        default: restock
+      - name: notes
+        type: text

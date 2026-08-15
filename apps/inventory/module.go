@@ -8,9 +8,9 @@ import (
 )
 
 func init() {
-	module.Register(registerHooks(engine.New(engine.Options{
+	module.Register(engine.New(engine.Options{
 		AppName: "inventory",
 		Version: "0.2.0",
 		Setup:   setup,
-	})))
+	}))
 }

@@ -74,7 +74,7 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 	obj := newRecordType(spec, svc)
 	resource := spec.Resource
 
-	sdkgql.RegisterCRUD(host.GQL, sdkgql.CRUDSpec{
+	crud := sdkgql.CRUDSpec{
 		ListName: listName(spec, svc.model),
 		ListField: &graphql.Field{
 			Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(obj))),
@@ -108,8 +108,10 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 				return svc.Get(p.Context, pr.OrgID, id)
 			},
 		},
-		CreateName: createName(spec, svc.model),
-		CreateField: &graphql.Field{
+	}
+	if !svc.model.Internal {
+		crud.CreateName = createName(spec, svc.model)
+		crud.CreateField = &graphql.Field{
 			Type: graphql.NewNonNull(obj),
 			Args: fieldArgs(svc.model, true),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
@@ -119,9 +121,9 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 				}
 				return svc.Create(p.Context, pr.OrgID, pr.UserID, p.Args)
 			},
-		},
-		UpdateName: updateName(spec, svc.model),
-		UpdateField: &graphql.Field{
+		}
+		crud.UpdateName = updateName(spec, svc.model)
+		crud.UpdateField = &graphql.Field{
 			Type: graphql.NewNonNull(obj),
 			Args: withIDArgs(fieldArgs(svc.model, false)),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
@@ -139,9 +141,9 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 				}
 				return svc.Update(p.Context, pr.OrgID, id, fields)
 			},
-		},
-		DeleteName: deleteName(spec, svc.model),
-		DeleteField: &graphql.Field{
+		}
+		crud.DeleteName = deleteName(spec, svc.model)
+		crud.DeleteField = &graphql.Field{
 			Type: graphql.NewNonNull(graphql.Boolean),
 			Args: graphql.FieldConfigArgument{
 				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.ID)},
@@ -157,8 +159,9 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 				}
 				return true, nil
 			},
-		},
-	})
+		}
+	}
+	sdkgql.RegisterCRUD(host.GQL, crud)
 }
 
 func fieldArgs(model appspec.ModelSpec, requiredOnly bool) graphql.FieldConfigArgument {
@@ -303,16 +306,21 @@ func viewCatalog(spec appspec.AppSpec) []views.View {
 	seen := map[string]struct{}{}
 	for _, m := range spec.Models {
 		list := buildListView(m)
-		form := buildFormView(m)
 		if rm, ok := registeredModelByName(spec.Name, m.Name); ok {
 			if len(rm.ListColumns) > 0 {
 				list = buildListViewFromRegistered(rm)
 			}
-			if len(rm.Fields) > 0 {
-				form = buildFormViewFromRegistered(rm)
-			}
 		}
-		out = append(out, list, form)
+		out = append(out, list)
+		if !m.Internal {
+			form := buildFormView(m)
+			if rm, ok := registeredModelByName(spec.Name, m.Name); ok {
+				if len(rm.Fields) > 0 {
+					form = buildFormViewFromRegistered(rm)
+				}
+			}
+			out = append(out, form)
+		}
 		seen[m.Name] = struct{}{}
 	}
 	for _, m := range registeredModels(spec.Name) {

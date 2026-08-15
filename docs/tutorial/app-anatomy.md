@@ -6,12 +6,14 @@ A Kaizen app is a directory under `apps/` plus a one-line Go registration. The e
 
 ```text
 apps/todo/
-  app.yaml              # contract: models, views, menus, locales
+  app.yaml              # contract: models, menus, locales
   module.go             # engine.New(...)
-  hooks.go              # optional BeforeCreate / AfterUpdate / …
+  models/task/
+    spec.yaml           # or keep the model inline in app.yaml
+    hooks.go            # optional BeforeCreate / AfterUpdate / …
   views/
-    TaskList.svelte     # one file per page view
-    TaskForm.svelte
+    TaskList.page.svelte
+    TaskForm.page.svelte
   locale/template.pot   # generated — msgid list; do not edit
   locale/en.po          # gettext strings
   migrations/
@@ -28,8 +30,8 @@ Compare with `apps/hellospec/` — same shape, different names.
 
 | Spec | Runtime |
 |------|---------|
-| `models` | Event-sourced CRUD, GraphQL, `{app}Views` list/form metadata |
-| `views` (type `page`) | Svelte files at `apps/<app>/views/<Name>.svelte` |
+| `models` | Event-sourced CRUD, GraphQL, `{app}Views` list/form metadata (`internal: true` keeps writes in-process) |
+| pages (`views/*.page.svelte`) | Svelte screens menus mount |
 | `nav` | Entry in the shell Apps menu |
 | `menus` | In-app menu tree (`todoMenus`) |
 | `locales` | Loaded `.po` catalogs |

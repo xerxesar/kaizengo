@@ -1,0 +1,44 @@
+models:
+  - name: picking
+    search:
+      collection: inventory.picking
+      fields: [name, origin, partnerName]
+    fields:
+      - name: name
+        type: string
+      - name: pickingType
+        type: enum
+        values: [incoming, outgoing, internal, return]
+        required: true
+      - name: state
+        type: enum
+        values: [draft, confirmed, assigned, done, cancelled]
+        default: draft
+      - name: sourceLocationId
+        type: many2one
+        relation: location
+      - name: destLocationId
+        type: many2one
+        relation: location
+      - name: scheduledDate
+        type: datetime
+      - name: doneDate
+        type: datetime
+      - name: origin
+        type: string
+      - name: partnerName
+        type: string
+      - name: qcStatus
+        type: enum
+        values: [pending, passed, failed, skipped]
+        default: skipped
+      - name: wave
+        type: string
+      - name: batch
+        type: string
+      - name: notes
+        type: text
+      - name: moves
+        type: one2many
+        relation: stock_move
+        inverse: pickingId

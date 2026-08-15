@@ -1,0 +1,44 @@
+models:
+  - name: stock_ledger
+    internal: true
+    fields:
+      - name: pickingId
+        type: many2one
+        relation: picking
+      - name: moveId
+        type: many2one
+        relation: stock_move
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: locationId
+        type: many2one
+        relation: location
+        required: true
+      - name: lotId
+        type: many2one
+        relation: stock_lot
+      - name: serialId
+        type: many2one
+        relation: stock_serial
+      - name: side
+        type: enum
+        values: [debit, credit]
+        required: true
+      - name: quantity
+        type: number
+        required: true
+      - name: uomId
+        type: many2one
+        relation: uom
+      - name: unitCost
+        type: number
+        default: 0
+      - name: value
+        type: number
+        default: 0
+      - name: occurredAt
+        type: datetime
+      - name: memo
+        type: string

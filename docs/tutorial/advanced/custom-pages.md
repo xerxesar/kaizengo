@@ -4,18 +4,11 @@
 
 Page views still live in the **core** SPA. You do not add a Vite app or a client-side router.
 
-## Declare the view
+## Add a page
 
-In `apps/todo/app.yaml`, add a page and a menu leaf. Names must match the file:
+Create `apps/todo/views/Overview.page.svelte` and point a menu leaf at `Overview`. Names must match the file (without `.page.svelte`):
 
 ```yaml
-views:
-  - name: Overview
-    type: page
-  - name: TaskList
-    type: page
-  - name: TaskForm
-    type: page
 menus:
   - id: tasks
     labelKey: todo.menu.tasks
@@ -31,7 +24,7 @@ menus:
         view: TaskForm
 ```
 
-Core glob-imports `apps/*/views/*.svelte` and keys them as `{app}.{view}` (`todo.Overview`). A new `.svelte` file is enough; do not register the component in Go.
+Core glob-imports `apps/*/views/**/*.svelte` and keys pages as `{app}.{Name}` (`todo.Overview`). A new `.page.svelte` file is enough; do not register the component in Go.
 
 Add strings to `apps/todo/locale/en.po`:
 
@@ -178,7 +171,7 @@ You can drive the open-count StatCard from `todoOpenCount()` instead of filterin
 
 ## Layout rules
 
-- One file per `views:` name under `apps/<app>/views/`.
+- One `.page.svelte` file per menu view under `apps/<app>/views/`.
 - Import UI from `@kaizengo/sdk-svelte/ui` (`Alert`, `Button`, `Card`, `Page`, `Spinner`, `StatCard`, `TreeView`, …).
 - Navigate with `navigateApp(menuPagePath('todo', 'task_list'))` — do not `window.location` into another app’s HTML.
 - `make dev` hot-reloads Svelte. New Go (`gql.go`, `service.go`) needs a process restart.

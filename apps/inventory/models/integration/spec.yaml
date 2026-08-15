@@ -1,0 +1,21 @@
+models:
+  - name: integration
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: kind
+        type: enum
+        values: [webhook, sap, netsuite, odoo, shopify, crm, custom]
+        required: true
+      - name: endpoint
+        type: string
+      - name: events
+        type: json
+      - name: secret
+        type: string
+      - name: active
+        type: bool
+        default: true
+      - name: config
+        type: json

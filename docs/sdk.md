@@ -21,10 +21,13 @@ hybrid: `engine.New` plus Setup/Mount for `/auth/*` and `me`.
 
 ```text
 apps/hello/
-  app.yaml          # models, views, locales
-  module.go         # engine.New(...)
+  app.yaml                 # manifest, menus, locales; models inline or included
+  module.go                # engine.New(...)
+  models/greeting/         # optional per-model dir
+    spec.yaml
+    hooks.go
+  views/GreetingList.page.svelte
   locale/*.po
-  spa/              # optional UI
 ```
 
 `module.go`:
@@ -64,14 +67,36 @@ models:
       - name: message
         type: string
         required: true
-views:
-  - name: GreetingList
-    type: page
-  - name: GreetingForm
-    type: page
 ```
 
-List and form metadata for `KTable` / `KForm` is **auto-generated from `models`** (`GreetingList`, `GreetingForm` view names follow `{Model}List` / `{Model}Form`). Page views in `app.yaml` only declare Svelte screens for menus.
+List and form metadata for `KTable` / `KForm` is **auto-generated from `models`**. Pages are not declared in YAML: any `views/<Name>.page.svelte` file is a menu-mountable page (`view: GreetingList` → `views/GreetingList.page.svelte`). Other `.svelte` files under `views/` are components, not pages.
+
+Large apps can split models into directories referenced from `app.yaml`:
+
+```yaml
+models:
+  - models/greeting
+  - models/item
+```
+
+Each directory is `models/<model>/spec.yaml` plus optional Go (`hooks.go`, controllers). See `apps/inventory`.
+
+Set `internal: true` on a model to keep GraphQL **read-only** (list/get stay; create/update/delete are not registered, and no form view is generated). Writes succeed only from Go via `engine.WithInternal(ctx)`:
+
+```yaml
+models:
+  - name: cost_layer
+    internal: true
+    fields:
+      - name: quantity
+        type: number
+```
+
+```go
+_, err := registry.Create(engine.WithInternal(ctx), orgID, userID, "cost_layer", fields)
+```
+
+The rejected-write message is `{app}.error.{model}.internal`. Inventory uses this for `cost_layer`, `stock_ledger`, and `stock_quant` (posting still writes them in-process).
 
 ### What the engine wires automatically
 
@@ -79,8 +104,9 @@ List and form metadata for `KTable` / `KForm` is **auto-generated from `models`*
 |---|---|
 | `models[].fields` | Event-sourced CRUD + `{app}Views` list/form metadata (tables via migrations) |
 | `models` (events on) | GraphQL CRUD + `{app}Views` list/form metadata |
+| `models[].internal` | No public mutations or form view; Go writes use `engine.WithInternal` |
 | `models` + `RegisterModel` | YAML fields/search merged with Go handlers (legacy; prefer events) |
-| `views` (type: page) | Svelte pages mounted from `apps/{app}/views/{Name}.svelte` |
+| `views/*.page.svelte` | Svelte pages menus mount (`view: Name`) |
 | `nav` | Shell apps dropdown entry (label, route, order) |
 | `menus` | `{app}Menus` in-app navigation tree |
 | app name | `helloPing`, SPA mount, locales |
@@ -213,8 +239,8 @@ menus:
 Rules:
 - `id` must be unique across the tree
 - leaf items need `view` (or `children` for folders)
-- `view` must match a name in `views:` (for the owning app’s own menus)
-- if `menus` is omitted, one menu item is generated per view
+- `view` must match a `views/<Name>.page.svelte` file (for the owning app’s own menus)
+- if `menus` is omitted, apps without menus fall back to `views/Index.page.svelte`
 
 GraphQL: `helloMenus { id label view route children { … } }`
 

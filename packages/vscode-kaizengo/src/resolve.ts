@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { AppIndex, Catalog } from "./catalog";
+import type { AppIndex, Catalog, SpecDoc } from "./catalog";
 import { classify, sibling, type YamlSymbol } from "./parse";
 
 export interface NavTarget {
@@ -56,13 +56,29 @@ export function parseRelation(
 
 function liveApp(ctx: ResolveContext): AppIndex {
   const disk = ctx.catalog.apps.get(ctx.appName);
+  const liveDoc: SpecDoc = { path: ctx.file, text: ctx.text, symbols: ctx.symbols };
+  const docs = (disk?.docs ?? []).map((d) => (d.path === ctx.file ? liveDoc : d));
+  if (!docs.some((d) => d.path === ctx.file)) docs.push(liveDoc);
   return {
     name: ctx.appName,
-    dir: disk?.dir ?? path.dirname(ctx.file),
-    yamlPath: ctx.file,
-    text: ctx.text,
-    symbols: ctx.symbols,
+    dir: disk?.dir ?? appDirFromFile(ctx.file),
+    yamlPath: disk?.yamlPath ?? ctx.file,
+    text: disk?.text ?? ctx.text,
+    symbols: disk?.symbols ?? ctx.symbols,
+    docs,
   };
+}
+
+function appDirFromFile(file: string): string {
+  const parts = path.normalize(file).split(path.sep);
+  const i = parts.lastIndexOf("apps");
+  if (i >= 0 && parts[i + 1]) return parts.slice(0, i + 2).join(path.sep);
+  return path.dirname(file);
+}
+
+function appDocs(app: AppIndex): SpecDoc[] {
+  if (app.docs?.length) return app.docs;
+  return [{ path: app.yamlPath, text: app.text, symbols: app.symbols }];
 }
 
 function appOf(ctx: ResolveContext, name: string): AppIndex | undefined {
@@ -93,9 +109,11 @@ function needleTarget(file: string, tooltip: string, needle?: string): NavTarget
 }
 
 function yamlHit(app: AppIndex, pred: (s: YamlSymbol) => boolean, tooltip: string): NavTarget | undefined {
-  const s = app.symbols.find(pred);
-  if (!s) return needleTarget(app.yamlPath, tooltip);
-  return { file: app.yamlPath, start: s.range.start, end: s.range.end, tooltip };
+  for (const doc of appDocs(app)) {
+    const s = doc.symbols.find(pred);
+    if (s) return { file: doc.path, start: s.range.start, end: s.range.end, tooltip };
+  }
+  return needleTarget(app.yamlPath, tooltip);
 }
 
 function appNameHit(app: AppIndex): NavTarget {
@@ -110,7 +128,10 @@ function appNameHit(app: AppIndex): NavTarget {
 }
 
 function viewSvelte(app: AppIndex, viewName: string): NavTarget | undefined {
-  return needleTarget(path.join(app.dir, "views", `${viewName}.svelte`), `views/${viewName}.svelte`);
+  return (
+    needleTarget(path.join(app.dir, "views", `${viewName}.page.svelte`), `views/${viewName}.page.svelte`) ??
+    needleTarget(path.join(app.dir, "views", `${viewName}.svelte`), `views/${viewName}.svelte`)
+  );
 }
 
 function viewYaml(app: AppIndex, viewName: string): NavTarget | undefined {
@@ -143,14 +164,16 @@ function modelGo(app: AppIndex, model: string): NavTarget | undefined {
 }
 
 function fieldName(app: AppIndex, model: string, field: string): NavTarget | undefined {
-  const modelSym = app.symbols.find((s) => classify(s.path) === "model-name" && s.value === model);
-  if (!modelSym) return undefined;
-  const prefix = modelSym.path.replace(/\.name$/, "");
-  return yamlHit(
-    app,
-    (s) => s.path.startsWith(`${prefix}.fields[`) && s.path.endsWith(".name") && s.value === field,
-    `${model}.${field}`,
-  );
+  for (const doc of appDocs(app)) {
+    const modelSym = doc.symbols.find((s) => classify(s.path) === "model-name" && s.value === model);
+    if (!modelSym) continue;
+    const prefix = modelSym.path.replace(/\.name$/, "");
+    const s = doc.symbols.find(
+      (sym) => sym.path.startsWith(`${prefix}.fields[`) && sym.path.endsWith(".name") && sym.value === field,
+    );
+    if (s) return { file: doc.path, start: s.range.start, end: s.range.end, tooltip: `${model}.${field}` };
+  }
+  return undefined;
 }
 
 function providesHit(ctx: ResolveContext, cap: string): NavTarget[] {
@@ -312,6 +335,15 @@ export function resolveDefinition(ctx: ResolveContext, symbol: YamlSymbol): NavT
     case "view-name":
     case "export-view-ref":
       return unique([viewSvelte(app, value)]);
+    case "spec-include": {
+      const target = path.resolve(path.dirname(ctx.file), value);
+      const file = fs.existsSync(target) && fs.statSync(target).isDirectory()
+        ? ["spec.yaml", "spec.yml", `${path.basename(target)}.yaml`]
+            .map((n) => path.join(target, n))
+            .find((p) => fs.existsSync(p))
+        : existing(target);
+      return unique([file ? needleTarget(file, value) : undefined]);
+    }
     case "menu-view":
       return unique([viewSvelte(app, value), viewYaml(app, value)]);
     case "model-name":
@@ -375,14 +407,16 @@ function hitsMatching(
 ): NavTarget[] {
   const out: NavTarget[] = [];
   for (const app of allApps(ctx)) {
-    for (const s of app.symbols) {
-      if (!pred(s, app)) continue;
-      out.push({
-        file: app.yamlPath,
-        start: s.range.start,
-        end: s.range.end,
-        tooltip: `${app.name} ${s.path}`,
-      });
+    for (const doc of app.docs ?? [{ path: app.yamlPath, text: app.text, symbols: app.symbols }]) {
+      for (const s of doc.symbols) {
+        if (!pred(s, app)) continue;
+        out.push({
+          file: doc.path,
+          start: s.range.start,
+          end: s.range.end,
+          tooltip: `${app.name} ${s.path}`,
+        });
+      }
     }
   }
   return unique(out);

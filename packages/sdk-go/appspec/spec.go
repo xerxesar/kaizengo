@@ -28,7 +28,7 @@ type AppSpec struct {
 	Nav              NavSpec
 	Menus            []MenuSpec
 	Models           []ModelSpec
-	Views            []ViewSpec
+	Views            []ViewSpec // discovered from views/*.page.svelte
 	Locales          []LocaleSpec
 	Extends          []ExtendSpec
 	Exports          ExportSpec
@@ -38,6 +38,7 @@ type ModelSpec struct {
 	Name      string
 	Stream    string
 	Aggregate string
+	Internal  bool // create/update/delete only via engine.WithInternal
 	Fields    []FieldSpec
 	Search    *SearchSpec
 }
@@ -82,7 +83,7 @@ type ValidateSpec struct {
 
 type ViewSpec struct {
 	Name string
-	Type string // page — list/form/kanban metadata is auto-generated from models
+	Type string // page — discovered from views/<Name>.page.svelte
 }
 
 // NavSpec configures the shell apps dropdown entry for this module.
@@ -111,6 +112,10 @@ type LocaleSpec struct {
 }
 
 func (s AppSpec) Validate() error {
+	return s.validate(false)
+}
+
+func (s AppSpec) validate(pagesFromDisk bool) error {
 	if !nameRe.MatchString(s.Name) {
 		return fmt.Errorf("invalid app name %q (must match %s)", s.Name, nameRe.String())
 	}
@@ -180,9 +185,9 @@ func (s AppSpec) Validate() error {
 	for _, v := range s.Views {
 		switch v.Type {
 		case "", "page":
-			// Svelte page views — menus mount apps/{app}/views/{Name}.svelte.
+			// Discovered from views/*.page.svelte — menus mount that file.
 		default:
-			return fmt.Errorf("view %q has unsupported type %q (only page views belong in app.yaml; list/form views are generated from models)", v.Name, v.Type)
+			return fmt.Errorf("view %q has unsupported type %q (pages are views/*.page.svelte; list/form views are generated from models)", v.Name, v.Type)
 		}
 	}
 	for _, l := range s.Locales {
@@ -193,7 +198,7 @@ func (s AppSpec) Validate() error {
 			return fmt.Errorf("locale %q has invalid dir %q", l.ID, l.Dir)
 		}
 	}
-	if err := validateMenus(s.Menus, viewNames(s.Views), map[string]struct{}{}); err != nil {
+	if err := validateMenus(s.Menus, viewNames(s.Views), map[string]struct{}{}, pagesFromDisk); err != nil {
 		return err
 	}
 	if err := validateCapabilityNames("provides", s.Provides); err != nil {
@@ -219,7 +224,7 @@ func viewNames(views []ViewSpec) map[string]struct{} {
 	return out
 }
 
-func validateMenus(items []MenuSpec, views map[string]struct{}, seen map[string]struct{}) error {
+func validateMenus(items []MenuSpec, views map[string]struct{}, seen map[string]struct{}, requirePages bool) error {
 	for _, m := range items {
 		if !nameRe.MatchString(m.ID) {
 			return fmt.Errorf("menu %q has invalid id (must match %s)", m.ID, nameRe.String())
@@ -231,15 +236,15 @@ func validateMenus(items []MenuSpec, views map[string]struct{}, seen map[string]
 		if strings.TrimSpace(m.Label) == "" && strings.TrimSpace(m.LabelKey) == "" {
 			return fmt.Errorf("menu %q requires label or labelKey", m.ID)
 		}
-		if m.View != "" {
+		if m.View != "" && requirePages {
 			if _, ok := views[m.View]; !ok {
-				return fmt.Errorf("menu %q references unknown view %q", m.ID, m.View)
+				return fmt.Errorf("menu %q references unknown page %q (expected views/%s%s)", m.ID, m.View, m.View, PageSuffix)
 			}
 		}
 		if m.View == "" && len(m.Children) == 0 {
 			return fmt.Errorf("menu %q must set view and/or children", m.ID)
 		}
-		if err := validateMenus(m.Children, views, seen); err != nil {
+		if err := validateMenus(m.Children, views, seen, requirePages); err != nil {
 			return err
 		}
 	}
@@ -262,9 +267,6 @@ func (s *AppSpec) ApplyDefaults() {
 	}
 	if s.Nav.Route == "" {
 		s.Nav.Route = s.Name
-	}
-	if len(s.Menus) == 0 {
-		s.Menus = defaultMenusFromViews(s.Views)
 	}
 	for i := range s.Models {
 		m := &s.Models[i]
@@ -303,47 +305,4 @@ func pascal(s string) string {
 		parts[i] = strings.ToUpper(p[:1]) + p[1:]
 	}
 	return strings.Join(parts, "")
-}
-
-func defaultMenusFromViews(views []ViewSpec) []MenuSpec {
-	out := make([]MenuSpec, 0, len(views))
-	for i, v := range views {
-		out = append(out, MenuSpec{
-			ID:    menuIDFromView(v.Name),
-			Label: humanViewLabel(v.Name),
-			View:  v.Name,
-			Order: i * 10,
-		})
-	}
-	return out
-}
-
-func menuIDFromView(name string) string {
-	var b strings.Builder
-	for i, r := range name {
-		if r >= 'A' && r <= 'Z' {
-			if i > 0 {
-				b.WriteByte('_')
-			}
-			b.WriteRune(r - 'A' + 'a')
-		} else {
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
-}
-
-func humanViewLabel(name string) string {
-	var b strings.Builder
-	for i, r := range name {
-		if r >= 'A' && r <= 'Z' && i > 0 {
-			b.WriteByte(' ')
-		}
-		if r >= 'A' && r <= 'Z' {
-			b.WriteRune(r)
-		} else {
-			b.WriteRune(r)
-		}
-	}
-	return strings.TrimSpace(b.String())
 }

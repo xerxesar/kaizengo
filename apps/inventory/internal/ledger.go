@@ -1,4 +1,4 @@
-package inventory
+package inv
 
 import (
 	"context"
@@ -10,10 +10,10 @@ import (
 )
 
 func findQuant(ctx context.Context, orgID, variantID, locationID, lotID string) engine.Record {
-	if models == nil || variantID == "" || locationID == "" {
+	if Registry == nil || variantID == "" || locationID == "" {
 		return nil
 	}
-	rows, err := models.ListBy(ctx, orgID, "stock_quant", "variantId", variantID)
+	rows, err := Registry.ListBy(ctx, orgID, "stock_quant", "variantId", variantID)
 	if err != nil {
 		return nil
 	}
@@ -26,10 +26,10 @@ func findQuant(ctx context.Context, orgID, variantID, locationID, lotID string) 
 }
 
 func onHandAt(ctx context.Context, orgID, variantID, locationID string) (qty, unitCost float64) {
-	if models == nil || variantID == "" {
+	if Registry == nil || variantID == "" {
 		return 0, 0
 	}
-	rows, err := models.ListBy(ctx, orgID, "stock_quant", "variantId", variantID)
+	rows, err := Registry.ListBy(ctx, orgID, "stock_quant", "variantId", variantID)
 	if err != nil {
 		return 0, 0
 	}
@@ -49,11 +49,11 @@ func onHandAt(ctx context.Context, orgID, variantID, locationID string) (qty, un
 }
 
 func rebuildQuant(ctx context.Context, orgID, userID, variantID, locationID, lotID string) error {
-	if models == nil || variantID == "" || locationID == "" {
+	if Registry == nil || variantID == "" || locationID == "" {
 		return nil
 	}
 	ctx = withInternal(ctx)
-	lines, err := models.ListBy(ctx, orgID, "stock_ledger", "variantId", variantID)
+	lines, err := Registry.ListBy(ctx, orgID, "stock_ledger", "variantId", variantID)
 	if err != nil {
 		return err
 	}
@@ -92,22 +92,22 @@ func rebuildQuant(ctx context.Context, orgID, userID, variantID, locationID, lot
 	}
 	existing := findQuant(ctx, orgID, variantID, locationID, lotID)
 	if existing != nil {
-		_, err = models.Update(ctx, orgID, "stock_quant", recStr(existing, "id"), fields)
+		_, err = Registry.Update(ctx, orgID, "stock_quant", recStr(existing, "id"), fields)
 		return err
 	}
 	if almostEqual(qty, 0) {
 		return nil
 	}
-	_, err = models.Create(ctx, orgID, userID, "stock_quant", fields)
+	_, err = Registry.Create(ctx, orgID, userID, "stock_quant", fields)
 	return err
 }
 
 func rebuildLot(ctx context.Context, orgID, lotID string) error {
-	if models == nil || lotID == "" {
+	if Registry == nil || lotID == "" {
 		return nil
 	}
 	ctx = withInternal(ctx)
-	lines, err := models.ListBy(ctx, orgID, "stock_ledger", "lotId", lotID)
+	lines, err := Registry.ListBy(ctx, orgID, "stock_ledger", "lotId", lotID)
 	if err != nil {
 		return err
 	}
@@ -119,14 +119,14 @@ func rebuildLot(ctx context.Context, orgID, lotID string) error {
 		}
 		qty += q
 	}
-	_, err = models.Update(ctx, orgID, "stock_lot", lotID, map[string]any{
+	_, err = Registry.Update(ctx, orgID, "stock_lot", lotID, map[string]any{
 		"quantity": RoundQty(qty, defaultRounding),
 	})
 	return err
 }
 
 func applySerial(ctx context.Context, orgID, serialID, locationID, locType string) error {
-	if models == nil || serialID == "" {
+	if Registry == nil || serialID == "" {
 		return nil
 	}
 	status := "available"
@@ -140,7 +140,7 @@ func applySerial(ctx context.Context, orgID, serialID, locationID, locType strin
 	case "quarantine":
 		status = "quarantine"
 	}
-	_, err := models.Update(withInternal(ctx), orgID, "stock_serial", serialID, map[string]any{
+	_, err := Registry.Update(withInternal(ctx), orgID, "stock_serial", serialID, map[string]any{
 		"locationId": locationID,
 		"status":     status,
 	})
@@ -163,7 +163,7 @@ func afterCreateLedger(hc engine.HookContext) error {
 	}
 	if recStr(rec, "side") == "debit" {
 		locType := ""
-		if loc, err := models.Get(hc.Context, hc.OrgID, "location", locationID); err == nil {
+		if loc, err := Registry.Get(hc.Context, hc.OrgID, "location", locationID); err == nil {
 			locType = recStr(loc, "locationType")
 		}
 		if err := applySerial(hc.Context, hc.OrgID, recStr(rec, "serialId"), locationID, locType); err != nil {
@@ -174,10 +174,10 @@ func afterCreateLedger(hc engine.HookContext) error {
 }
 
 func ledgerPosted(ctx context.Context, orgID, variantID, memo string) bool {
-	if models == nil || memo == "" {
+	if Registry == nil || memo == "" {
 		return false
 	}
-	lines, err := models.ListBy(ctx, orgID, "stock_ledger", "variantId", variantID)
+	lines, err := Registry.ListBy(ctx, orgID, "stock_ledger", "variantId", variantID)
 	if err != nil {
 		return false
 	}
@@ -190,10 +190,10 @@ func ledgerPosted(ctx context.Context, orgID, variantID, memo string) bool {
 }
 
 func findLocationByType(ctx context.Context, orgID, locType string) (engine.Record, error) {
-	if models == nil {
+	if Registry == nil {
 		return nil, fmt.Errorf("inventory models not initialized")
 	}
-	rows, err := models.ListBy(ctx, orgID, "location", "locationType", locType)
+	rows, err := Registry.ListBy(ctx, orgID, "location", "locationType", locType)
 	if err != nil {
 		return nil, err
 	}

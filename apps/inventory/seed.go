@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	inv "kaizengo/apps/inventory/internal"
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/engine"
 )
@@ -11,7 +12,7 @@ import (
 const seedAuthor = "00000000-0000-0000-0000-000000000001"
 
 func setup(host *module.Host, events *engine.EventsSetup) error {
-	models = events.Models
+	inv.Registry = events.Models
 	return seed(host, events)
 }
 

@@ -1,0 +1,30 @@
+models:
+  - name: stock_quant
+    internal: true
+    fields:
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: locationId
+        type: many2one
+        relation: location
+        required: true
+      - name: lotId
+        type: many2one
+        relation: stock_lot
+      - name: quantity
+        type: number
+        default: 0
+      - name: reservedQty
+        type: number
+        default: 0
+      - name: uomId
+        type: many2one
+        relation: uom
+      - name: unitCost
+        type: number
+        default: 0
+      - name: value
+        type: number
+        default: 0

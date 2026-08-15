@@ -126,7 +126,7 @@ internal/platform  time, i18n, config, drivers
 
 ## VS Code / Cursor extension
 
-`packages/vscode-kaizengo` adds Go to Definition in `app.yaml` (views, models, `depends` / `uses`, locales, handlers).
+`packages/vscode-kaizengo` adds Go to Definition in `app.yaml` and `models/*/spec.yaml` (pages, models, `depends` / `uses`, locales, handlers).
 
 ```bash
 make vscode-ext          # compile

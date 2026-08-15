@@ -1,0 +1,29 @@
+models:
+  - name: location
+    search:
+      collection: inventory.location
+      fields: [name, code, barcode]
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: code
+        type: string
+        required: true
+        indexed: true
+      - name: locationType
+        type: enum
+        values: [warehouse, zone, aisle, rack, shelf, bin, supplier, customer, transit, scrap, inventory, quarantine, production]
+        required: true
+      - name: parentId
+        type: many2one
+        relation: location
+      - name: usage
+        type: enum
+        values: [internal, virtual]
+        default: internal
+      - name: barcode
+        type: string
+      - name: active
+        type: bool
+        default: true

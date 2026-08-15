@@ -954,6 +954,15 @@ msgstr "On-hand balances cannot be deleted; use an adjustment"
 msgid "inventory.error.cost_layer"
 msgstr "Cost layers are maintained by stock posting"
 
+msgid "inventory.error.cost_layer.internal"
+msgstr "Cost layers are maintained by stock posting"
+
+msgid "inventory.error.stock_ledger.internal"
+msgstr "Stock ledger entries are posted by operations, not entered directly"
+
+msgid "inventory.error.stock_quant.internal"
+msgstr "On-hand balances are ledger-controlled; use an adjustment or stock operation"
+
 msgid "inventory.error.move_done"
 msgstr "Completed stock moves cannot be changed"
 

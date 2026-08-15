@@ -107,6 +107,9 @@ func collectSpecKeys(spec appspec.AppSpec) map[string][]string {
 		if model.Search != nil {
 			addKey(keys, app+"."+model.Name+".search", src)
 		}
+		if model.Internal {
+			addKey(keys, app+".error."+model.Name+".internal", src)
+		}
 		for _, f := range model.Fields {
 			if _, ok := seenFields[f.Name]; !ok {
 				addKey(keys, app+".field."+f.Name, src)

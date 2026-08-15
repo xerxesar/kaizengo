@@ -1,0 +1,35 @@
+models:
+  - name: reorder_rule
+    fields:
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: locationId
+        type: many2one
+        relation: location
+      - name: method
+        type: enum
+        values: [min_max, safety_stock, forecast]
+        default: safety_stock
+      - name: minQty
+        type: number
+        default: 0
+      - name: maxQty
+        type: number
+        default: 0
+      - name: safetyStock
+        type: number
+        default: 0
+      - name: leadTimeDays
+        type: int
+        default: 0
+      - name: avgDailyDemand
+        type: number
+        default: 0
+      - name: reorderPoint
+        type: number
+        default: 0
+      - name: qtyToOrder
+        type: number
+        default: 0

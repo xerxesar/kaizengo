@@ -69,6 +69,26 @@ models:
 	}
 }
 
+func TestParseInternalModel(t *testing.T) {
+	spec, err := appspec.Parse([]byte(`
+name: demo
+title: Demo
+summary: Demo
+models:
+  - name: layer
+    internal: true
+    fields:
+      - name: qty
+        type: number
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !spec.Models[0].Internal {
+		t.Fatal("expected internal model")
+	}
+}
+
 func TestParseRejectsRelationWithoutTarget(t *testing.T) {
 	_, err := appspec.Parse([]byte(`
 name: demo

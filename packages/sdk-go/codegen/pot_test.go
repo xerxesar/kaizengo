@@ -35,9 +35,6 @@ menus:
   - id: items
     labelKey: demo.menu.items
     view: Items
-views:
-  - name: Items
-    type: page
 `))
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +48,7 @@ views:
 <h1>{t('demo.custom.title')}</h1>
 <KTable emptyKey="demo.empty.items" />
 `
-	if err := os.WriteFile(filepath.Join(dir, "views", "Items.svelte"), []byte(view), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "views", "Items.page.svelte"), []byte(view), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "gql.go"), []byte(`package demo
@@ -93,6 +90,34 @@ func hook() { _ = i18n.Error("demo.error.denied") }
 	}
 	if strings.Contains(out, "POT-Creation-Date") {
 		t.Fatal("template.pot must be deterministic (no POT-Creation-Date)")
+	}
+}
+
+func TestGenerateLocaleTemplateInternalErrorKey(t *testing.T) {
+	dir := t.TempDir()
+	spec, err := appspec.Parse([]byte(`
+name: demo
+title: Demo
+summary: Demo app
+models:
+  - name: layer
+    internal: true
+    fields:
+      - name: qty
+        type: number
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := codegen.GenerateLocaleTemplate(spec, dir); err != nil {
+		t.Fatal(err)
+	}
+	src, err := os.ReadFile(filepath.Join(dir, "locale", "template.pot"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(src), `msgid "demo.error.layer.internal"`) {
+		t.Fatalf("template.pot missing internal error key:\n%s", src)
 	}
 }
 

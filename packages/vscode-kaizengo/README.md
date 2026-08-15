@@ -10,7 +10,8 @@ In any `apps/<name>/app.yaml`, **F12** / **Ctrl+click** (Go to Definition) and h
 |-----------|--------|
 | `depends` app name | that app's `app.yaml` |
 | `uses` capability | the `provides` entry (or platform source for `platform.*`) |
-| `views` / `menus.view` | `views/<Name>.svelte` |
+| `menus.view` | `views/<Name>.page.svelte` |
+| `models:` path | `models/<name>/spec.yaml` |
 | `models` name | generated `__types__/<model>.go` |
 | `relation` / `inverse` | the related model or field in YAML |
 | `labelKey` | `msgid` in `locale/*.po` (and platform nav catalogs) |
@@ -28,7 +29,7 @@ From the KaizenGo workspace:
 1. `make vscode-ext` (installs deps and compiles)
 2. Run **Run KaizenGo Extension** from the Run and Debug view (F5)
 
-That opens an Extension Development Host with this repository as the workspace. Open `apps/inventory/app.yaml` and Ctrl+click `core`, `Dashboard`, or `relation: uom`.
+That opens an Extension Development Host with this repository as the workspace. Open `apps/inventory/app.yaml` and Ctrl+click `core`, `Dashboard`, or `models/product`.
 
 ## Package and install
 

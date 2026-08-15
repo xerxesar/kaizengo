@@ -30,11 +30,6 @@ models:
       - name: done
         type: bool
         default: false
-views:
-  - name: TaskList
-    type: page
-  - name: TaskForm
-    type: page
 menus:
   - id: tasks
     labelKey: todo.menu.tasks
@@ -106,9 +101,9 @@ System columns (`id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_a
 
 ## 4. Views
 
-Views are Svelte 5 files compiled into the **core** SPA. One file per `views:` name.
+Views are Svelte 5 files compiled into the **core** SPA. Pages are `views/<Name>.page.svelte`.
 
-`apps/todo/views/TaskList.svelte`:
+`apps/todo/views/TaskList.page.svelte`:
 
 ```svelte
 <script lang="ts">
@@ -120,7 +115,7 @@ Views are Svelte 5 files compiled into the **core** SPA. One file per `views:` n
 <KAppStatus />
 ```
 
-`apps/todo/views/TaskForm.svelte`:
+`apps/todo/views/TaskForm.page.svelte`:
 
 ```svelte
 <script lang="ts">

@@ -10,10 +10,6 @@ import (
 func TestViewCatalogGeneratesListAndFormFromModels(t *testing.T) {
 	spec := appspec.AppSpec{
 		Name: "hellospec",
-		Views: []appspec.ViewSpec{
-			{Name: "GreetingList", Type: "page"},
-			{Name: "GreetingForm", Type: "page"},
-		},
 		Models: []appspec.ModelSpec{{
 			Name: "greeting",
 			Fields: []appspec.FieldSpec{{
@@ -122,5 +118,23 @@ func TestViewCatalogMergesYamlAndRegistered(t *testing.T) {
 	}
 	if len(catalog[0].Columns) != 3 || catalog[0].Columns[2].Key != "status" {
 		t.Fatalf("expected registered ListColumns on yaml model, got %+v", catalog[0].Columns)
+	}
+}
+
+func TestViewCatalogSkipsFormForInternalModels(t *testing.T) {
+	spec := appspec.AppSpec{
+		Name: "inventory",
+		Models: []appspec.ModelSpec{{
+			Name:     "cost_layer",
+			Internal: true,
+			Fields:   []appspec.FieldSpec{{Name: "quantity", Type: "number"}},
+		}},
+	}
+	catalog := viewCatalog(spec)
+	if len(catalog) != 1 {
+		t.Fatalf("expected list-only catalog, got %d views: %+v", len(catalog), catalog)
+	}
+	if catalog[0].Kind != views.ListView || catalog[0].Model != "cost_layer" {
+		t.Fatalf("unexpected view: %+v", catalog[0])
 	}
 }

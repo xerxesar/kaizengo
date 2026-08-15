@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"sync"
 
 	"kaizengo/packages/sdk-go/appspec"
 	"kaizengo/packages/sdk-go/i18n"
@@ -63,6 +64,38 @@ func (r *HookRegistry) forModel(model string) Hooks {
 		return Hooks{}
 	}
 	return r.byModel[model]
+}
+
+var (
+	globalModelHooksMu sync.Mutex
+	globalModelHooks   = map[string]map[string]Hooks{}
+)
+
+// RegisterModelHooks records lifecycle callbacks for a model in an app.
+// Call from a model package init() so engine.New picks them up.
+func RegisterModelHooks(app, model string, h Hooks) {
+	if app == "" || model == "" {
+		return
+	}
+	globalModelHooksMu.Lock()
+	defer globalModelHooksMu.Unlock()
+	byModel, ok := globalModelHooks[app]
+	if !ok {
+		byModel = map[string]Hooks{}
+		globalModelHooks[app] = byModel
+	}
+	byModel[model] = h
+}
+
+func applyRegisteredHooks(a *App) {
+	if a == nil || a.opts.AppName == "" {
+		return
+	}
+	globalModelHooksMu.Lock()
+	defer globalModelHooksMu.Unlock()
+	for model, h := range globalModelHooks[a.opts.AppName] {
+		a.Hooks(model, h)
+	}
 }
 
 // Hooks registers lifecycle callbacks for a model. Returns a for chaining.

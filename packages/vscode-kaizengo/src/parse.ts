@@ -19,6 +19,7 @@ export type NavKind =
   | "view-name"
   | "menu-view"
   | "model-name"
+  | "spec-include"
   | "relation"
   | "inverse"
   | "search-field"
@@ -39,6 +40,7 @@ export function classify(path: string): NavKind {
   if (/^uses\[\d+\]$/.test(path)) return "uses";
   if (/^provides\[\d+\]$/.test(path)) return "provides";
   if (/^views\[\d+\]\.name$/.test(path)) return "view-name";
+  if (/^models\[\d+\]$/.test(path)) return "spec-include";
   if (/^models\[\d+\]\.name$/.test(path)) return "model-name";
   if (/^models\[\d+\]\.fields\[\d+\]\.relation$/.test(path)) return "relation";
   if (/^models\[\d+\]\.fields\[\d+\]\.inverse$/.test(path)) return "inverse";

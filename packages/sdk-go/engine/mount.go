@@ -40,7 +40,9 @@ func New(opts Options) *App {
 	if opts.Version == "" {
 		opts.Version = "0.1.0"
 	}
-	return &App{opts: opts}
+	a := &App{opts: opts}
+	applyRegisteredHooks(a)
+	return a
 }
 
 func (a *App) Manifest() module.Manifest {

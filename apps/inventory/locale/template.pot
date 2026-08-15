@@ -6,11 +6,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: views/Adjustments.svelte
+#: views/Adjustments.page.svelte
 msgid "inventory.adjustments.subtitle"
 msgstr ""
 
-#: views/Adjustments.svelte
+#: views/Adjustments.page.svelte
 msgid "inventory.adjustments.title"
 msgstr ""
 
@@ -18,27 +18,27 @@ msgstr ""
 msgid "inventory.attribute.search"
 msgstr ""
 
-#: views/Attributes.svelte
+#: views/Attributes.page.svelte
 msgid "inventory.attribute_values.subtitle"
 msgstr ""
 
-#: views/Attributes.svelte
+#: views/Attributes.page.svelte
 msgid "inventory.attribute_values.title"
 msgstr ""
 
-#: views/Attributes.svelte
+#: views/Attributes.page.svelte
 msgid "inventory.attributes.subtitle"
 msgstr ""
 
-#: views/Attributes.svelte
+#: views/Attributes.page.svelte
 msgid "inventory.attributes.title"
 msgstr ""
 
-#: views/CostLayers.svelte
+#: views/CostLayers.page.svelte
 msgid "inventory.cost_layers.subtitle"
 msgstr ""
 
-#: views/CostLayers.svelte
+#: views/CostLayers.page.svelte
 msgid "inventory.cost_layers.title"
 msgstr ""
 
@@ -54,35 +54,35 @@ msgstr ""
 msgid "inventory.empty"
 msgstr ""
 
-#: views/Adjustments.svelte
+#: views/Adjustments.page.svelte
 msgid "inventory.empty.adjustments"
 msgstr ""
 
-#: views/Attributes.svelte
+#: views/Attributes.page.svelte
 msgid "inventory.empty.attribute_values"
 msgstr ""
 
-#: views/Attributes.svelte
+#: views/Attributes.page.svelte
 msgid "inventory.empty.attributes"
 msgstr ""
 
-#: views/CostLayers.svelte
+#: views/CostLayers.page.svelte
 msgid "inventory.empty.cost_layers"
 msgstr ""
 
-#: views/Hardware.svelte
+#: views/Hardware.page.svelte
 msgid "inventory.empty.hardware"
 msgstr ""
 
-#: views/Integrations.svelte
+#: views/Integrations.page.svelte
 msgid "inventory.empty.integrations"
 msgstr ""
 
-#: views/Ledger.svelte
+#: views/Ledger.page.svelte
 msgid "inventory.empty.ledger"
 msgstr ""
 
-#: views/Traceability.svelte
+#: views/Traceability.page.svelte
 msgid "inventory.empty.lots"
 msgstr ""
 
@@ -94,35 +94,35 @@ msgstr ""
 msgid "inventory.empty.operations"
 msgstr ""
 
-#: views/Planning.svelte
+#: views/Planning.page.svelte
 msgid "inventory.empty.planning"
 msgstr ""
 
-#: views/Products.svelte
+#: views/Products.page.svelte
 msgid "inventory.empty.products"
 msgstr ""
 
-#: views/Returns.svelte
+#: views/Returns.page.svelte
 msgid "inventory.empty.returns"
 msgstr ""
 
-#: views/Traceability.svelte
+#: views/Traceability.page.svelte
 msgid "inventory.empty.serials"
 msgstr ""
 
-#: views/Stock.svelte
+#: views/Stock.page.svelte
 msgid "inventory.empty.stock"
 msgstr ""
 
-#: views/Units.svelte
+#: views/Units.page.svelte
 msgid "inventory.empty.uom_groups"
 msgstr ""
 
-#: views/Units.svelte
+#: views/Units.page.svelte
 msgid "inventory.empty.uoms"
 msgstr ""
 
-#: views/Products.svelte
+#: views/Products.page.svelte
 msgid "inventory.empty.variants"
 msgstr ""
 
@@ -510,99 +510,99 @@ msgstr ""
 msgid "inventory.enum.uom.uomType.smaller"
 msgstr ""
 
-#: hooks.go
+#: models/cost_layer/hooks.go
 msgid "inventory.error.cost_layer"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.insufficient_reserve"
 msgstr ""
 
-#: hooks.go
+#: models/stock_ledger/hooks.go
 msgid "inventory.error.ledger_create"
 msgstr ""
 
-#: hooks.go
+#: models/stock_ledger/hooks.go
 msgid "inventory.error.ledger_immutable"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.lot_and_serial_required"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.lot_required"
 msgstr ""
 
-#: hooks.go
+#: models/stock_move/hooks.go
 msgid "inventory.error.move_done"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.move_locations"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.move_qty"
 msgstr ""
 
-#: ledger.go
+#: internal/ledger.go
 msgid "inventory.error.no_location"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.no_qty_reserve"
 msgstr ""
 
-#: hooks.go
+#: models/picking/hooks.go
 msgid "inventory.error.picking_cancelled_complete"
 msgstr ""
 
-#: hooks.go
+#: models/picking/hooks.go
 msgid "inventory.error.picking_done_cancel"
 msgstr ""
 
-#: hooks.go
+#: models/picking/hooks.go
 msgid "inventory.error.picking_done_delete"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.picking_no_moves"
 msgstr ""
 
-#: hooks.go
+#: models/stock_move/hooks.go
 msgid "inventory.error.qty_positive"
 msgstr ""
 
-#: hooks.go
+#: models/stock_quant/hooks.go
 msgid "inventory.error.quant_create"
 msgstr ""
 
-#: hooks.go
+#: models/stock_quant/hooks.go
 msgid "inventory.error.quant_delete"
 msgstr ""
 
-#: hooks.go
+#: models/stock_quant/hooks.go
 msgid "inventory.error.quant_update"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.rma_location"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.rma_qty"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.serial_required"
 msgstr ""
 
-#: posting.go
+#: internal/posting.go
 msgid "inventory.error.uom_convert"
 msgstr ""
 
-#: hooks.go uom.go
+#: internal/uom.go models/uom/hooks.go
 msgid "inventory.error.uom_ratio"
 msgstr ""
 
@@ -650,7 +650,7 @@ msgstr ""
 msgid "inventory.field.category"
 msgstr ""
 
-#: app.yaml views/Locations.svelte
+#: app.yaml views/Locations.page.svelte
 msgid "inventory.field.code"
 msgstr ""
 
@@ -722,7 +722,7 @@ msgstr ""
 msgid "inventory.field.groupId"
 msgstr ""
 
-#: views/Locations.svelte
+#: views/Locations.page.svelte
 msgid "inventory.field.id"
 msgstr ""
 
@@ -750,7 +750,7 @@ msgstr ""
 msgid "inventory.field.locationId"
 msgstr ""
 
-#: app.yaml views/Locations.svelte
+#: app.yaml views/Locations.page.svelte
 msgid "inventory.field.locationType"
 msgstr ""
 
@@ -786,7 +786,7 @@ msgstr ""
 msgid "inventory.field.moves"
 msgstr ""
 
-#: app.yaml views/Locations.svelte
+#: app.yaml views/Locations.page.svelte
 msgid "inventory.field.name"
 msgstr ""
 
@@ -990,35 +990,35 @@ msgstr ""
 msgid "inventory.form.new"
 msgstr ""
 
-#: views/Fulfillment.svelte
+#: views/Fulfillment.page.svelte
 msgid "inventory.fulfillment.subtitle"
 msgstr ""
 
-#: views/Fulfillment.svelte
+#: views/Fulfillment.page.svelte
 msgid "inventory.fulfillment.title"
 msgstr ""
 
-#: views/Hardware.svelte
+#: views/Hardware.page.svelte
 msgid "inventory.hardware.subtitle"
 msgstr ""
 
-#: views/Hardware.svelte
+#: views/Hardware.page.svelte
 msgid "inventory.hardware.title"
 msgstr ""
 
-#: views/Integrations.svelte
+#: views/Integrations.page.svelte
 msgid "inventory.integrations.subtitle"
 msgstr ""
 
-#: views/Integrations.svelte
+#: views/Integrations.page.svelte
 msgid "inventory.integrations.title"
 msgstr ""
 
-#: views/Ledger.svelte
+#: views/Ledger.page.svelte
 msgid "inventory.ledger.subtitle"
 msgstr ""
 
-#: views/Ledger.svelte
+#: views/Ledger.page.svelte
 msgid "inventory.ledger.title"
 msgstr ""
 
@@ -1026,35 +1026,35 @@ msgstr ""
 msgid "inventory.location.search"
 msgstr ""
 
-#: views/Locations.svelte
+#: views/Locations.page.svelte
 msgid "inventory.locations.add"
 msgstr ""
 
-#: views/Locations.svelte
+#: views/Locations.page.svelte
 msgid "inventory.locations.count"
 msgstr ""
 
-#: views/Locations.svelte
+#: views/Locations.page.svelte
 msgid "inventory.locations.detail"
 msgstr ""
 
-#: views/Locations.svelte
+#: views/Locations.page.svelte
 msgid "inventory.locations.subtitle"
 msgstr ""
 
-#: views/Locations.svelte
+#: views/Locations.page.svelte
 msgid "inventory.locations.title"
 msgstr ""
 
-#: views/Locations.svelte
+#: views/Locations.page.svelte
 msgid "inventory.locations.tree"
 msgstr ""
 
-#: views/Traceability.svelte
+#: views/Traceability.page.svelte
 msgid "inventory.lots.subtitle"
 msgstr ""
 
-#: views/Traceability.svelte
+#: views/Traceability.page.svelte
 msgid "inventory.lots.title"
 msgstr ""
 
@@ -1170,39 +1170,39 @@ msgstr ""
 msgid "inventory.operations.hint"
 msgstr ""
 
-#: views/Operations.svelte
+#: views/Operations.page.svelte
 msgid "inventory.operations.subtitle"
 msgstr ""
 
-#: views/Operations.svelte
+#: views/Operations.page.svelte
 msgid "inventory.operations.title"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.overview.about"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.overview.about_title"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.overview.actions"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.overview.fulfill"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.overview.plan"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.overview.receive"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.overview.stock"
 msgstr ""
 
@@ -1214,11 +1214,11 @@ msgstr ""
 msgid "inventory.ping"
 msgstr ""
 
-#: views/Planning.svelte
+#: views/Planning.page.svelte
 msgid "inventory.planning.subtitle"
 msgstr ""
 
-#: views/Planning.svelte
+#: views/Planning.page.svelte
 msgid "inventory.planning.title"
 msgstr ""
 
@@ -1230,27 +1230,27 @@ msgstr ""
 msgid "inventory.product_variant.search"
 msgstr ""
 
-#: views/Products.svelte
+#: views/Products.page.svelte
 msgid "inventory.products.subtitle"
 msgstr ""
 
-#: views/Products.svelte
+#: views/Products.page.svelte
 msgid "inventory.products.title"
 msgstr ""
 
-#: views/Receipts.svelte
+#: views/Receipts.page.svelte
 msgid "inventory.receipts.subtitle"
 msgstr ""
 
-#: views/Receipts.svelte
+#: views/Receipts.page.svelte
 msgid "inventory.receipts.title"
 msgstr ""
 
-#: views/Returns.svelte
+#: views/Returns.page.svelte
 msgid "inventory.returns.subtitle"
 msgstr ""
 
-#: views/Returns.svelte
+#: views/Returns.page.svelte
 msgid "inventory.returns.title"
 msgstr ""
 
@@ -1266,83 +1266,83 @@ msgstr ""
 msgid "inventory.saved"
 msgstr ""
 
-#: views/Traceability.svelte
+#: views/Traceability.page.svelte
 msgid "inventory.serials.subtitle"
 msgstr ""
 
-#: views/Traceability.svelte
+#: views/Traceability.page.svelte
 msgid "inventory.serials.title"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.carrying"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.carrying_hint"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.expiring"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.expiring_hint"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.gmroi"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.gmroi_hint"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.onhand"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.onhand_hint"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.open"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.open_hint"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.skus"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.skus_hint"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.stockout"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.stockout_hint"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.value"
 msgstr ""
 
-#: views/Dashboard.svelte
+#: views/Dashboard.page.svelte
 msgid "inventory.stat.value_hint"
 msgstr ""
 
-#: views/Stock.svelte
+#: views/Stock.page.svelte
 msgid "inventory.stock.subtitle"
 msgstr ""
 
-#: views/Stock.svelte
+#: views/Stock.page.svelte
 msgid "inventory.stock.title"
 msgstr ""
 
@@ -1354,43 +1354,43 @@ msgstr ""
 msgid "inventory.stock_serial.search"
 msgstr ""
 
-#: app.yaml views/Dashboard.svelte
+#: app.yaml views/Dashboard.page.svelte
 msgid "inventory.subtitle"
 msgstr ""
 
-#: app.yaml views/Dashboard.svelte
+#: app.yaml views/Dashboard.page.svelte
 msgid "inventory.title"
 msgstr ""
 
-#: views/Transfers.svelte
+#: views/Transfers.page.svelte
 msgid "inventory.transfers.subtitle"
 msgstr ""
 
-#: views/Transfers.svelte
+#: views/Transfers.page.svelte
 msgid "inventory.transfers.title"
 msgstr ""
 
-#: views/Units.svelte
+#: views/Units.page.svelte
 msgid "inventory.uom_groups.subtitle"
 msgstr ""
 
-#: views/Units.svelte
+#: views/Units.page.svelte
 msgid "inventory.uom_groups.title"
 msgstr ""
 
-#: views/Units.svelte
+#: views/Units.page.svelte
 msgid "inventory.uoms.subtitle"
 msgstr ""
 
-#: views/Units.svelte
+#: views/Units.page.svelte
 msgid "inventory.uoms.title"
 msgstr ""
 
-#: views/Products.svelte
+#: views/Products.page.svelte
 msgid "inventory.variants.subtitle"
 msgstr ""
 
-#: views/Products.svelte
+#: views/Products.page.svelte
 msgid "inventory.variants.title"
 msgstr ""
 

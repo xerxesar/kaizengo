@@ -954,6 +954,15 @@ msgstr "موجودی روی دست را نمی‌توان حذف کرد؛ از �
 msgid "inventory.error.cost_layer"
 msgstr "لایه‌های بها با ثبت موجودی نگهداری می‌شوند"
 
+msgid "inventory.error.cost_layer.internal"
+msgstr "لایه‌های بها با ثبت موجودی نگهداری می‌شوند"
+
+msgid "inventory.error.stock_ledger.internal"
+msgstr "ردیف‌های دفتر با عملیات انبار ثبت می‌شوند، نه به‌صورت دستی"
+
+msgid "inventory.error.stock_quant.internal"
+msgstr "موجودی روی دست از دفتر کنترل می‌شود؛ از تعدیل یا عملیات انبار استفاده کنید"
+
 msgid "inventory.error.move_done"
 msgstr "حرکت‌های تکمیل‌شده را نمی‌توان تغییر داد"
 

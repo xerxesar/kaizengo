@@ -1,0 +1,20 @@
+models:
+  - name: stock_lot
+    search:
+      collection: inventory.stock_lot
+      fields: [name]
+    fields:
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: name
+        type: string
+        required: true
+      - name: expiryDate
+        type: date
+      - name: manufacturedDate
+        type: date
+      - name: quantity
+        type: number
+        default: 0

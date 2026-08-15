@@ -1,4 +1,4 @@
-package inventory
+package inv
 
 import (
 	"context"
@@ -41,11 +41,11 @@ func convertToStock(ctx context.Context, orgID string, variant engine.Record, qt
 		}
 		return qty, stockUomID, nil
 	}
-	from, err := models.Get(ctx, orgID, "uom", fromUomID)
+	from, err := Registry.Get(ctx, orgID, "uom", fromUomID)
 	if err != nil {
 		return 0, "", fmt.Errorf("from uom: %w", err)
 	}
-	to, err := models.Get(ctx, orgID, "uom", stockUomID)
+	to, err := Registry.Get(ctx, orgID, "uom", stockUomID)
 	if err != nil {
 		return 0, "", fmt.Errorf("stock uom: %w", err)
 	}
@@ -57,7 +57,7 @@ func convertToStock(ctx context.Context, orgID string, variant engine.Record, qt
 }
 
 func loadLayers(ctx context.Context, orgID, variantID string) ([]CostLayer, error) {
-	rows, err := models.ListBy(ctx, orgID, "cost_layer", "variantId", variantID)
+	rows, err := Registry.ListBy(ctx, orgID, "cost_layer", "variantId", variantID)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func loadLayers(ctx context.Context, orgID, variantID string) ([]CostLayer, erro
 func saveLayers(ctx context.Context, orgID string, layers []CostLayer) error {
 	ctx = withInternal(ctx)
 	for _, layer := range layers {
-		if _, err := models.Update(ctx, orgID, "cost_layer", layer.ID, map[string]any{
+		if _, err := Registry.Update(ctx, orgID, "cost_layer", layer.ID, map[string]any{
 			"quantity": layer.Remaining,
 		}); err != nil {
 			return err
@@ -109,7 +109,7 @@ func resolveAndApplyCost(ctx context.Context, orgID, userID string, product, var
 		}
 		cost = RoundMoney(cost)
 		if method == "fifo" || method == "lifo" || method == "moving_average" {
-			if _, err := models.Create(withInternal(ctx), orgID, userID, "cost_layer", map[string]any{
+			if _, err := Registry.Create(withInternal(ctx), orgID, userID, "cost_layer", map[string]any{
 				"variantId":    variantID,
 				"lotId":        recStr(move, "lotId"),
 				"quantity":     qty,
@@ -124,7 +124,7 @@ func resolveAndApplyCost(ctx context.Context, orgID, userID string, product, var
 		if method == "moving_average" {
 			onHand, onHandCost := onHandAt(ctx, orgID, variantID, "")
 			newAvg := movingAverage(onHand, onHandCost, qty, cost)
-			if _, err := models.Update(withInternal(ctx), orgID, "product_variant", variantID, map[string]any{
+			if _, err := Registry.Update(withInternal(ctx), orgID, "product_variant", variantID, map[string]any{
 				"averageCost": newAvg,
 			}); err != nil {
 				return 0, err
@@ -189,11 +189,11 @@ func validateTracking(product, move engine.Record) error {
 
 func postMove(ctx context.Context, orgID, userID string, picking, move engine.Record) error {
 	variantID := recStr(move, "variantId")
-	variant, err := models.Get(ctx, orgID, "product_variant", variantID)
+	variant, err := Registry.Get(ctx, orgID, "product_variant", variantID)
 	if err != nil {
 		return fmt.Errorf("variant: %w", err)
 	}
-	product, err := models.Get(ctx, orgID, "product", recStr(variant, "productId"))
+	product, err := Registry.Get(ctx, orgID, "product", recStr(variant, "productId"))
 	if err != nil {
 		return fmt.Errorf("product: %w", err)
 	}
@@ -256,14 +256,14 @@ func postMove(ctx context.Context, orgID, userID string, picking, move engine.Re
 	debit["locationId"] = toID
 	debit["side"] = "debit"
 
-	if _, err := models.Create(withInternal(ctx), orgID, userID, "stock_ledger", credit); err != nil {
+	if _, err := Registry.Create(withInternal(ctx), orgID, userID, "stock_ledger", credit); err != nil {
 		return err
 	}
-	if _, err := models.Create(withInternal(ctx), orgID, userID, "stock_ledger", debit); err != nil {
+	if _, err := Registry.Create(withInternal(ctx), orgID, userID, "stock_ledger", debit); err != nil {
 		return err
 	}
 
-	_, err = models.Update(withInternal(ctx), orgID, "stock_move", recStr(move, "id"), map[string]any{
+	_, err = Registry.Update(withInternal(ctx), orgID, "stock_move", recStr(move, "id"), map[string]any{
 		"state":          "done",
 		"doneQty":        stockQty,
 		"unitCost":       unitCost,
@@ -274,17 +274,17 @@ func postMove(ctx context.Context, orgID, userID string, picking, move engine.Re
 }
 
 func postPicking(hc engine.HookContext) error {
-	if models == nil {
+	if Registry == nil {
 		return fmt.Errorf("inventory models not initialized")
 	}
-	existing, err := models.ListBy(hc.Context, hc.OrgID, "stock_ledger", "pickingId", hc.RecordID)
+	existing, err := Registry.ListBy(hc.Context, hc.OrgID, "stock_ledger", "pickingId", hc.RecordID)
 	if err != nil {
 		return err
 	}
 	if len(existing) > 0 {
 		return nil
 	}
-	moves, err := models.ListBy(hc.Context, hc.OrgID, "stock_move", "pickingId", hc.RecordID)
+	moves, err := Registry.ListBy(hc.Context, hc.OrgID, "stock_move", "pickingId", hc.RecordID)
 	if err != nil {
 		return err
 	}
@@ -305,11 +305,11 @@ func postPicking(hc engine.HookContext) error {
 }
 
 func reservePicking(hc engine.HookContext) error {
-	if models == nil {
+	if Registry == nil {
 		return nil
 	}
 	picking := mergedRecord(hc)
-	moves, err := models.ListBy(hc.Context, hc.OrgID, "stock_move", "pickingId", hc.RecordID)
+	moves, err := Registry.ListBy(hc.Context, hc.OrgID, "stock_move", "pickingId", hc.RecordID)
 	if err != nil {
 		return err
 	}
@@ -322,7 +322,7 @@ func reservePicking(hc engine.HookContext) error {
 		if fromID == "" {
 			fromID = recStr(picking, "sourceLocationId")
 		}
-		variant, err := models.Get(hc.Context, hc.OrgID, "product_variant", recStr(move, "variantId"))
+		variant, err := Registry.Get(hc.Context, hc.OrgID, "product_variant", recStr(move, "variantId"))
 		if err != nil {
 			return err
 		}
@@ -338,7 +338,7 @@ func reservePicking(hc engine.HookContext) error {
 		if avail+defaultRounding < need {
 			return i18n.Error("inventory.error.insufficient_reserve")
 		}
-		if _, err := models.Update(ctx, hc.OrgID, "stock_quant", recStr(q, "id"), map[string]any{
+		if _, err := Registry.Update(ctx, hc.OrgID, "stock_quant", recStr(q, "id"), map[string]any{
 			"reservedQty": recNum(q, "reservedQty") + need,
 		}); err != nil {
 			return err
@@ -349,11 +349,11 @@ func reservePicking(hc engine.HookContext) error {
 
 func unreservePicking(hc engine.HookContext) error {
 	prev, _ := nextState(hc, "state")
-	if prev != "assigned" || models == nil {
+	if prev != "assigned" || Registry == nil {
 		return nil
 	}
 	picking := mergedRecord(hc)
-	moves, err := models.ListBy(hc.Context, hc.OrgID, "stock_move", "pickingId", hc.RecordID)
+	moves, err := Registry.ListBy(hc.Context, hc.OrgID, "stock_move", "pickingId", hc.RecordID)
 	if err != nil {
 		return err
 	}
@@ -363,7 +363,7 @@ func unreservePicking(hc engine.HookContext) error {
 		if fromID == "" {
 			fromID = recStr(picking, "sourceLocationId")
 		}
-		variant, err := models.Get(hc.Context, hc.OrgID, "product_variant", recStr(move, "variantId"))
+		variant, err := Registry.Get(hc.Context, hc.OrgID, "product_variant", recStr(move, "variantId"))
 		if err != nil {
 			continue
 		}
@@ -379,7 +379,7 @@ func unreservePicking(hc engine.HookContext) error {
 		if next < 0 {
 			next = 0
 		}
-		_, _ = models.Update(ctx, hc.OrgID, "stock_quant", recStr(q, "id"), map[string]any{
+		_, _ = Registry.Update(ctx, hc.OrgID, "stock_quant", recStr(q, "id"), map[string]any{
 			"reservedQty": next,
 		})
 	}
@@ -406,15 +406,15 @@ func postLedgerPair(ctx context.Context, orgID, userID, variantID, fromID, toID,
 	debit := cloneFields(base)
 	debit["locationId"] = toID
 	debit["side"] = "debit"
-	if _, err := models.Create(withInternal(ctx), orgID, userID, "stock_ledger", credit); err != nil {
+	if _, err := Registry.Create(withInternal(ctx), orgID, userID, "stock_ledger", credit); err != nil {
 		return err
 	}
-	_, err := models.Create(withInternal(ctx), orgID, userID, "stock_ledger", debit)
+	_, err := Registry.Create(withInternal(ctx), orgID, userID, "stock_ledger", debit)
 	return err
 }
 
 func postAdjustment(hc engine.HookContext) error {
-	if models == nil {
+	if Registry == nil {
 		return fmt.Errorf("inventory models not initialized")
 	}
 	rec := mergedRecord(hc)
@@ -441,11 +441,11 @@ func postAdjustment(hc engine.HookContext) error {
 		fromID, toID = recStr(inv, "id"), locID
 		incoming = true
 	}
-	variant, err := models.Get(hc.Context, hc.OrgID, "product_variant", variantID)
+	variant, err := Registry.Get(hc.Context, hc.OrgID, "product_variant", variantID)
 	if err != nil {
 		return err
 	}
-	product, err := models.Get(hc.Context, hc.OrgID, "product", recStr(variant, "productId"))
+	product, err := Registry.Get(hc.Context, hc.OrgID, "product", recStr(variant, "productId"))
 	if err != nil {
 		return err
 	}
@@ -458,7 +458,7 @@ func postAdjustment(hc engine.HookContext) error {
 }
 
 func postRMA(hc engine.HookContext) error {
-	if models == nil {
+	if Registry == nil {
 		return fmt.Errorf("inventory models not initialized")
 	}
 	rec := mergedRecord(hc)
@@ -492,11 +492,11 @@ func postRMA(hc engine.HookContext) error {
 	if destID == "" {
 		return i18n.Error("inventory.error.rma_location")
 	}
-	variant, err := models.Get(hc.Context, hc.OrgID, "product_variant", variantID)
+	variant, err := Registry.Get(hc.Context, hc.OrgID, "product_variant", variantID)
 	if err != nil {
 		return err
 	}
-	product, err := models.Get(hc.Context, hc.OrgID, "product", recStr(variant, "productId"))
+	product, err := Registry.Get(hc.Context, hc.OrgID, "product", recStr(variant, "productId"))
 	if err != nil {
 		return err
 	}
@@ -513,7 +513,7 @@ func postRMA(hc engine.HookContext) error {
 }
 
 func assignFEFOLot(hc engine.HookContext) error {
-	if models == nil {
+	if Registry == nil {
 		return nil
 	}
 	if asString(hc.Fields["lotId"]) != "" {
@@ -523,11 +523,11 @@ func assignFEFOLot(hc engine.HookContext) error {
 	if variantID == "" {
 		return nil
 	}
-	variant, err := models.Get(hc.Context, hc.OrgID, "product_variant", variantID)
+	variant, err := Registry.Get(hc.Context, hc.OrgID, "product_variant", variantID)
 	if err != nil {
 		return nil
 	}
-	product, err := models.Get(hc.Context, hc.OrgID, "product", recStr(variant, "productId"))
+	product, err := Registry.Get(hc.Context, hc.OrgID, "product", recStr(variant, "productId"))
 	if err != nil {
 		return nil
 	}
@@ -536,7 +536,7 @@ func assignFEFOLot(hc engine.HookContext) error {
 		return nil
 	}
 	strategy := recStr(product, "dispatchStrategy")
-	lots, err := models.ListBy(hc.Context, hc.OrgID, "stock_lot", "variantId", variantID)
+	lots, err := Registry.ListBy(hc.Context, hc.OrgID, "stock_lot", "variantId", variantID)
 	if err != nil || len(lots) == 0 {
 		return nil
 	}

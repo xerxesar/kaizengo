@@ -2,6 +2,8 @@
 
 YAML covers fields, validation, and CRUD. Use Go hooks when a rule cannot be declared — normalize input, reject a value, or block a delete.
 
+To hide a model’s write API from GraphQL (and any other external caller) without a protect hook, set `internal: true` on the model spec. In-process posting still writes with `engine.WithInternal(ctx)`. See [SDK models](../sdk.md).
+
 ## Register
 
 In `apps/todo/module.go`:
@@ -17,6 +19,22 @@ func init() {
 ```
 
 `Hooks` is keyed by **model name** (`task`), not the app name.
+
+For larger apps, put hooks next to the model spec and register from `init()`:
+
+```go
+// apps/todo/models/task/hooks.go
+package task
+
+func init() {
+	engine.RegisterModelHooks("todo", "task", engine.Hooks{
+		BeforeCreate: trimTitle,
+		BeforeUpdate: trimTitle,
+	})
+}
+```
+
+Blank-import that package from the app (see `apps/inventory/models.go`). `engine.New` picks the hooks up automatically.
 
 ## Trim titles
 

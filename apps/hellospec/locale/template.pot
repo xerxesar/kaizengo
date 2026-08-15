@@ -6,7 +6,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: app.yaml views/GreetingForm.svelte
+#: app.yaml views/GreetingForm.page.svelte
 msgid "hellospec.create"
 msgstr ""
 
@@ -14,7 +14,7 @@ msgstr ""
 msgid "hellospec.created"
 msgstr ""
 
-#: app.yaml views/GreetingForm.svelte views/GreetingList.svelte
+#: app.yaml views/GreetingForm.page.svelte views/GreetingList.page.svelte
 msgid "hellospec.empty"
 msgstr ""
 
@@ -42,7 +42,7 @@ msgstr ""
 msgid "hellospec.menu.new"
 msgstr ""
 
-#: app.yaml views/GreetingForm.svelte
+#: app.yaml views/GreetingForm.page.svelte
 msgid "hellospec.new_placeholder"
 msgstr ""
 

@@ -6,7 +6,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.common.cancel"
 msgstr ""
 
@@ -14,7 +14,7 @@ msgstr ""
 msgid "identity.create"
 msgstr ""
 
-#: app.yaml views/Users.svelte
+#: app.yaml views/Users.page.svelte
 msgid "identity.created"
 msgstr ""
 
@@ -102,7 +102,7 @@ msgstr ""
 msgid "identity.new_placeholder"
 msgstr ""
 
-#: views/Overview.svelte views/Settings.svelte views/Structure.svelte
+#: views/Overview.page.svelte views/Settings.page.svelte views/Structure.page.svelte
 msgid "identity.no_org"
 msgstr ""
 
@@ -114,27 +114,27 @@ msgstr ""
 msgid "identity.organization.search"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.overview.about"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.overview.about_title"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.overview.actions"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.overview.edit_structure"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.overview.manage_users"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.overview.org_settings"
 msgstr ""
 
@@ -150,155 +150,155 @@ msgstr ""
 msgid "identity.saved"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.admin_email"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.admin_password"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.appearance"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.created"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.general"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.general_desc"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.id"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.name"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.profile"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.save"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.saved"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.security"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.security_body"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.slug"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.slug_hint"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.theme"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.theme_desc"
 msgstr ""
 
-#: views/Settings.svelte
+#: views/Settings.page.svelte
 msgid "identity.settings.theme_label"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.stat.org"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.stat.units"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.stat.units_hint"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.stat.users"
 msgstr ""
 
-#: views/Overview.svelte
+#: views/Overview.page.svelte
 msgid "identity.stat.users_hint"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.add"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.add_title"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.count"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.create"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.details"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.field.created"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.field.id"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.field.parent"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.field.type"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.name"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.name_placeholder"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.parent"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.parent_hint"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.root"
 msgstr ""
 
-#: views/Structure.svelte
+#: views/Structure.page.svelte
 msgid "identity.structure.select_hint"
 msgstr ""
 
@@ -350,27 +350,27 @@ msgstr ""
 msgid "identity.user.search"
 msgstr ""
 
-#: views/Users.svelte
+#: views/Users.page.svelte
 msgid "identity.users.create"
 msgstr ""
 
-#: views/Users.svelte
+#: views/Users.page.svelte
 msgid "identity.users.email"
 msgstr ""
 
-#: views/Users.svelte
+#: views/Users.page.svelte
 msgid "identity.users.empty"
 msgstr ""
 
-#: views/Users.svelte
+#: views/Users.page.svelte
 msgid "identity.users.name"
 msgstr ""
 
-#: views/Users.svelte
+#: views/Users.page.svelte
 msgid "identity.users.placeholder.email"
 msgstr ""
 
-#: views/Users.svelte
+#: views/Users.page.svelte
 msgid "identity.users.placeholder.name"
 msgstr ""
 

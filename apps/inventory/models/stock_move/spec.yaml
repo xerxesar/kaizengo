@@ -1,0 +1,39 @@
+models:
+  - name: stock_move
+    fields:
+      - name: pickingId
+        type: many2one
+        relation: picking
+        required: true
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: fromLocationId
+        type: many2one
+        relation: location
+      - name: toLocationId
+        type: many2one
+        relation: location
+      - name: quantity
+        type: number
+        required: true
+      - name: doneQty
+        type: number
+        default: 0
+      - name: uomId
+        type: many2one
+        relation: uom
+      - name: lotId
+        type: many2one
+        relation: stock_lot
+      - name: serialId
+        type: many2one
+        relation: stock_serial
+      - name: unitCost
+        type: number
+        default: 0
+      - name: state
+        type: enum
+        values: [draft, done, cancelled]
+        default: draft

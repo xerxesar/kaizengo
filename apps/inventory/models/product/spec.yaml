@@ -1,0 +1,43 @@
+models:
+  - name: product
+    search:
+      collection: inventory.product
+      fields: [name, code]
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: code
+        type: string
+        required: true
+      - name: description
+        type: text
+      - name: category
+        type: string
+      - name: tracking
+        type: enum
+        values: [none, lot, serial, both]
+        default: none
+      - name: costingMethod
+        type: enum
+        values: [fifo, lifo, moving_average, standard]
+        default: moving_average
+      - name: dispatchStrategy
+        type: enum
+        values: [fifo, fefo, lifo]
+        default: fifo
+      - name: shelfLifeDays
+        type: int
+        default: 0
+      - name: attributeSchema
+        type: json
+      - name: status
+        type: enum
+        values: [draft, active, discontinued]
+        default: active
+      - name: notes
+        type: text
+      - name: variants
+        type: one2many
+        relation: product_variant
+        inverse: productId

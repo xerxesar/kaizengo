@@ -1,0 +1,13 @@
+models:
+  - name: attribute_value
+    fields:
+      - name: attributeId
+        type: many2one
+        relation: attribute
+        required: true
+      - name: name
+        type: string
+        required: true
+      - name: code
+        type: string
+        required: true

@@ -1,0 +1,24 @@
+models:
+  - name: iot_device
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: deviceType
+        type: enum
+        values: [barcode_scanner, rfid_reader, mobile, mqtt_sensor, bluetooth_sensor]
+        required: true
+      - name: identifier
+        type: string
+        required: true
+      - name: locationId
+        type: many2one
+        relation: location
+      - name: status
+        type: enum
+        values: [online, offline, disabled]
+        default: offline
+      - name: config
+        type: json
+      - name: lastSeen
+        type: datetime

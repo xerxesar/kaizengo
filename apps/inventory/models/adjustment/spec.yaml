@@ -1,0 +1,32 @@
+models:
+  - name: adjustment
+    fields:
+      - name: name
+        type: string
+      - name: locationId
+        type: many2one
+        relation: location
+        required: true
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: lotId
+        type: many2one
+        relation: stock_lot
+      - name: reason
+        type: enum
+        values: [cycle_count, physical, damage, found, data_fix]
+        default: cycle_count
+      - name: countedQty
+        type: number
+        required: true
+      - name: systemQty
+        type: number
+        default: 0
+      - name: state
+        type: enum
+        values: [draft, confirmed, done]
+        default: draft
+      - name: notes
+        type: text

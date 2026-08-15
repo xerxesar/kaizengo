@@ -11,9 +11,6 @@ nav:
   labelKey: nav.settings
   route: settings
   order: 1000000000
-views:
-  - name: General
-    type: page
 menus:
   - id: general
     labelKey: settings.menu.general

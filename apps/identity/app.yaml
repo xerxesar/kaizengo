@@ -70,15 +70,6 @@ models:
       - name: effectiveTo
         type: datetime
 
-views:
-  - name: Overview
-    type: page
-  - name: Structure
-    type: page
-  - name: Users
-    type: page
-  - name: Settings
-    type: page
 menus:
   - id: overview
     labelKey: identity.tab.overview

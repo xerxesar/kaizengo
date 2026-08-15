@@ -22,6 +22,21 @@ function ctxFor(appName: string): ResolveContext {
   };
 }
 
+function ctxForDoc(appName: string, suffix: string): ResolveContext {
+  const catalog = loadCatalog(repoRoot);
+  const app = catalog.apps.get(appName);
+  assert.ok(app, `app ${appName} not found`);
+  const doc = app.docs.find((d) => d.path.endsWith(suffix));
+  assert.ok(doc, `doc ${suffix} not found in ${appName}`);
+  return {
+    catalog,
+    appName,
+    file: doc.path,
+    text: doc.text,
+    symbols: doc.symbols,
+  };
+}
+
 function atValue(ctx: ResolveContext, path: string, value?: string) {
   const sym = ctx.symbols.find((s) => s.path === path && (value === undefined || s.value === value));
   assert.ok(sym, `missing symbol ${path}${value ? `=${value}` : ""}`);
@@ -45,6 +60,7 @@ describe("classify", () => {
   it("maps app.yaml paths", () => {
     assert.equal(classify("depends[0]"), "depends");
     assert.equal(classify("uses[1]"), "uses");
+    assert.equal(classify("models[0]"), "spec-include");
     assert.equal(classify("views[0].name"), "view-name");
     assert.equal(classify("menus[1].children[0].view"), "menu-view");
     assert.equal(classify("models[0].fields[2].relation"), "relation");
@@ -55,17 +71,26 @@ describe("classify", () => {
   });
 });
 
-describe("parse inventory app.yaml", () => {
-  it("collects depends, views, and relations", () => {
+describe("parse inventory specs", () => {
+  it("collects depends, model includes, and menus", () => {
     const text = fs.readFileSync(path.join(repoRoot, "apps/inventory/app.yaml"), "utf8");
     const symbols = collectSymbols(text);
     assert.equal(symbols.find((s) => s.path === "name")?.value, "inventory");
     assert.ok(symbols.some((s) => s.path === "depends[0]" && s.value === "core"));
-    assert.ok(symbols.some((s) => classify(s.path) === "view-name" && s.value === "Dashboard"));
-    assert.ok(symbols.some((s) => classify(s.path) === "relation" && s.value === "product_variant"));
-    const dash = symbols.find((s) => s.path.endsWith(".name") && s.value === "Dashboard");
+    assert.ok(symbols.some((s) => classify(s.path) === "spec-include" && s.value === "models/product"));
+    const dash = symbols.find((s) => classify(s.path) === "menu-view" && s.value === "Dashboard");
     assert.ok(dash);
     assert.equal(symbolAt(symbols, dash.range.start)?.value, "Dashboard");
+  });
+
+  it("indexes model spec.yaml files", () => {
+    const catalog = loadCatalog(repoRoot);
+    const app = catalog.apps.get("inventory");
+    assert.ok(app);
+    assert.ok(app.docs.some((d) => d.path.endsWith(path.join("models", "product", "spec.yaml"))));
+    const product = app.docs.find((d) => d.path.endsWith(path.join("models", "product", "spec.yaml")));
+    assert.ok(product?.symbols.some((s) => classify(s.path) === "model-name" && s.value === "product"));
+    assert.ok(product?.symbols.some((s) => classify(s.path) === "relation" && s.value === "product_variant"));
   });
 });
 
@@ -93,29 +118,29 @@ describe("resolveDefinition", () => {
     assert.ok(i18n.some((f) => f.endsWith(path.join("internal", "platform", "i18n", "i18n.go"))));
   });
 
-  it("jumps views and menus to Svelte pages", () => {
+  it("jumps menus and model includes to their files", () => {
     const ctx = ctxFor("inventory");
-    const view = filesOf(ctx, "views[0].name", "Dashboard");
-    assert.ok(view.some((f) => f.endsWith(path.join("apps", "inventory", "views", "Dashboard.svelte"))));
-
     const menu = filesOf(ctx, "menus[0].view", "Dashboard");
-    assert.ok(menu.some((f) => f.endsWith(path.join("apps", "inventory", "views", "Dashboard.svelte"))));
+    assert.ok(menu.some((f) => f.endsWith(path.join("apps", "inventory", "views", "Dashboard.page.svelte"))));
+
+    const spec = filesOf(ctx, "models[4]", "models/product");
+    assert.ok(spec.some((f) => f.endsWith(path.join("apps", "inventory", "models", "product", "spec.yaml"))));
   });
 
   it("jumps relation and inverse to the related model field", () => {
-    const ctx = ctxFor("inventory");
-    const rel = ctx.symbols.find((s) => s.path === "models[0].fields[1].relation" && s.value === "uom");
+    const ctx = ctxForDoc("inventory", path.join("models", "uom_group", "spec.yaml"));
+    const rel = ctx.symbols.find((s) => classify(s.path) === "relation" && s.value === "uom");
     assert.ok(rel);
     const relFiles = resolveDefinition(ctx, rel).map((t) => t.file);
-    assert.ok(relFiles.some((f) => f.endsWith(path.join("apps", "inventory", "app.yaml"))));
+    assert.ok(relFiles.some((f) => f.endsWith(path.join("models", "uom", "spec.yaml"))));
 
-    const inv = ctx.symbols.find((s) => s.path === "models[0].fields[1].inverse" && s.value === "groupId");
+    const inv = ctx.symbols.find((s) => classify(s.path) === "inverse" && s.value === "groupId");
     assert.ok(inv);
     const invHits = resolveDefinition(ctx, inv);
     assert.ok(invHits.length >= 1);
-    assert.equal(invHits[0].file, ctx.file);
-    const slice = ctx.text.slice(invHits[0].start, invHits[0].end);
-    assert.equal(slice, "groupId");
+    assert.ok(invHits[0].file.endsWith(path.join("models", "uom", "spec.yaml")));
+    const uom = fs.readFileSync(invHits[0].file, "utf8");
+    assert.equal(uom.slice(invHits[0].start, invHits[0].end), "groupId");
   });
 
   it("jumps model names to generated types", () => {
@@ -166,11 +191,11 @@ describe("resolveReferences", () => {
   });
 
   it("finds relation fields that point at a model", () => {
-    const ctx = ctxFor("inventory");
+    const ctx = ctxForDoc("inventory", path.join("models", "uom", "spec.yaml"));
     const model = ctx.symbols.find((s) => classify(s.path) === "model-name" && s.value === "uom");
     assert.ok(model);
     const refs = resolveReferences(ctx, model);
     assert.ok(refs.length > 1);
-    assert.ok(refs.some((t) => ctx.text.slice(t.start, t.end) === "uom" && t.start !== model.range.start));
+    assert.ok(refs.some((t) => t.file !== ctx.file || t.start !== model.range.start));
   });
 });

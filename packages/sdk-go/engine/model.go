@@ -12,6 +12,7 @@ import (
 	"kaizengo/packages/sdk-go/appspec"
 	"kaizengo/packages/sdk-go/events"
 	"kaizengo/packages/sdk-go/events/pgstore"
+	"kaizengo/packages/sdk-go/i18n"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -151,7 +152,17 @@ func (s *modelService) Get(ctx context.Context, orgID, id string) (Record, error
 	return rec, nil
 }
 
+func (s *modelService) rejectExternalWrite(ctx context.Context) error {
+	if !s.model.Internal || IsInternal(ctx) {
+		return nil
+	}
+	return i18n.Error(s.spec.Name + ".error." + s.model.Name + ".internal")
+}
+
 func (s *modelService) Create(ctx context.Context, orgID, authorID string, fields map[string]any) (Record, error) {
+	if err := s.rejectExternalWrite(ctx); err != nil {
+		return nil, err
+	}
 	id := uuid.NewString()
 	if v, ok := fields["id"].(string); ok && strings.TrimSpace(v) != "" {
 		id = strings.TrimSpace(v)
@@ -200,6 +211,9 @@ func (s *modelService) Create(ctx context.Context, orgID, authorID string, field
 }
 
 func (s *modelService) Update(ctx context.Context, orgID, id string, fields map[string]any) (Record, error) {
+	if err := s.rejectExternalWrite(ctx); err != nil {
+		return nil, err
+	}
 	rec, err := s.Get(ctx, orgID, id)
 	if err != nil {
 		return nil, err
@@ -248,6 +262,9 @@ func (s *modelService) Update(ctx context.Context, orgID, id string, fields map[
 }
 
 func (s *modelService) Delete(ctx context.Context, orgID, id string) error {
+	if err := s.rejectExternalWrite(ctx); err != nil {
+		return err
+	}
 	rec, err := s.Get(ctx, orgID, id)
 	if err != nil {
 		return err

@@ -1,0 +1,20 @@
+models:
+  - name: attribute
+    search:
+      collection: inventory.attribute
+      fields: [name, code]
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: code
+        type: string
+        required: true
+      - name: attributeType
+        type: enum
+        values: [select, text, number]
+        default: select
+      - name: values
+        type: one2many
+        relation: attribute_value
+        inverse: attributeId

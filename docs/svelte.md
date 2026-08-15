@@ -6,7 +6,7 @@ There is **one central Svelte app** at `apps/core/spa`. KaizenGo apps contribute
 
 ```text
 apps/core/spa          →  single Vite SPA (/app/)
-apps/myapp/views/*.svelte →  compiled into the central bundle
+apps/myapp/views/*.page.svelte →  compiled into the central bundle
 ```
 
 ## Bootstrap
@@ -20,16 +20,17 @@ make spa-build
 
 | Path | Role |
 |------|------|
-| `apps/<name>/views/<View>.svelte` | One Svelte file per menu view (matches `app.yaml` `views:` / `menus:`) |
+| `apps/<name>/views/<View>.page.svelte` | Menu page (matches `menus.view`) |
+| `apps/<name>/views/*.svelte` | Other view modules (components, not pages) |
 | `apps/<name>/lib/` | Optional shared TS/helpers for that app's views |
-| `apps/<name>/app.yaml` | Declarative nav, views, menus |
+| `apps/<name>/app.yaml` | Declarative nav, models, menus |
 | `apps/<name>/module.go` | Go setup (nav, GraphQL, services) — no SPA asset routes |
 
-Apps without menus use `apps/<name>/views/Index.svelte` as the default page.
+Apps without menus use `apps/<name>/views/Index.page.svelte` as the default page.
 
 ## View registry
 
-`apps/core/spa/src/lib/views/registry.ts` discovers all `apps/*/views/*.svelte` files via Vite's `import.meta.glob` and maps them by `{app}.{view}` (e.g. `identity.Overview`).
+`apps/core/spa/src/lib/views/registry.ts` discovers all `apps/*/views/**/*.svelte` files via Vite's `import.meta.glob` and maps them by `{app}.{view}` (e.g. `identity.Overview`). Files ending in `.page.svelte` are pages; other `.svelte` files under `views/` are components.
 
 Cross-app component exports (`exports.components` in `app.yaml`) are registered in the same file.
 

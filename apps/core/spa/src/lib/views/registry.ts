@@ -4,8 +4,8 @@ import { registerViewComponent } from '@kaizengo/sdk-svelte/ui'
 
 type ViewModule = { default: Component }
 
-/** All app view files under apps/<app>/views/<Name>.svelte */
-const appViewModules = import.meta.glob<ViewModule>('../../../../../*/views/*.svelte', {
+/** App pages (`*.page.svelte`) and other view modules under apps/<app>/views/. */
+const appViewModules = import.meta.glob<ViewModule>('../../../../../*/views/**/*.svelte', {
   eager: true,
 })
 
@@ -13,10 +13,13 @@ const viewByKey = new Map<string, Component>()
 const viewByComponent = new Map<string, Component>()
 
 for (const [path, mod] of Object.entries(appViewModules)) {
-  const match = path.match(/(?:^|\/)apps\/([^/]+)\/views\/([^/]+)\.svelte$/) ??
-    path.match(/\/([^/]+)\/views\/([^/]+)\.svelte$/)
+  const match = path.match(/(?:^|\/)apps\/([^/]+)\/views\/(.+)\.svelte$/) ??
+    path.match(/\/([^/]+)\/views\/(.+)\.svelte$/)
   if (!match) continue
-  const [, app, name] = match
+  const [, app, rest] = match
+  const withoutPage = rest.endsWith('.page') ? rest.slice(0, -'.page'.length) : rest
+  const name = withoutPage.split('/').pop()
+  if (!name) continue
   viewByKey.set(`${app}.${name}`, mod.default)
 }
 

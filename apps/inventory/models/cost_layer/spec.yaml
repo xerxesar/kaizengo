@@ -1,0 +1,24 @@
+models:
+  - name: cost_layer
+    internal: true
+    fields:
+      - name: variantId
+        type: many2one
+        relation: product_variant
+        required: true
+      - name: lotId
+        type: many2one
+        relation: stock_lot
+      - name: quantity
+        type: number
+        default: 0
+      - name: originalQty
+        type: number
+        default: 0
+      - name: unitCost
+        type: number
+        default: 0
+      - name: receivedAt
+        type: datetime
+      - name: sourceMoveId
+        type: string

@@ -248,11 +248,6 @@ models:
       - name: title
         type: string
         required: true
-views:
-  - name: Items
-    type: page
-  - name: NewItem
-    type: page
 menus:
   - id: items
     labelKey: {{.Name}}.menu.items

@@ -5,7 +5,10 @@ import { offsetToPosition, positionToOffset } from "./offsets";
 import { classify, collectSymbols, symbolAt } from "./parse";
 import { resolveDefinition, resolveReferences, type NavTarget, type ResolveContext } from "./resolve";
 
-const selector: vscode.DocumentSelector = { scheme: "file", pattern: "**/app.yaml" };
+const selector: vscode.DocumentSelector = [
+  { scheme: "file", pattern: "**/app.yaml" },
+  { scheme: "file", pattern: "**/apps/*/models/**/*.yaml" },
+];
 
 let catalog: Catalog | undefined;
 
@@ -59,7 +62,7 @@ function toLocation(target: NavTarget): vscode.Location {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  const watcher = vscode.workspace.createFileSystemWatcher("**/app.yaml");
+  const watcher = vscode.workspace.createFileSystemWatcher("**/apps/**/*.yaml");
   watcher.onDidChange((uri) => {
     const root = findRepoRoot(uri.fsPath);
     if (root) reindex(root);
