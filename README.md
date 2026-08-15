@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="whitepaper_v1.md">Whitepaper</a> ·
-  <a href="docs/index.md">Documentation</a>
+  <a href="https://xerxesar.github.io/kaizengo/">Documentation</a>
 </p>
 
 ---
