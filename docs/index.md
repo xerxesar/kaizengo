@@ -19,6 +19,8 @@ apps/<name>/
 
 The engine turns `app.yaml` into event-sourced CRUD, GraphQL, nav, and permissions checks. You write YAML first; Go and Svelte only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
 
+To see how the host boots and which packages to import, read [Internals & SDKs](internals/index.md) — boot flow, `packages/sdk-go`, and `@kaizengo/sdk-svelte` with code examples from `hellospec`.
+
 ## Preview this site
 
 ```bash

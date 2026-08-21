@@ -29,6 +29,10 @@ The [advanced tutorial](advanced/orm-and-services.md) covers `Setup`, `ModelRegi
 
 Addons that listen to *other* apps use `extension.Register` / `extends:` in `app.yaml` (`apps/audit` logs every model mutation).
 
+## Internals & SDKs
+
+[Internals & SDKs](../internals/index.md) explains boot order, the Host bag, and both SDKs with code from `hellospec`. Deeper package notes: [Go SDK](../internals/go-sdk.md), [Svelte SDK](../internals/svelte-sdk.md).
+
 ## Reference in this repo
 
 | Path | Why |

@@ -22,6 +22,11 @@ nav = [
     ] },
     "tutorial/whats-next.md",
   ] },
+  { "Internals & SDKs" = [
+    "internals/index.md",
+    { "Go SDK" = "internals/go-sdk.md" },
+    { "Svelte SDK" = "internals/svelte-sdk.md" },
+  ] },
 ]
 
 [project.theme]

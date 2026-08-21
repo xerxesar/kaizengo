@@ -1,5 +1,7 @@
 # SDK architecture pattern
 
+For a guided tour of boot flow and package APIs with hellospec examples, start at [Internals & SDKs](internals/index.md). This page is the full reference.
+
 KaizenGo ships **two SDKs** under `packages/`:
 
 | Package | Import | Role |

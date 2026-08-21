@@ -510,16 +510,12 @@ msgstr ""
 msgid "inventory.enum.uom.uomType.smaller"
 msgstr ""
 
-#: models/cost_layer/hooks.go
-msgid "inventory.error.cost_layer"
+#: app.yaml
+msgid "inventory.error.cost_layer.internal"
 msgstr ""
 
 #: internal/posting.go
 msgid "inventory.error.insufficient_reserve"
-msgstr ""
-
-#: models/stock_ledger/hooks.go
-msgid "inventory.error.ledger_create"
 msgstr ""
 
 #: models/stock_ledger/hooks.go
@@ -574,18 +570,6 @@ msgstr ""
 msgid "inventory.error.qty_positive"
 msgstr ""
 
-#: models/stock_quant/hooks.go
-msgid "inventory.error.quant_create"
-msgstr ""
-
-#: models/stock_quant/hooks.go
-msgid "inventory.error.quant_delete"
-msgstr ""
-
-#: models/stock_quant/hooks.go
-msgid "inventory.error.quant_update"
-msgstr ""
-
 #: internal/posting.go
 msgid "inventory.error.rma_location"
 msgstr ""
@@ -596,6 +580,14 @@ msgstr ""
 
 #: internal/posting.go
 msgid "inventory.error.serial_required"
+msgstr ""
+
+#: app.yaml
+msgid "inventory.error.stock_ledger.internal"
+msgstr ""
+
+#: app.yaml
+msgid "inventory.error.stock_quant.internal"
 msgstr ""
 
 #: internal/posting.go

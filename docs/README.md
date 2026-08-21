@@ -13,6 +13,7 @@ Start with **Tutorial → Develop a Kaizen app**.
 
 | Guide | Contents |
 |-------|----------|
+| [Internals & SDKs](internals/index.md) | Boot flow, Go/Svelte SDKs with code examples |
 | [Installation](installation.md) | Prerequisites, clone, install tooling |
 | [Development](development.md) | `make` targets, ports, env vars |
 | [Auth & identity](auth.md) | Sessions, identity app, permissions RBAC |
