@@ -112,7 +112,7 @@ const { data, errors } = await res.json()
 
 In Vite spa-dev, `/graphql` and `/auth` are proxied to `:8080`.
 
-`@kaizengo/sdk-svelte/ui` helpers (`syncDocumentLocale`, `fetchI18n`, etc.) already send credentials. SPA UI strings use compiled `.po` catalogs; `fetchI18n` is optional for GraphQL catalog access.
+`@kaizengo/sdk-solid/ui` helpers (`syncDocumentLocale`, `fetchI18n`, etc.) already send credentials. SPA UI strings use compiled `.po` catalogs; `fetchI18n` is optional for GraphQL catalog access.
 
 ## Server state
 

@@ -11,6 +11,8 @@ uses:
 spa: false
 i18n: true
 autoInstall: true
+keymap:
+  - keymap.yaml
 locales:
   - id: en
     name: English

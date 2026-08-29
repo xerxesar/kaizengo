@@ -10,8 +10,8 @@ Login → auth (session cookie)
               |
     +---------+---------+
     |                   |
- Identity GraphQL    permissions.Can / MustAllow
- (org, users, …)     (RBAC on resources/actions)
+ Identity GraphQL    permissions / acl.Authorizer
+ (org, users, …)     (unified acl_entry policies)
 ```
 
 ## Default credentials
@@ -59,7 +59,7 @@ Core wraps these with `auth.RequireAuth` (401 without a valid principal):
 
 ### Shell
 
-`apps/core/spa` gates the UI on `/auth/me`. Login lives in `views/Login.svelte`. SPA fetches use `credentials: 'include'` so the session cookie is sent.
+`apps/core/spa` gates the UI on `/auth/me`. Login lives in `src/Login.tsx`. SPA fetches use `credentials: 'include'` so the session cookie is sent.
 
 ```bash
 # After login in the browser, or with curl:
@@ -94,7 +94,7 @@ curl -b cookies.txt -s http://localhost:8080/graphql \
 | Module | `apps/identity/module.go` |
 | Models | `identity.models` on the host bag |
 | Postgres | schema `identity` (`KaizenGo_IDENTITY_SCHEMA`) |
-| SPA | Overview, Structure, Users, Settings tabs |
+| SPA | Overview, Structure, Users, Settings tabs; **Access** tab from permissions when that app is loaded |
 
 **Org unit types:** `business_unit`, `department`, `location`, `team`, `position`.
 
@@ -104,26 +104,20 @@ Demo seed includes **Acme Mining Corp** and a small org tree for UI exploration.
 
 ## Permissions app
 
-`apps/permissions` — backend RBAC only (no SPA, no nav). Depends on `core` and `identity`.
+`apps/permissions` — unified RBAC/ACL (no standalone SPA nav). Depends on `core` and `identity`.
+
+**Full ACL guide:** [ACL system](acl.md) — resource ids, evaluation, `security.yaml`, menu/query enforcement, and custom resolvers.
 
 | Piece | Detail |
 |-------|--------|
-| Host name | `permissions` |
+| Evaluator | `packages/sdk-go/acl` |
+| Policy store | models `role`, `user_role`, `acl_entry` (event-sourced) |
+| Host name | `permissions` (implements `acl.Authorizer`) |
 | Postgres | schema `permissions` (`KaizenGo_PERMISSIONS_SCHEMA`) |
-| API | `Roles`, `Can`, `MustAllow`, `AssignRole`, `SeedAdmin` |
+| API | `Can`, `CanCatalog`, `MustAllow`, `ListDomain`, `DeniedFields`, `Roles`, `AssignRole`, `EnsureRole`, `EnsureEntry`, `SeedDefaults` |
+| UI | Identity → **Access** tab — roles, rules, overrides |
 
-**Roles (in-code matrix):**
-
-| Role | Access |
-|------|--------|
-| `admin` | `*` / `*` |
-| `member` | read org / org units / users; read `counter` |
-
-**Resources today:** `identity.organization`, `identity.org_units`, `identity.users`, `counter`.
-
-Engine GraphQL CRUD is permission-gated via `MustAllow`. On setup, the admin user receives the `admin` role if missing.
-
-This matches the whitepaper split: identity supplies subjects and org context; auth proves identity; permissions evaluates access.
+Identity supplies subjects and org context; auth proves identity; permissions evaluates access.
 
 ## Environment
 

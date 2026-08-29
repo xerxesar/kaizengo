@@ -1,8 +1,8 @@
 package engine
 
 import (
-	permsvc "kaizengo/apps/permissions/service"
 	"kaizengo/internal/module"
+	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/appspec"
 	sdkgql "kaizengo/packages/sdk-go/gql"
 	"kaizengo/packages/sdk-go/views"
@@ -14,7 +14,7 @@ func registerRegisteredModelGQL(host *module.Host, spec appspec.AppSpec, m Regis
 	model := registeredModelSpec(m)
 	resource := m.Resource
 	if resource == "" {
-		resource = spec.Resource
+		resource = modelResource(spec.Name, m.Name)
 	}
 	obj := m.ObjectType
 
@@ -23,7 +23,7 @@ func registerRegisteredModelGQL(host *module.Host, spec appspec.AppSpec, m Regis
 	specCRUD.ListField = &graphql.Field{
 		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(obj))),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActRead)
+			pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead)
 			if err != nil {
 				return nil, err
 			}
@@ -39,7 +39,7 @@ func registerRegisteredModelGQL(host *module.Host, spec appspec.AppSpec, m Regis
 				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.ID)},
 			},
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActRead)
+				pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead)
 				if err != nil {
 					return nil, err
 				}
@@ -55,7 +55,7 @@ func registerRegisteredModelGQL(host *module.Host, spec appspec.AppSpec, m Regis
 			Type: graphql.NewNonNull(obj),
 			Args: fieldArgs(model, true),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActCreate)
+				pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActCreate)
 				if err != nil {
 					return nil, err
 				}
@@ -77,7 +77,7 @@ func registerRegisteredModelGQL(host *module.Host, spec appspec.AppSpec, m Regis
 			Type: graphql.NewNonNull(obj),
 			Args: withIDArgs(fieldArgs(model, false)),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActUpdate)
+				pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActUpdate)
 				if err != nil {
 					return nil, err
 				}
@@ -109,7 +109,7 @@ func registerRegisteredModelGQL(host *module.Host, spec appspec.AppSpec, m Regis
 				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.ID)},
 			},
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActDelete)
+				pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActDelete)
 				if err != nil {
 					return nil, err
 				}

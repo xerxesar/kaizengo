@@ -1,0 +1,29 @@
+bindings:
+  - id: toggle_apps
+    action: element:toggle-apps
+    keys: alt+a
+    labelKey: keymap.shell.toggle_apps
+    scope: global
+    hint: true
+
+  - id: go_home
+    action: element:go-home
+    keys: alt+h
+    labelKey: keymap.shell.go_home
+    scope: global
+    hint: true
+
+  - id: form_save
+    action: element:form-save
+    keys: alt+s
+    labelKey: keymap.shell.form-save
+    scope: global
+    hint: true
+    inForm: true
+
+  - id: sign_out
+    action: element:sign-out
+    keys: alt+q
+    labelKey: keymap.shell.sign_out
+    scope: global
+    hint: true

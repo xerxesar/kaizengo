@@ -10,7 +10,7 @@ import (
 func init() {
 	app := engine.New(engine.Options{
 		AppName: "hellospec",
-		Version: "0.3.0",
+		Version: "0.4.0",
 	})
 	module.Register(app.Hooks("greeting", greetingHooks()))
 }

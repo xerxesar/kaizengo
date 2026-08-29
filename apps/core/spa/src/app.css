@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
-@source '../../../**/*.{html,js,svelte,ts}';
-@source '../../../../packages/sdk-svelte/**/*.{html,js,svelte,ts}';
+@source '../../../**/*.{html,js,ts,tsx}';
+@source '../../../../packages/sdk-solid/**/*.{html,js,ts,tsx}';
 
 :root {
   font-family: var(--kg-font);
@@ -23,7 +23,6 @@ main {
   max-width: none;
 }
 
-/* Carbon UI shell header */
 .shell-bar {
   display: flex;
   align-items: center;
@@ -57,7 +56,7 @@ main {
   text-decoration: none;
 }
 
-.brand-icon { 
+.brand-icon {
   width: 1.25rem;
   height: 1.25rem;
 }
@@ -69,118 +68,111 @@ main {
   color: var(--kg-shell-text);
 }
 
-.menu {
-  position: relative;
+.user-menu {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--kg-space-04);
+  font-size: 0.875rem;
 }
 
-.menu-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--kg-space-03);
+.user-name {
+  color: var(--kg-shell-text);
+  font-weight: 400;
+}
+
+.admin-badge {
+  background: var(--kg-shell-hover);
+  color: var(--kg-shell-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.32px;
+  padding: var(--kg-space-01) var(--kg-space-03);
+}
+
+.logout-btn {
   height: var(--kg-control-height-sm);
   padding: 0 var(--kg-space-05);
-  border: 0;
+  border: 1px solid var(--kg-shell-border);
   background: transparent;
   color: var(--kg-shell-text);
-  font-family: var(--kg-font);
-  font-size: 0.875rem;
-  font-weight: 400;
-  letter-spacing: 0.16px;
   cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
   transition: background 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
 }
 
-.menu-btn:hover {
+.logout-btn:hover {
   background: var(--kg-shell-hover);
 }
 
-.menu-btn:focus-visible {
+.logout-btn:focus-visible {
   outline: 2px solid var(--kg-primary);
   outline-offset: -2px;
 }
 
-.caret {
-  opacity: 0.85;
-  font-size: 0.75rem;
-}
-
-.menu-list {
-  position: absolute;
-  top: calc(100% + 1px);
-  inset-inline-start: 0;
-  min-width: 14rem;
-  margin: 0;
-  padding: var(--kg-space-02) 0;
-  list-style: none;
-  background: var(--kg-surface);
-  border: 1px solid var(--kg-border);
-  box-shadow: var(--kg-shadow-lg);
-  z-index: 8001;
-}
-
-.menu-list button {
-  width: 100%;
-  text-align: start;
-  padding: var(--kg-space-04) var(--kg-space-05);
-  border: 0;
-  background: transparent;
-  color: var(--kg-text);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.menu-list button:hover,
-.menu-list button.active {
-  background: var(--kg-surface-hover);
-}
-
-.menu-list button.active {
-  border-inline-start: 3px solid var(--kg-primary);
-  padding-inline-start: calc(var(--kg-space-05) - 3px);
-}
-
-.empty {
-  padding: var(--kg-space-04) var(--kg-space-05);
-  color: var(--kg-text-muted);
-  font-size: 0.875rem;
-}
-
-.backdrop {
-  position: fixed;
-  inset: 0;
-  border: 0;
-  background: transparent;
-  z-index: 7999;
-  cursor: default;
+.auth-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--kg-space-09);
+  color: var(--kg-text-secondary);
 }
 
 .hint {
   color: var(--kg-text-secondary);
 }
 
-.app-error,
-.host-error {
-  width: 100%;
-  padding: var(--kg-space-05) var(--kg-page-padding-x) 0;
-}
-
-.host-wrap {
-  flex: 1;
+.login-stack {
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  align-items: stretch;
+  gap: var(--kg-space-07);
   width: 100%;
 }
 
-.host {
-  flex: 1;
+.login-brand {
+  text-align: center;
+}
+
+.login-logo {
+  width: 6rem;
+  height: 6rem;
+  margin: 0 auto 0;
+}
+
+.login-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.login-title {
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--kg-text);
+  margin: 0;
+}
+
+.login-tagline {
+  margin: var(--kg-space-03) 0 0;
+  font-size: 0.875rem;
+  color: var(--kg-text-secondary);
+}
+
+.login-form {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  width: 100%;
+  gap: var(--kg-space-05);
+  background: var(--kg-surface);
+  border: 1px solid var(--kg-border);
+  padding: var(--kg-space-06);
 }
 
-.host :global(h1) {
-  margin-top: 0;
+.login-hint {
+  font-size: 0.75rem;
+  color: var(--kg-text-muted);
+  margin: 0;
 }

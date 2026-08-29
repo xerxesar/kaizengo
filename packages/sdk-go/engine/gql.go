@@ -3,8 +3,8 @@ package engine
 import (
 	"fmt"
 
-	permsvc "kaizengo/apps/permissions/service"
 	"kaizengo/internal/module"
+	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/appspec"
 	"kaizengo/packages/sdk-go/extension"
 	sdkgql "kaizengo/packages/sdk-go/gql"
@@ -19,12 +19,18 @@ func RegisterCatalogQueries(host *module.Host, spec appspec.AppSpec) {
 	registerBasics(host, spec)
 }
 
-// RegisterPing adds the standard {app}Ping health query.
+// RegisterPing adds the standard {app}Ping health query (ACL-guarded via identity.query.{app}Ping).
 func RegisterPing(host *module.Host, spec appspec.AppSpec) {
-	host.GQL.RegisterQuery(camel(spec.Name)+"Ping", &graphql.Field{
+	app := spec.Name
+	queryName := camel(app) + "Ping"
+	resource := acl.QueryResource(app, queryName)
+	host.GQL.RegisterQuery(queryName, &graphql.Field{
 		Type: graphql.NewNonNull(graphql.String),
-		Resolve: func(graphql.ResolveParams) (any, error) {
-			return spec.Name + " ok", nil
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			if _, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead); err != nil {
+				return nil, err
+			}
+			return app + " ok", nil
 		},
 	})
 }
@@ -50,7 +56,8 @@ func registerBasics(host *module.Host, spec appspec.AppSpec) {
 			if _, err := sdkgql.RequirePrincipal(p); err != nil {
 				return nil, err
 			}
-			return menuCatalog(spec), nil
+			menus := menuCatalog(spec)
+			return FilterMenuCatalog(p.Context, host, spec.Name, menus)
 		},
 	})
 
@@ -72,14 +79,15 @@ func registerBasics(host *module.Host, spec appspec.AppSpec) {
 
 func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService) {
 	obj := newRecordType(spec, svc)
-	resource := spec.Resource
-
+	res := svc.resourceName()
+	registerModelOperations(spec, svc.model, res)
+	// ACL is enforced inside modelService; GraphQL only requires a session.
 	crud := sdkgql.CRUDSpec{
 		ListName: listName(spec, svc.model),
 		ListField: &graphql.Field{
 			Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(obj))),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActRead)
+				pr, err := sdkgql.RequirePrincipal(p)
 				if err != nil {
 					return nil, err
 				}
@@ -100,7 +108,7 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.ID)},
 			},
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActRead)
+				pr, err := sdkgql.RequirePrincipal(p)
 				if err != nil {
 					return nil, err
 				}
@@ -115,7 +123,7 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 			Type: graphql.NewNonNull(obj),
 			Args: fieldArgs(svc.model, true),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActCreate)
+				pr, err := sdkgql.RequirePrincipal(p)
 				if err != nil {
 					return nil, err
 				}
@@ -127,7 +135,7 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 			Type: graphql.NewNonNull(obj),
 			Args: withIDArgs(fieldArgs(svc.model, false)),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActUpdate)
+				pr, err := sdkgql.RequirePrincipal(p)
 				if err != nil {
 					return nil, err
 				}
@@ -149,7 +157,7 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.ID)},
 			},
 			Resolve: func(p graphql.ResolveParams) (any, error) {
-				pr, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActDelete)
+				pr, err := sdkgql.RequirePrincipal(p)
 				if err != nil {
 					return nil, err
 				}

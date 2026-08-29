@@ -1,8 +1,8 @@
 package appman
 
 import (
-	permsvc "kaizengo/apps/permissions/service"
 	"kaizengo/internal/module"
+	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/engine"
 	sdkgql "kaizengo/packages/sdk-go/gql"
 
@@ -14,10 +14,26 @@ const resource = "appman"
 func registerGQL(host *module.Host, mgr *engine.Manager) {
 	appType := newAppType()
 
+	acl.Register(acl.ResourceDescriptor{
+		App:         "appman",
+		Kind:        acl.KindApp,
+		Name:        "appman",
+		Resource:    resource,
+		Label:       "App Manager",
+		Description: "Install and upgrade platform apps",
+		Actions:     acl.AppActions(),
+		Surface:     "graphql",
+	})
+	acl.RegisterOperation(resource, acl.ActRead, "graphql", "apps")
+	acl.RegisterOperation(resource, acl.ActCreate, "graphql", "installApp")
+	acl.RegisterOperation(resource, acl.ActExecute, "graphql", "installApp")
+	acl.RegisterOperation(resource, acl.ActUpdate, "graphql", "upgradeApp")
+	acl.RegisterOperation(resource, acl.ActExecute, "graphql", "upgradeApp")
+
 	host.GQL.RegisterQuery("apps", &graphql.Field{
 		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(appType))),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			if _, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActRead); err != nil {
+			if _, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead); err != nil {
 				return nil, err
 			}
 			return mgr.Apps(p.Context)
@@ -29,7 +45,7 @@ func registerGQL(host *module.Host, mgr *engine.Manager) {
 			"name": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 		},
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			if _, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActCreate); err != nil {
+			if _, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActCreate); err != nil {
 				return nil, err
 			}
 			name, _ := p.Args["name"].(string)
@@ -42,7 +58,7 @@ func registerGQL(host *module.Host, mgr *engine.Manager) {
 			"name": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 		},
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			if _, err := sdkgql.RequireAction(host, permsvc.Name, p, resource, permsvc.ActUpdate); err != nil {
+			if _, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActUpdate); err != nil {
 				return nil, err
 			}
 			name, _ := p.Args["name"].(string)

@@ -1,6 +1,6 @@
 name: hellospec
 title: HelloSpec
-summary: Spec-driven greetings demo (sdk/engine)
+summary: Spec-driven greetings demo (sdk/engine) — also an ACL example (own-record rules + field deny)
 depends:
   - core
   - identity
@@ -11,6 +11,9 @@ uses:
   - identity.users
   - permissions.rbac
 
+security:
+  - security.yaml
+
 nav:
   labelKey: nav.hellospec
   route: hellospec
@@ -20,7 +23,7 @@ models:
   - name: greeting
     search:
       collection: hellospec.greeting
-      fields: [message]
+      fields: [message, mood]
     fields:
       - name: message
         type: string
@@ -28,6 +31,14 @@ models:
         validate:
           minLength: 1
           maxLength: 500
+      - name: mood
+        type: enum
+        values: [happy, neutral, formal]
+        required: true
+        default: happy
+      # Admin/staff only — member role is denied this field via security.yaml.
+      - name: internalNote
+        type: string
 
 menus:
   - id: greetings

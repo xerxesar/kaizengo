@@ -56,3 +56,15 @@ msgstr "منوی برنامه‌ها را باز کنید تا یک ماژول �
 
 msgid "shell.close_menu"
 msgstr "بستن منو"
+
+msgid "keymap.shell.toggle_apps"
+msgstr "باز کردن منوی برنامه‌ها"
+
+msgid "keymap.shell.go_home"
+msgstr "رفتن به خانه"
+
+msgid "keymap.shell.form-save"
+msgstr "ذخیره فرم"
+
+msgid "keymap.shell.sign_out"
+msgstr "خروج"

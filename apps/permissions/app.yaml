@@ -1,6 +1,6 @@
 name: permissions
 title: Permissions
-summary: Role-based access control and authorization
+summary: Unified RBAC / ACL policies (roles, assignments, acl_entry)
 depends:
   - core
   - identity
@@ -9,15 +9,83 @@ provides:
 uses:
   - identity.users
 spa: false
-i18n: false
+i18n: true
 autoInstall: true
 models:
+  - name: role
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: label
+        type: string
+        required: true
+      - name: description
+        type: string
+      - name: active
+        type: bool
+        required: true
+        default: true
+
   - name: user_role
     fields:
       - name: userId
         type: string
         required: true
-      - name: role
-        type: enum
-        values: [admin, member]
+      - name: roleId
+        type: many2one
+        relation: role
         required: true
+
+  - name: acl_entry
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: roleId
+        type: many2one
+        relation: role
+        required: true
+      - name: effect
+        type: enum
+        values: [allow, deny]
+        required: true
+        default: allow
+      - name: resource
+        type: string
+        required: true
+      - name: actions
+        type: json
+        required: true
+        default: '["*"]'
+      - name: fields
+        type: json
+        required: true
+        default: '"*"'
+      - name: domain
+        type: json
+        required: true
+        default: '[]'
+      - name: priority
+        type: int
+        required: true
+        default: 0
+      - name: active
+        type: bool
+        required: true
+        default: true
+
+exports:
+  components:
+    - id: permissions.Access
+      module: "@apps/permissions/views/Access.page.tsx"
+    - id: permissions.Roles
+      module: "@apps/permissions/views/Roles.page.tsx"
+
+locales:
+  - id: en
+    name: English
+    dir: ltr
+  - id: fa
+    name: Persian
+    dir: rtl

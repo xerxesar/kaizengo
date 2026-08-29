@@ -150,7 +150,7 @@ func registerGQL(host *module.Host, svc *Service) {
 	host.GQL.RegisterQuery("todoOpenCount", &graphql.Field{
 		Type: graphql.NewNonNull(graphql.Int),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			pr, err := sdkgql.RequireAction(host, permsvc.Name, p, "todo", permsvc.ActRead)
+			pr, err := sdkgql.RequireAction(host, permsvc.Name, p, "todo.task", permsvc.ActRead)
 			if err != nil {
 				return nil, err
 			}
@@ -160,7 +160,7 @@ func registerGQL(host *module.Host, svc *Service) {
 	host.GQL.RegisterMutation("completeTodoTasks", &graphql.Field{
 		Type: graphql.NewNonNull(graphql.Int),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			pr, err := sdkgql.RequireAction(host, permsvc.Name, p, "todo", permsvc.ActUpdate)
+			pr, err := sdkgql.RequireAction(host, permsvc.Name, p, "todo.task", permsvc.ActUpdate)
 			if err != nil {
 				return nil, err
 			}
@@ -170,7 +170,7 @@ func registerGQL(host *module.Host, svc *Service) {
 }
 ```
 
-`RequireAction` loads the session (`auth.MustPrincipal`) and checks RBAC. The resource `"todo"` matches generated task CRUD (`app.yaml` `name`, unless you set `resource:`). Duplicate GraphQL field names panic at startup.
+`RequireAction` loads the session and checks ACL for non-model APIs. Spec model CRUD is enforced inside the engine (`{app}.{model}` resources via `acl_entry`). Duplicate GraphQL field names panic at startup.
 
 Restart `make dev` and try in GraphiQL (`/graphql`):
 

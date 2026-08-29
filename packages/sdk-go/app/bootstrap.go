@@ -8,6 +8,7 @@ import (
 
 	"kaizengo/internal/module"
 	"kaizengo/internal/platform/i18n"
+	"kaizengo/packages/sdk-go/appspec"
 )
 
 func Env(key, fallback string) string {
@@ -50,5 +51,6 @@ func RegisterNav(host *module.Host, appName, route string) {
 		TitleKey: "nav." + appName,
 		Route:    route,
 	})
+	RegisterShellNavResource(appName, appspec.AppSpec{Name: appName, Title: appName, Nav: appspec.NavSpec{Route: route}})
 }
 

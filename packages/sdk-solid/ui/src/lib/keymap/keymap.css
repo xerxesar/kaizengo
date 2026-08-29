@@ -1,0 +1,30 @@
+
+.kg-keymap-hints {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99999;
+}
+
+.kg-keymap-hint--element {
+  position: fixed;
+  transform: translate(-100%, -100%);
+  background: #ffbb00;
+  word-break: keep-all;
+  white-space: nowrap;
+  opacity: 0.8;
+  z-index: 9001;
+}
+
+.kg-keymap-hint kbd {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  font-family: var(--kg-font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  border-radius: 0.25rem;
+  background: var(--kg-shell-bg, #161616);
+  color: var(--kg-shell-text, #f4f4f4);
+  border: 1px solid var(--kg-shell-border, #393939);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+}

@@ -60,7 +60,8 @@ func (a *App) Mount(host *module.Host) error {
 	r.Group(func(protected chi.Router) {
 		protected.Use(auth.RequireAuth)
 		protected.Handle("/graphql", gql)
-		protected.Get("/api/apps", module.NavHandler(host))
+		protected.Get("/api/apps", engine.NavCatalogHandler(host))
+		protected.Get("/api/keymap", engine.KeymapCatalogHandler(host))
 	})
 
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))

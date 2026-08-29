@@ -31,67 +31,84 @@ func seedDemo(ctx context.Context, m *engine.ModelRegistry) error {
 	if err != nil {
 		return err
 	}
-	if len(orgs) > 0 {
-		return nil
+	if len(orgs) == 0 {
+		orgID := uuid.NewString()
+		if _, err := m.Create(ctx, orgID, seedAuthor, "organization", map[string]any{
+			"id": orgID, "name": "Acme Mining Corp", "slug": "acme-mining",
+		}); err != nil {
+			return err
+		}
+
+		exploration, err := createOrgUnit(ctx, m, orgID, nil, idtypes.OrgUnitTypeBusinessUnit, "Exploration Division")
+		if err != nil {
+			return err
+		}
+		operations, err := createOrgUnit(ctx, m, orgID, nil, idtypes.OrgUnitTypeBusinessUnit, "Operations Division")
+		if err != nil {
+			return err
+		}
+		centralGeo, err := createOrgUnit(ctx, m, orgID, &exploration, idtypes.OrgUnitTypeDepartment, "Central Geology")
+		if err != nil {
+			return err
+		}
+		projectAlpha, err := createOrgUnit(ctx, m, orgID, &exploration, idtypes.OrgUnitTypeTeam, "Project Alpha")
+		if err != nil {
+			return err
+		}
+		if _, err := createOrgUnit(ctx, m, orgID, &projectAlpha, idtypes.OrgUnitTypeLocation, "Northern Block"); err != nil {
+			return err
+		}
+		if _, err := createOrgUnit(ctx, m, orgID, &operations, idtypes.OrgUnitTypeLocation, "Processing Plant"); err != nil {
+			return err
+		}
+		if _, err := createOrgUnit(ctx, m, orgID, &operations, idtypes.OrgUnitTypeDepartment, "Maintenance"); err != nil {
+			return err
+		}
+
+		jahan, err := createUser(ctx, m, orgID, "jahan.doran@acme.example", "Jahan Doran")
+		if err != nil {
+			return err
+		}
+		pos, err := createOrgUnit(ctx, m, orgID, &centralGeo, idtypes.OrgUnitTypePosition, "Senior Geologist")
+		if err != nil {
+			return err
+		}
+		if err := assignUser(ctx, m, orgID, jahan, pos, "holder"); err != nil {
+			return err
+		}
+		if err := assignUser(ctx, m, orgID, jahan, projectAlpha, "member"); err != nil {
+			return err
+		}
+
+		ali, err := createUser(ctx, m, orgID, "ali.rezaei@acme.example", "Ali Rezaei")
+		if err != nil {
+			return err
+		}
+		maintPos, err := createOrgUnit(ctx, m, orgID, nil, idtypes.OrgUnitTypePosition, "Maintenance Supervisor")
+		if err != nil {
+			return err
+		}
+		return assignUser(ctx, m, orgID, ali, maintPos, "holder")
 	}
 
-	orgID := uuid.NewString()
-	if _, err := m.Create(ctx, orgID, seedAuthor, "organization", map[string]any{
-		"id": orgID, "name": "Acme Mining Corp", "slug": "acme-mining",
-	}); err != nil {
-		return err
-	}
+	orgID := fmt.Sprint(orgs[0]["id"])
+	return ensureDemoUsers(ctx, m, orgID)
+}
 
-	exploration, err := createOrgUnit(ctx, m, orgID, nil, idtypes.OrgUnitTypeBusinessUnit, "Exploration Division")
-	if err != nil {
-		return err
+// ensureDemoUsers creates Jahan/Ali when the org already existed (idempotent re-seed).
+func ensureDemoUsers(ctx context.Context, m *engine.ModelRegistry, orgID string) error {
+	for _, u := range []struct{ email, name string }{
+		{"jahan.doran@acme.example", "Jahan Doran"},
+		{"ali.rezaei@acme.example", "Ali Rezaei"},
+	} {
+		if _, err := m.FindBy(ctx, "user", "email", u.email); err == nil {
+			continue
+		}
+		if _, err := createUser(ctx, m, orgID, u.email, u.name); err != nil {
+			return err
+		}
 	}
-	operations, err := createOrgUnit(ctx, m, orgID, nil, idtypes.OrgUnitTypeBusinessUnit, "Operations Division")
-	if err != nil {
-		return err
-	}
-	centralGeo, err := createOrgUnit(ctx, m, orgID, &exploration, idtypes.OrgUnitTypeDepartment, "Central Geology")
-	if err != nil {
-		return err
-	}
-	projectAlpha, err := createOrgUnit(ctx, m, orgID, &exploration, idtypes.OrgUnitTypeTeam, "Project Alpha")
-	if err != nil {
-		return err
-	}
-	if _, err := createOrgUnit(ctx, m, orgID, &projectAlpha, idtypes.OrgUnitTypeLocation, "Northern Block"); err != nil {
-		return err
-	}
-	if _, err := createOrgUnit(ctx, m, orgID, &operations, idtypes.OrgUnitTypeLocation, "Processing Plant"); err != nil {
-		return err
-	}
-	if _, err := createOrgUnit(ctx, m, orgID, &operations, idtypes.OrgUnitTypeDepartment, "Maintenance"); err != nil {
-		return err
-	}
-
-	jahan, err := createUser(ctx, m, orgID, "jahan.doran@acme.example", "Jahan Doran")
-	if err != nil {
-		return err
-	}
-	pos, err := createOrgUnit(ctx, m, orgID, &centralGeo, idtypes.OrgUnitTypePosition, "Senior Geologist")
-	if err != nil {
-		return err
-	}
-	if err := assignUser(ctx, m, orgID, jahan, pos, "holder"); err != nil {
-		return err
-	}
-	if err := assignUser(ctx, m, orgID, jahan, projectAlpha, "member"); err != nil {
-		return err
-	}
-
-	ali, err := createUser(ctx, m, orgID, "ali.rezaei@acme.example", "Ali Rezaei")
-	if err != nil {
-		return err
-	}
-	maintPos, err := createOrgUnit(ctx, m, orgID, nil, idtypes.OrgUnitTypePosition, "Maintenance Supervisor")
-	if err != nil {
-		return err
-	}
-	return assignUser(ctx, m, orgID, ali, maintPos, "holder")
+	return nil
 }
 
 func seedAdminUser(ctx context.Context, m *engine.ModelRegistry) error {

@@ -18,91 +18,91 @@ msgstr ""
 msgid "typesense.ping"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.backend"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.collections"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.collections_hint"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.connected"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.disable"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.disabled"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.documents"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.documents_hint"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.enable"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.enabled"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.fields_hint"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.loading"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.memory_hint"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.models_title"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.no_models"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.reindex"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.reindex_field"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.reindexed"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.reindexed_field"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.save"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.saved"
 msgstr ""
 
-#: views/SearchSettings.svelte
+#: views/SearchSettings.page.tsx
 msgid "typesense.search.unavailable"
 msgstr ""
 

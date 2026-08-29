@@ -19,8 +19,8 @@ Open **http://localhost:5173/app/** → sign in → open any app from the Apps m
 | What you edit | What happens |
 |---------------|--------------|
 | `apps/core/spa/src/` (shell, login) | Vite HMR — instant |
-| `apps/*/views/*.svelte` (app views) | Vite HMR — instant |
-| `packages/sdk-svelte/ui/` | Vite HMR — instant |
+| `apps/*/views/*.tsx` (app views) | Vite HMR — instant |
+| `packages/sdk-solid/ui/` | Vite HMR — instant |
 | Go code (`apps/*/module.go`, services) | Restart `make dev` (or run Go in a separate terminal) |
 
 ### Commands
@@ -116,8 +116,8 @@ Auth details: [auth.md](auth.md).
 cmd/server       HTTP process
 cmd/kaizengo     CLI (new-app, …)
 apps/            loadable apps (core, identity, clock, …)
-packages/sdk-svelte/ui  shared Svelte UI SDK (@kaizengo/sdk-svelte/ui)
-packages/sdk-svelte/spa-config  shared Vite config for app SPAs
+packages/sdk-solid/ui  shared Solid UI SDK (@kaizengo/sdk-solid/ui)
+packages/sdk-solid/spa-config  shared Vite config for app SPAs
 packages/vscode-kaizengo  VS Code / Cursor extension (app.yaml navigation)
 internal/auth    session middleware + Principal
 internal/module  registry, Host, GraphQL, nav
@@ -139,5 +139,5 @@ Then run **Run KaizenGo Extension** from the debug view (F5). See `packages/vsco
 
 1. `./bin/kaizengo new-app foo --type svelte`
 2. Append `apps/foo/spa` to `APP_SPAS` in the Makefile
-3. Use shared config: `packages/sdk-svelte/spa-config/app-vite.ts`
+3. Use shared config: `packages/sdk-solid/spa-config/app-vite.ts`
 4. Dev: `make dev APP=foo`

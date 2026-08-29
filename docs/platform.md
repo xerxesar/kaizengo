@@ -109,10 +109,10 @@ query {
 }
 ```
 
-Frontend (`@kaizengo/sdk-svelte/ui`):
+Frontend (`@kaizengo/sdk-solid/ui`):
 
 ```ts
-import { t, setI18nLocale, syncDocumentLocale } from '@kaizengo/sdk-svelte/ui'
+import { t, setI18nLocale, syncDocumentLocale } from '@kaizengo/sdk-solid/ui'
 
 // Shell boot — settings locale + <html lang dir>
 const { locale } = await syncDocumentLocale()
@@ -147,9 +147,9 @@ t('clock.title') // from Vite-compiled apps/*/locale/*.po
 | Different Clock UX for a customer | Fork `apps/clock` → ship `apps/acme_clock` |
 | Patch Clock from another app | **Don’t** — not supported by design |
 | Login / sessions / org users | Use `auth` + `identity` + `internal/auth` ([auth.md](auth.md)) |
-| Authorize an action | Call `permissions` `Can` / `MustAllow` — do not hardcode role checks |
+| Authorize an action | Use `permissions` / `acl.Authorizer` (`Can` / `MustAllow` with `acl.Check`) — see [ACL system](acl.md) |
 | Cross-app behavior (audit, search) | Install an addon app; use [extension points](extension-platform.md) |
-| Share UI for identity users | `@kaizengo/sdk-svelte/identity` ([capabilities.md](capabilities.md)) |
+| Share UI for identity users | `@kaizengo/sdk-solid/identity` ([capabilities.md](capabilities.md)) |
 
 ## Extension platform
 

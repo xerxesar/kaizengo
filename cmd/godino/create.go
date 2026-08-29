@@ -30,7 +30,7 @@ type appData struct {
 	Summary      string
 	Route        string
 	WithGraphQL  bool
-	IsSvelte     bool
+	IsSolid      bool
 	EventSourced bool
 }
 
@@ -44,8 +44,11 @@ func createApp(opts AppOptions) error {
 	}
 
 	typ := strings.ToLower(strings.TrimSpace(opts.Type))
-	if typ != "vanilla" && typ != "svelte" {
-		return fmt.Errorf("type must be vanilla or svelte, got %q", typ)
+	if typ != "vanilla" && typ != "solid" && typ != "svelte" {
+		return fmt.Errorf("type must be solid, got %q (svelte is deprecated; use solid)", typ)
+	}
+	if typ == "svelte" {
+		typ = "solid"
 	}
 
 	root, err := findModuleRoot()
@@ -81,7 +84,7 @@ func createApp(opts AppOptions) error {
 		Summary:      summary,
 		Route:        strings.ReplaceAll(name, "_", "-"),
 		WithGraphQL:  opts.WithGraphQL,
-		IsSvelte:     typ == "svelte",
+		IsSolid:      typ == "solid",
 		EventSourced: opts.EventSourced,
 	}
 
@@ -98,22 +101,22 @@ func createApp(opts AppOptions) error {
 		files["migrations/002_items_read.sql"] = render(readModelMigrationSQLTmpl, data)
 		files["locale/en.po"] = render(localeEnTmpl, data)
 		files["locale/fa.po"] = render(localeFaTmpl, data)
-		files["views/Items.page.svelte"] = render(svelteListViewTmpl, data)
-		files["views/NewItem.page.svelte"] = render(svelteFormViewTmpl, data)
+		files["views/Items.page.tsx"] = render(solidListViewTmpl, data)
+		files["views/NewItem.page.tsx"] = render(solidFormViewTmpl, data)
 	} else {
 		files["module.go"] = render(moduleGoTmpl, data)
 	}
 	if typ == "vanilla" {
-		return fmt.Errorf("vanilla apps are no longer supported; use --type svelte")
+		return fmt.Errorf("vanilla apps are no longer supported; use --type solid")
 	}
 	if !opts.EventSourced {
-		files["views/Index.page.svelte"] = render(svelteViewTmpl, data)
+		files["views/Index.page.tsx"] = render(solidViewTmpl, data)
 	}
 	if opts.WithGraphQL {
 		if err := os.MkdirAll(filepath.Join(appDir, "lib"), 0o755); err != nil {
 			return err
 		}
-		files["lib/graphql.ts"] = render(svelteGraphQLTSTmpl, data)
+		files["lib/graphql.ts"] = render(solidGraphQLTSTmpl, data)
 	}
 
 	for rel, content := range files {
@@ -146,7 +149,7 @@ func createApp(opts AppOptions) error {
 	}
 
 	fmt.Printf("\nNext steps:\n")
-	if typ == "svelte" {
+	if typ == "solid" {
 		fmt.Printf("  make spa-build   # rebuild the central SPA (includes app views)\n")
 	}
 	fmt.Printf("  make generate     # refresh __types__ after app.yaml changes\n")

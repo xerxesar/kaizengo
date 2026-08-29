@@ -10,7 +10,7 @@ msgstr ""
 msgid "nav.status"
 msgstr ""
 
-#: views/Index.page.svelte
+#: views/Index.page.tsx
 msgid "status.lead"
 msgstr ""
 

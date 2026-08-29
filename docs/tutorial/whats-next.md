@@ -21,7 +21,7 @@ These are the usual next stops after that.
 | Locale, calendar, shell title | `settings` |
 | Install / upgrade apps | `appman` |
 
-Consume users from GraphQL or `@kaizengo/sdk-svelte/identity`, not by importing another app’s Go types.
+Consume users from GraphQL or `@kaizengo/sdk-solid/identity`, not by importing another app’s Go types.
 
 ## When to write more Go
 
@@ -31,7 +31,7 @@ Addons that listen to *other* apps use `extension.Register` / `extends:` in `app
 
 ## Internals & SDKs
 
-[Internals & SDKs](../internals/index.md) explains boot order, the Host bag, and both SDKs with code from `hellospec`. Deeper package notes: [Go SDK](../internals/go-sdk.md), [Svelte SDK](../internals/svelte-sdk.md).
+[Internals & SDKs](../internals/index.md) explains boot order, the Host bag, and both SDKs with code from `hellospec`. Deeper package notes: [Go SDK](../internals/go-sdk.md), [Solid SDK](../internals/solid-sdk.md).
 
 ## Reference in this repo
 
@@ -41,7 +41,7 @@ Addons that listen to *other* apps use `extension.Register` / `extends:` in `app
 | `apps/identity` | Several models, menus, and views |
 | `apps/auth` | Setup/Mount for login |
 | `packages/sdk-go/engine` | What `engine.New` actually wires |
-| `packages/sdk-svelte/ui` | `KTable`, `KForm`, layout, i18n |
+| `packages/sdk-solid/ui` | `KTable`, `KForm`, layout, i18n |
 
 ## Load a subset
 

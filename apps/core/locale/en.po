@@ -56,3 +56,15 @@ msgstr "Open the Apps menu to launch a module."
 
 msgid "shell.close_menu"
 msgstr "Close menu"
+
+msgid "keymap.shell.toggle_apps"
+msgstr "Open apps menu"
+
+msgid "keymap.shell.go_home"
+msgstr "Go home"
+
+msgid "keymap.shell.form-save"
+msgstr "Save form"
+
+msgid "keymap.shell.sign_out"
+msgstr "Sign out"

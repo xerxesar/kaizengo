@@ -23,9 +23,9 @@ extends:
 exports:
   components:
     - id: platform.SearchBar
-      module: "@kaizengo/sdk-svelte/search/SearchBar.svelte"
+      module: "@kaizengo/sdk-solid/search/SearchBar.tsx"
     - id: typesense.SearchSettings
-      module: "@apps/typesense/views/SearchSettings.svelte"
+      module: "@apps/typesense/views/SearchSettings.page.tsx"
   views:
     - app: hellospec
       match: "*.list"

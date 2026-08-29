@@ -41,3 +41,13 @@ msgstr "All greetings"
 
 msgid "hellospec.menu.new"
 msgstr "New greeting"
+
+msgid "hellospec.mood"
+msgstr "Mood"
+
+msgid "hellospec.internal_note"
+msgstr "Internal note (admin)"
+
+msgid "hellospec.acl_hint"
+msgstr "ACL demo: members (jahan.doran@acme.example / member) can edit only their own greetings; internalNote is readable on own rows only. Admin sees everything."
+

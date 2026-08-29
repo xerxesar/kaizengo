@@ -101,13 +101,13 @@ System columns (`id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_a
 
 ## 4. Views
 
-Views are Svelte 5 files compiled into the **core** SPA. Pages are `views/<Name>.page.svelte`.
+Views are SolidJS files compiled into the **core** SPA. Pages are `views/<Name>.page.tsx`.
 
-`apps/todo/views/TaskList.page.svelte`:
+`apps/todo/views/TaskList.page.tsx`:
 
 ```svelte
 <script lang="ts">
-  import { KTable, KAppStatus, t } from '@kaizengo/sdk-svelte/ui'
+  import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
 </script>
 
 <KTable model="todo.task" emptyMessage={t('todo.empty')} />
@@ -115,11 +115,11 @@ Views are Svelte 5 files compiled into the **core** SPA. Pages are `views/<Name>
 <KAppStatus />
 ```
 
-`apps/todo/views/TaskForm.page.svelte`:
+`apps/todo/views/TaskForm.page.tsx`:
 
 ```svelte
 <script lang="ts">
-  import { KForm, KFormField, KTable, KAppStatus, t } from '@kaizengo/sdk-svelte/ui'
+  import { KForm, KFormField, KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
 
   let table = $state<{ refresh: () => Promise<void> }>()
 </script>
@@ -190,7 +190,7 @@ make generate
 Restart `make dev` (new Go package). Open the shell, pick **Todo** from Apps, and create a task.
 
 !!! warning "Admin only on first run"
-    Engine CRUD is gated by permissions. The seeded admin role may do everything (`*` / `*`). Other roles need an explicit grant for resource `todo` before they can write.
+    Engine CRUD is gated by ACL in the model layer. The seeded admin role may do everything (`*` / `*`). Other roles need an `acl_entry` for resource `todo.task` (or `todo.*`) — declare it in `security.yaml` and list the file under `security:` in `app.yaml`. See [ACL system](../acl.md).
 
 ## Shortcut: CLI
 

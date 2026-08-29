@@ -29,3 +29,6 @@ msgstr "وضعیت API"
 
 msgid "settings.menu.general"
 msgstr "عمومی"
+
+msgid "settings.menu.keymap"
+msgstr "میانبرهای صفحه‌کلید"

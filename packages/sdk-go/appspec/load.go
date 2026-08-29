@@ -11,8 +11,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// PageSuffix marks a Svelte file under views/ as a menu-mountable page.
-const PageSuffix = ".page.svelte"
+// PageSuffix marks a Solid page under views/ as a menu-mountable page.
+const PageSuffix = ".page.tsx"
 
 type fileSpec struct {
 	Name       string   `yaml:"name"`
@@ -37,6 +37,8 @@ type fileSpec struct {
 	Locales     []fileLocale `yaml:"locales"`
 	Extends     []ExtendSpec `yaml:"extends"`
 	Exports     ExportSpec   `yaml:"exports"`
+	Security    []string     `yaml:"security"` // relative paths to security YAML files
+	Keymap      []string     `yaml:"keymap"`   // relative paths to keymap YAML files
 }
 
 type fileModel struct {
@@ -56,7 +58,7 @@ type fileLocale struct {
 
 // LoadFile reads and validates an app.yaml spec from disk, resolving
 // relative model includes against the file's directory and discovering
-// views/*.page.svelte pages.
+// views/*.page.tsx pages.
 func LoadFile(path string) (AppSpec, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
@@ -182,11 +184,109 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 	}
 	spec.Extends = raw.Extends
 	spec.Exports = raw.Exports
+	if len(raw.Security) > 0 {
+		sec, err := loadSecurityFiles(raw.Security, appRoot, source)
+		if err != nil {
+			return AppSpec{}, err
+		}
+		spec.Security = sec
+	}
+	if len(raw.Keymap) > 0 {
+		km, err := loadKeymapFiles(raw.Keymap, appRoot, source)
+		if err != nil {
+			return AppSpec{}, err
+		}
+		spec.Keymap = km
+	}
 	spec.ApplyDefaults()
 	if err := spec.validate(appRoot != ""); err != nil {
 		return AppSpec{}, err
 	}
 	return spec, nil
+}
+
+func loadKeymapFiles(refs []string, appRoot, source string) (KeymapSpec, error) {
+	if appRoot == "" || source == "" {
+		return KeymapSpec{}, fmt.Errorf("keymap: includes require loading from a file")
+	}
+	var merged KeymapSpec
+	seen := map[string]struct{}{}
+	for i, ref := range refs {
+		loc := fmt.Sprintf("keymap[%d]", i)
+		ref = strings.TrimSpace(ref)
+		if ref == "" {
+			return KeymapSpec{}, fmt.Errorf("%s: empty path", loc)
+		}
+		abs, err := resolveSecurityPath(ref, source, appRoot)
+		if err != nil {
+			return KeymapSpec{}, fmt.Errorf("%s: %w", loc, err)
+		}
+		if _, ok := seen[abs]; ok {
+			return KeymapSpec{}, fmt.Errorf("%s: duplicate include of %s", loc, displayPath(appRoot, abs))
+		}
+		seen[abs] = struct{}{}
+		b, err := os.ReadFile(abs)
+		if err != nil {
+			return KeymapSpec{}, fmt.Errorf("%s: %w", loc, err)
+		}
+		var frag fileKeymap
+		if err := yaml.Unmarshal(b, &frag); err != nil {
+			return KeymapSpec{}, fmt.Errorf("%s: parse %s: %w", loc, displayPath(appRoot, abs), err)
+		}
+		mergeKeymap(&merged, frag)
+	}
+	return merged, nil
+}
+
+func loadSecurityFiles(refs []string, appRoot, source string) (SecuritySpec, error) {
+	if appRoot == "" || source == "" {
+		return SecuritySpec{}, fmt.Errorf("security: includes require loading from a file")
+	}
+	var merged SecuritySpec
+	seen := map[string]struct{}{}
+	for i, ref := range refs {
+		loc := fmt.Sprintf("security[%d]", i)
+		ref = strings.TrimSpace(ref)
+		if ref == "" {
+			return SecuritySpec{}, fmt.Errorf("%s: empty path", loc)
+		}
+		abs, err := resolveSecurityPath(ref, source, appRoot)
+		if err != nil {
+			return SecuritySpec{}, fmt.Errorf("%s: %w", loc, err)
+		}
+		if _, ok := seen[abs]; ok {
+			return SecuritySpec{}, fmt.Errorf("%s: duplicate include of %s", loc, displayPath(appRoot, abs))
+		}
+		seen[abs] = struct{}{}
+		b, err := os.ReadFile(abs)
+		if err != nil {
+			return SecuritySpec{}, fmt.Errorf("%s: %w", loc, err)
+		}
+		var frag fileSecurity
+		if err := yaml.Unmarshal(b, &frag); err != nil {
+			return SecuritySpec{}, fmt.Errorf("%s: parse %s: %w", loc, displayPath(appRoot, abs), err)
+		}
+		mergeSecurity(&merged, frag)
+	}
+	return merged, nil
+}
+
+func resolveSecurityPath(ref, fromFile, appRoot string) (string, error) {
+	ref = strings.TrimSpace(ref)
+	if filepath.IsAbs(ref) {
+		return "", fmt.Errorf("path must be relative: %s", ref)
+	}
+	abs := filepath.Clean(filepath.Join(filepath.Dir(fromFile), ref))
+	if err := withinApp(appRoot, abs, ref); err != nil {
+		return "", err
+	}
+	if !isSpecPath(abs) {
+		return "", fmt.Errorf("path must be a .yaml file: %s", ref)
+	}
+	if _, err := os.Stat(abs); err != nil {
+		return "", fmt.Errorf("include %q: %w", ref, err)
+	}
+	return abs, nil
 }
 
 func resolveModels(node *yaml.Node, appRoot, source string, seen map[string]struct{}) ([]fileModel, error) {

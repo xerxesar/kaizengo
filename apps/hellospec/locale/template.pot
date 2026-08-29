@@ -6,7 +6,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: app.yaml views/GreetingForm.page.svelte
+#: views/GreetingForm.page.tsx
+msgid "hellospec.acl_hint"
+msgstr ""
+
+#: app.yaml views/GreetingForm.page.tsx
 msgid "hellospec.create"
 msgstr ""
 
@@ -14,8 +18,24 @@ msgstr ""
 msgid "hellospec.created"
 msgstr ""
 
-#: app.yaml views/GreetingForm.page.svelte views/GreetingList.page.svelte
+#: app.yaml views/GreetingForm.page.tsx views/GreetingList.page.tsx
 msgid "hellospec.empty"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.enum.greeting.mood.formal"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.enum.greeting.mood.happy"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.enum.greeting.mood.neutral"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.internalNote"
 msgstr ""
 
 #: app.yaml
@@ -23,7 +43,15 @@ msgid "hellospec.field.message"
 msgstr ""
 
 #: app.yaml
+msgid "hellospec.field.mood"
+msgstr ""
+
+#: app.yaml
 msgid "hellospec.greeting.search"
+msgstr ""
+
+#: views/GreetingForm.page.tsx
+msgid "hellospec.internal_note"
 msgstr ""
 
 #: app.yaml
@@ -42,7 +70,11 @@ msgstr ""
 msgid "hellospec.menu.new"
 msgstr ""
 
-#: app.yaml views/GreetingForm.page.svelte
+#: views/GreetingForm.page.tsx
+msgid "hellospec.mood"
+msgstr ""
+
+#: app.yaml views/GreetingForm.page.tsx
 msgid "hellospec.new_placeholder"
 msgstr ""
 

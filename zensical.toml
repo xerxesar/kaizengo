@@ -25,7 +25,16 @@ nav = [
   { "Internals & SDKs" = [
     "internals/index.md",
     { "Go SDK" = "internals/go-sdk.md" },
-    { "Svelte SDK" = "internals/svelte-sdk.md" },
+    { "Solid SDK" = "internals/solid-sdk.md" },
+  ] },
+  { "Platform" = [
+    "auth.md",
+    "acl.md",
+    "capabilities.md",
+    "platform.md",
+    "graphql.md",
+    "apps.md",
+    "sdk.md",
   ] },
 ]
 

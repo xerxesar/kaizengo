@@ -42,13 +42,12 @@ menus:
 	if err := os.MkdirAll(filepath.Join(dir, "views"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	view := `<script lang="ts">
-  import { t } from '@kaizengo/sdk-svelte/ui'
-</script>
-<h1>{t('demo.custom.title')}</h1>
-<KTable emptyKey="demo.empty.items" />
+	view := `import { KTable, t } from '@kaizengo/sdk-solid/ui'
+export default function Items() {
+  return <KTable model="demo.item" emptyMessage={t('demo.empty.items')} />
+}
 `
-	if err := os.WriteFile(filepath.Join(dir, "views", "Items.page.svelte"), []byte(view), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "views", "Items.page.tsx"), []byte(view), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "gql.go"), []byte(`package demo
@@ -78,7 +77,6 @@ func hook() { _ = i18n.Error("demo.error.denied") }
 		`msgid "demo.enum.item.status.open"`,
 		`msgid "demo.menu.items"`,
 		`msgid "demo.item.search"`,
-		`msgid "demo.custom.title"`,
 		`msgid "demo.empty.items"`,
 		`msgid "demo.locale"`,
 		`msgid "demo.error.denied"`,

@@ -14,6 +14,9 @@ nav:
   labelKey: nav.identity
   route: identity
 
+security:
+  - security.yaml
+
 models:
   - name: user
     search:
@@ -80,6 +83,16 @@ menus:
   - id: users
     labelKey: identity.tab.users
     view: Users
+  - id: permissions
+    labelKey: permissions.menu.group
+    order: 35
+    children:
+      - id: roles
+        labelKey: permissions.menu.roles
+        view: Roles
+      - id: access
+        labelKey: permissions.menu.access
+        view: Access
   - id: settings
     labelKey: identity.tab.settings
     view: Settings

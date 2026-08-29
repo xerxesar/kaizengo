@@ -1,0 +1,22 @@
+{
+  "name": "@kaizengo/sdk-solid",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./ui": "./ui/index.ts",
+    "./ui/styles.css": "./ui/styles.css",
+    "./ui/*": "./ui/src/lib/*",
+    "./search": "./search/index.ts",
+    "./search/*": "./search/*",
+    "./spa-config/app-vite.js": "./spa-config/app-vite.ts"
+  },
+  "dependencies": {
+    "@ark-ui/solid": "^5.29.1",
+    "solid-js": "^1.9.10"
+  },
+  "peerDependencies": {
+    "@ark-ui/solid": "^5.0.0",
+    "solid-js": "^1.9.0"
+  }
+}

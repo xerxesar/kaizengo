@@ -13,7 +13,8 @@ Public Go libraries for spec-driven apps. Prefer these over reaching into `inter
 | `events/pgstore` | Postgres event store |
 | `projection` | Projection runner + read-model sinks |
 | `extension` | Global lifecycle handlers + yaml `extends` / `exports` |
-| `gql` | Principal + RBAC helpers for resolvers |
+| `gql` | Principal helpers; `RequireAction` for non-model APIs |
+| `acl` | Unified ACL evaluator (domains, field masks, Authorizer) |
 | `i18n` | `T` / `Error` over loaded `.po` catalogs |
 | `views` | Menu / view helpers used by the engine |
 | `codegen` | Type and `.pot` generation (`godino`) |
@@ -168,15 +169,21 @@ Wildcard handlers require `extensions: true` on the target app. See [extension-p
 
 ## GraphQL guards
 
-Resolvers that need a session and RBAC:
+Engine-registered model CRUD requires a session only; **ACL is enforced in `modelService`** (`packages/sdk-go/acl` via the `permissions` host service). Resource ids default to `{app}.{model}`. See [ACL system](../acl.md) for menus, queries, and `security.yaml`.
+
+Non-model resolvers still check explicitly:
 
 ```go
-import "kaizengo/packages/sdk-go/gql"
+import (
+  "kaizengo/packages/sdk-go/acl"
+  "kaizengo/packages/sdk-go/gql"
+)
 
-pr, err := gql.RequireAction(host, "permissions", p, "identity.users", "read")
+pr, err := gql.RequireAction(host, acl.ServiceName, p, "appman", acl.ActRead)
+// or later: "workflow.action.approve", "execute"
 ```
 
-`RequirePrincipal` only checks the session. Engine-registered CRUD already applies permissions via the app `resource` (default = app name).
+`RequirePrincipal` only checks the session.
 
 Custom fields still register on the host:
 

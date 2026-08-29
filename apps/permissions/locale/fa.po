@@ -1,0 +1,223 @@
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "permissions.menu.access"
+msgstr "قوانین دسترسی"
+
+msgid "permissions.menu.group"
+msgstr "دسترسی‌ها"
+
+msgid "permissions.menu.roles"
+msgstr "نقش‌ها"
+
+msgid "permissions.col.members"
+msgstr "اعضا"
+
+msgid "permissions.loading"
+msgstr "در حال بارگذاری سیاست‌های دسترسی…"
+
+msgid "permissions.saved"
+msgstr "سیاست‌های دسترسی به‌روز شد."
+
+msgid "permissions.roles_title"
+msgstr "نقش‌ها"
+
+msgid "permissions.roles_empty"
+msgstr "نقشی یافت نشد."
+
+msgid "permissions.select_role"
+msgstr "یک نقش را برای دیدن کاربران و قوانین انتخاب کنید."
+
+msgid "permissions.refresh"
+msgstr "بازنشانی"
+
+msgid "permissions.users_title"
+msgstr "کاربران این نقش"
+
+msgid "permissions.users_empty"
+msgstr "هیچ کاربری به این نقش اختصاص داده نشده است."
+
+msgid "permissions.rules_title"
+msgstr "قوانین دسترسی"
+
+msgid "permissions.rules_hint"
+msgstr "برای مرتب‌سازی روی سرستون‌ها کلیک کنید. جایگزین‌های سفارشی با پس‌زمینه زرد مشخص شده‌اند."
+
+msgid "permissions.rules_count"
+msgstr "%d قانون نمایش داده شد"
+
+msgid "permissions.rules_empty"
+msgstr "قانون فعالی برای این نقش نیست."
+
+msgid "permissions.deactivate"
+msgstr "غیرفعال"
+
+msgid "permissions.override_title"
+msgstr "افزودن قانون جایگزین"
+
+msgid "permissions.override_hint"
+msgstr "یک acl_entry جدید می‌سازد. برای بازنویسی قوانین موجود اولویت بالاتر بگذارید."
+
+msgid "permissions.override_submit"
+msgstr "ایجاد جایگزین"
+
+msgid "permissions.col.role"
+msgstr "نقش"
+
+msgid "permissions.col.slug"
+msgstr "نام"
+
+msgid "permissions.col.user"
+msgstr "کاربر"
+
+msgid "permissions.col.email"
+msgstr "ایمیل"
+
+msgid "permissions.col.effect"
+msgstr "اثر"
+
+msgid "permissions.col.priority"
+msgstr "اولویت"
+
+msgid "permissions.col.resource"
+msgstr "منبع"
+
+msgid "permissions.col.actions"
+msgstr "اقدامات"
+
+msgid "permissions.col.fields"
+msgstr "فیلدها"
+
+msgid "permissions.col.domain"
+msgstr "دامنه"
+
+msgid "permissions.col.name"
+msgstr "نام قانون"
+
+msgid "permissions.field.name"
+msgstr "نام قانون"
+
+msgid "permissions.field.effect"
+msgstr "اثر"
+
+msgid "permissions.field.resource"
+msgstr "منبع"
+
+msgid "permissions.field.actions"
+msgstr "اقدامات (JSON)"
+
+msgid "permissions.field.actions_hint"
+msgstr "مثلاً [\"read\",\"update\"] یا [\"*\"]"
+
+msgid "permissions.field.fields"
+msgstr "فیلدها (JSON)"
+
+msgid "permissions.field.fields_hint"
+msgstr "مثلاً \"*\" یا [\"message\",\"mood\"]"
+
+msgid "permissions.field.domain"
+msgstr "دامنه (JSON)"
+
+msgid "permissions.field.domain_hint"
+msgstr "مثلاً [] یا [[\"authorId\",\"=\",\"$user.id\"]]"
+
+msgid "permissions.field.priority"
+msgstr "اولویت"
+
+msgid "permissions.field.priority_hint"
+msgstr "اولویت بالاتر برنده است (برای جایگزین‌ها ۱۰۰۰+)"
+
+msgid "permissions.effect.allow"
+msgstr "اجازه"
+
+msgid "permissions.effect.deny"
+msgstr "منع"
+
+msgid "permissions.error.name_required"
+msgstr "نام قانون الزامی است"
+
+msgid "permissions.error.resource_required"
+msgstr "منبع الزامی است"
+
+msgid "permissions.error.priority_invalid"
+msgstr "اولویت باید عدد باشد"
+
+msgid "permissions.activate"
+msgstr "فعال‌سازی"
+
+msgid "permissions.delete"
+msgstr "حذف"
+
+msgid "permissions.field.role"
+msgstr "نقش"
+
+msgid "permissions.filter.role_all"
+msgstr "همه نقش‌ها"
+
+msgid "permissions.filter.search"
+msgstr "جستجو"
+
+msgid "permissions.filter.search_placeholder"
+msgstr "نام، منبع، اقدامات…"
+
+msgid "permissions.filter.source"
+msgstr "منبع قانون"
+
+msgid "permissions.filter.source_all"
+msgstr "همه قوانین"
+
+msgid "permissions.filter.status"
+msgstr "وضعیت"
+
+msgid "permissions.filter.status_all"
+msgstr "همه"
+
+msgid "permissions.filter.status_active"
+msgstr "فقط فعال"
+
+msgid "permissions.filter.status_inactive"
+msgstr "فقط غیرفعال"
+
+msgid "permissions.filter.effect"
+msgstr "اثر"
+
+msgid "permissions.filter.effect_all"
+msgstr "همه اثرها"
+
+msgid "permissions.filter.resource_prefix"
+msgstr "پیشوند منبع"
+
+msgid "permissions.filter.min_priority"
+msgstr "حداقل اولویت"
+
+msgid "permissions.source.seed"
+msgstr "seed"
+
+msgid "permissions.source.override"
+msgstr "جایگزین"
+
+msgid "permissions.seed_rules_title"
+msgstr "قوانین seed"
+
+msgid "permissions.seed_rules_empty"
+msgstr "قانون seedای با فیلتر فعلی یافت نشد."
+
+msgid "permissions.override_rules_title"
+msgstr "جایگزین‌های سفارشی"
+
+msgid "permissions.override_rules_empty"
+msgstr "جایگزین سفارشی با فیلتر فعلی یافت نشد."
+
+msgid "permissions.fields.all"
+msgstr "همه فیلدها (*)"
+
+msgid "permissions.fields.custom"
+msgstr "JSON سفارشی"
+
+msgid "permissions.domain.all"
+msgstr "بدون فیلتر دامنه"
+
+msgid "permissions.domain.custom"
+msgstr "دامنه سفارشی"

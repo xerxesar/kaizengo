@@ -55,4 +55,5 @@ func RegisterNavFromSpec(host *module.Host, appName string, spec appspec.AppSpec
 		Route:    route,
 		Order:    nav.Order,
 	})
+	RegisterShellNavResource(appName, spec)
 }

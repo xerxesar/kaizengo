@@ -38,9 +38,9 @@ dev: generate
 cli:
 	go build -o bin/kaizengo ./cmd/godino
 
-# Usage: make new-app NAME=notes TYPE=svelte EXTRA='--with-graphql'
+# Usage: make new-app NAME=notes TYPE=solid EXTRA='--with-graphql'
 new-app: cli
-	./bin/kaizengo new-app $(NAME) --type $(or $(TYPE),svelte) $(EXTRA)
+	./bin/kaizengo new-app $(NAME) --type $(or $(TYPE),solid) $(EXTRA)
 
 tidy:
 	go mod tidy

@@ -73,8 +73,8 @@ fields:
     type: many2one
     relation: tag
 `)
-	mustWrite("views/Items.page.svelte", "<h1>Items</h1>\n")
-	mustWrite("views/Extra.svelte", "<p>not a page</p>\n")
+	mustWrite("views/Items.page.tsx", "export default function Items() { return null }\n")
+	mustWrite("views/Extra.tsx", "export default function Extra() { return null }\n")
 
 	spec, err := appspec.LoadFile(filepath.Join(root, "app.yaml"))
 	if err != nil {
@@ -102,22 +102,161 @@ views:
 	}
 }
 
-func TestLoadFileRejectsUnknownPage(t *testing.T) {
+func TestLoadFileSecurityMerge(t *testing.T) {
+	root := t.TempDir()
+	mustWrite := func(rel, body string) {
+		t.Helper()
+		path := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mustWrite("app.yaml", `
+name: demo
+title: Demo
+summary: Demo app
+security:
+  - security/roles.yaml
+  - security/entries.yaml
+`)
+	mustWrite("security/roles.yaml", `
+roles:
+  - name: member
+    label: Member
+disable:
+  - old-grant
+`)
+	mustWrite("security/entries.yaml", `
+entries:
+  - name: demo-member-read
+    role: member
+    effect: allow
+    resource: demo.item
+    actions: [read]
+    fields: [title]
+  - name: demo-member-all-fields
+    role: member
+    resource: demo.item
+    actions: [delete]
+    fields: "*"
+    domain: [[authorId, "=", "$user.id"]]
+users:
+  - email: demo@example.com
+    name: Demo User
+    password: secret
+    roles: [member]
+`)
+
+	spec, err := appspec.LoadFile(filepath.Join(root, "app.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sec := spec.Security
+	if len(sec.Roles) != 1 || sec.Roles[0].Name != "member" {
+		t.Fatalf("roles = %+v", sec.Roles)
+	}
+	if len(sec.Disable) != 1 || sec.Disable[0] != "old-grant" {
+		t.Fatalf("disable = %+v", sec.Disable)
+	}
+	if len(sec.Entries) != 2 {
+		t.Fatalf("entries = %+v", sec.Entries)
+	}
+	if !sec.Entries[1].Fields.All {
+		t.Fatalf("expected fields *, got %+v", sec.Entries[1].Fields)
+	}
+	if len(sec.Entries[1].Domain) != 1 || sec.Entries[1].Domain[0][0] != "authorId" {
+		t.Fatalf("domain = %+v", sec.Entries[1].Domain)
+	}
+	if len(sec.Users) != 1 || sec.Users[0].Email != "demo@example.com" {
+		t.Fatalf("users = %+v", sec.Users)
+	}
+}
+
+func TestLoadFileSecurityRejectsDuplicateEntry(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "app.yaml")
 	if err := os.WriteFile(path, []byte(`
 name: demo
 title: Demo
 summary: Demo
-menus:
-  - id: items
-    labelKey: demo.menu.items
-    view: Missing
+security:
+  - security.yaml
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "security.yaml"), []byte(`
+entries:
+  - name: same
+    role: member
+    resource: demo.item
+    actions: [read]
+  - name: same
+    role: member
+    resource: demo.item
+    actions: [update]
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, err := appspec.LoadFile(path)
 	if err == nil {
-		t.Fatal("expected missing page error")
+		t.Fatal("expected duplicate entry error")
 	}
 }
+
+func TestLoadFileKeymapMerge(t *testing.T) {
+	root := t.TempDir()
+	mustWrite := func(rel, body string) {
+		t.Helper()
+		path := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mustWrite("app.yaml", `
+name: demo
+title: Demo
+summary: Demo app
+keymap:
+  - keymap/base.yaml
+  - keymap/extra.yaml
+`)
+	mustWrite("keymap/base.yaml", `
+disable:
+  - old_save
+bindings:
+  - id: save
+    action: element:save
+    keys: mod+s
+    labelKey: keymap.save
+    scope: view
+`)
+	mustWrite("keymap/extra.yaml", `
+bindings:
+  - id: refresh
+    action: element:refresh
+    keys: mod+r
+    scope: app
+`)
+
+	spec, err := appspec.LoadFile(filepath.Join(root, "app.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	km := spec.Keymap
+	if len(km.Disable) != 1 || km.Disable[0] != "old_save" {
+		t.Fatalf("disable = %+v", km.Disable)
+	}
+	if len(km.Bindings) != 2 {
+		t.Fatalf("bindings = %+v", km.Bindings)
+	}
+	if km.Bindings[0].Action != "element:save" || km.Bindings[1].Keys != "mod+r" {
+		t.Fatalf("bindings = %+v", km.Bindings)
+	}
+}
+

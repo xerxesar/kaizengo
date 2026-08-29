@@ -127,10 +127,10 @@ function appNameHit(app: AppIndex): NavTarget {
   );
 }
 
-function viewSvelte(app: AppIndex, viewName: string): NavTarget | undefined {
+function viewPage(app: AppIndex, viewName: string): NavTarget | undefined {
   return (
-    needleTarget(path.join(app.dir, "views", `${viewName}.page.svelte`), `views/${viewName}.page.svelte`) ??
-    needleTarget(path.join(app.dir, "views", `${viewName}.svelte`), `views/${viewName}.svelte`)
+    needleTarget(path.join(app.dir, "views", `${viewName}.page.tsx`), `views/${viewName}.page.tsx`) ??
+    needleTarget(path.join(app.dir, "views", `${viewName}.tsx`), `views/${viewName}.tsx`)
   );
 }
 
@@ -279,8 +279,8 @@ function findHandler(appDir: string, handler: string): NavTarget[] {
 
 function resolveModule(root: string, module: string): NavTarget | undefined {
   let file: string | undefined;
-  if (module.startsWith("@kaizengo/sdk-svelte/")) {
-    file = existing(path.join(root, "packages/sdk-svelte", module.slice("@kaizengo/sdk-svelte/".length)));
+  if (module.startsWith("@kaizengo/sdk-solid/")) {
+    file = existing(path.join(root, "packages/sdk-solid", module.slice("@kaizengo/sdk-solid/".length)));
   } else if (module.startsWith("@apps/")) {
     file = existing(path.join(root, "apps", module.slice("@apps/".length)));
   } else {
@@ -334,7 +334,7 @@ export function resolveDefinition(ctx: ResolveContext, symbol: YamlSymbol): NavT
       return [];
     case "view-name":
     case "export-view-ref":
-      return unique([viewSvelte(app, value)]);
+      return unique([viewPage(app, value)]);
     case "spec-include": {
       const target = path.resolve(path.dirname(ctx.file), value);
       const file = fs.existsSync(target) && fs.statSync(target).isDirectory()
@@ -345,7 +345,7 @@ export function resolveDefinition(ctx: ResolveContext, symbol: YamlSymbol): NavT
       return unique([file ? needleTarget(file, value) : undefined]);
     }
     case "menu-view":
-      return unique([viewSvelte(app, value), viewYaml(app, value)]);
+      return unique([viewPage(app, value), viewYaml(app, value)]);
     case "model-name":
       return unique([modelGo(app, value)]);
     case "relation": {

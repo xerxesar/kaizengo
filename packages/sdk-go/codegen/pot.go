@@ -144,7 +144,7 @@ func collectSourceKeys(root string, keys map[string][]string) error {
 			return nil
 		}
 		switch strings.ToLower(filepath.Ext(path)) {
-		case ".svelte", ".ts", ".js", ".go", ".yaml", ".yml":
+		case ".tsx", ".ts", ".js", ".go", ".yaml", ".yml":
 		default:
 			return nil
 		}

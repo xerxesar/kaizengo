@@ -51,8 +51,8 @@ Commands:
 
 Examples:
   kaizengo new-app notes
-  kaizengo new-app notes --type svelte
-  kaizengo new-app notes --type svelte --with-graphql
+  kaizengo new-app notes --type solid
+  kaizengo new-app notes --type solid --with-graphql
   kaizengo gen-types
   kaizengo gen-types identity
 
@@ -63,7 +63,7 @@ See docs/ for full guides.
 func runNewApp(args []string) error {
 	fs := flag.NewFlagSet("new-app", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	typ := fs.String("type", "vanilla", "app UI type: vanilla | svelte")
+	typ := fs.String("type", "solid", "app UI type: solid")
 	title := fs.String("title", "", "Apps menu title (default: name)")
 	summary := fs.String("summary", "", "manifest summary")
 	withGQL := fs.Bool("with-graphql", false, "register sample GraphQL query/mutation")

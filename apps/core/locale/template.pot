@@ -18,31 +18,47 @@ msgstr ""
 msgid "core.title"
 msgstr ""
 
-#: spa/src/views/Login.svelte
+#: keymap.yaml
+msgid "keymap.shell.form"
+msgstr ""
+
+#: keymap.yaml
+msgid "keymap.shell.go_home"
+msgstr ""
+
+#: keymap.yaml
+msgid "keymap.shell.sign_out"
+msgstr ""
+
+#: keymap.yaml
+msgid "keymap.shell.toggle_apps"
+msgstr ""
+
+#: spa/src/views/Login.tsx
 msgid "login.brand"
 msgstr ""
 
-#: spa/src/views/Login.svelte
+#: spa/src/views/Login.tsx
 msgid "login.email"
 msgstr ""
 
-#: spa/src/views/Login.svelte
+#: spa/src/views/Login.tsx
 msgid "login.hint"
 msgstr ""
 
-#: spa/src/views/Login.svelte
+#: spa/src/views/Login.tsx
 msgid "login.password"
 msgstr ""
 
-#: spa/src/views/Login.svelte
+#: spa/src/views/Login.tsx
 msgid "login.password_placeholder"
 msgstr ""
 
-#: spa/src/views/Login.svelte
+#: spa/src/views/Login.tsx
 msgid "login.submit"
 msgstr ""
 
-#: spa/src/views/Login.svelte
+#: spa/src/views/Login.tsx
 msgid "login.tagline"
 msgstr ""
 
@@ -50,47 +66,43 @@ msgstr ""
 msgid "nav.core"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.admin"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.apps"
 msgstr ""
 
-#: spa/src/App.svelte
-msgid "shell.close_menu"
-msgstr ""
-
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.get_started"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.get_started_hint"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.home"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.loading"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.no_apps"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.sign_out"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.signed_in"
 msgstr ""
 
-#: spa/src/App.svelte
+#: spa/src/App.tsx
 msgid "shell.welcome"
 msgstr ""
 

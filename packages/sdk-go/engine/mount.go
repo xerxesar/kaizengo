@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -87,6 +88,7 @@ func (a *App) Setup(host *module.Host) error {
 		app.RegisterNavFromSpec(host, a.opts.AppName, spec)
 	}
 	registerBasics(host, spec)
+	RegisterAppResources(spec)
 
 	events, err := SetupEvents(host, a.opts.AppName, spec, a.opts.Hooks)
 	if err != nil {
@@ -94,6 +96,18 @@ func (a *App) Setup(host *module.Host) error {
 	}
 	host.Provide(ModelsKey(a.opts.AppName), events.Models)
 	host.Provide(a.opts.AppName, a)
+	// Defer until after every app's Setup so permissions (and identity/auth for users) exist.
+	// identity loads before permissions in the dependency graph, so inline ApplySecurity would skip.
+	if !spec.Security.Empty() {
+		sec := spec.Security
+		appName := a.opts.AppName
+		host.OnStart(func(context.Context) error {
+			if err := ApplySecurity(host, sec); err != nil {
+				return fmt.Errorf("%s security: %w", appName, err)
+			}
+			return nil
+		})
+	}
 	if a.opts.Setup != nil {
 		return a.opts.Setup(host, events)
 	}

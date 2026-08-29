@@ -121,7 +121,7 @@ describe("resolveDefinition", () => {
   it("jumps menus and model includes to their files", () => {
     const ctx = ctxFor("inventory");
     const menu = filesOf(ctx, "menus[0].view", "Dashboard");
-    assert.ok(menu.some((f) => f.endsWith(path.join("apps", "inventory", "views", "Dashboard.page.svelte"))));
+    assert.ok(menu.some((f) => f.endsWith(path.join("apps", "inventory", "views", "Dashboard.page.tsx"))));
 
     const spec = filesOf(ctx, "models[4]", "models/product");
     assert.ok(spec.some((f) => f.endsWith(path.join("apps", "inventory", "models", "product", "spec.yaml"))));
@@ -164,10 +164,10 @@ describe("resolveDefinition", () => {
     assert.ok(handler.some((f) => f.endsWith(path.join("apps", "typesense", "module.go"))));
 
     const mod = filesOf(ctx, "exports.components[0].module");
-    assert.ok(mod.some((f) => f.endsWith(path.join("packages", "sdk-svelte", "search", "SearchBar.svelte"))));
+    assert.ok(mod.some((f) => f.endsWith(path.join("packages", "sdk-solid", "search", "SearchBar.tsx"))));
 
     const settings = filesOf(ctx, "exports.components[1].module");
-    assert.ok(settings.some((f) => f.endsWith(path.join("apps", "typesense", "views", "SearchSettings.svelte"))));
+    assert.ok(settings.some((f) => f.endsWith(path.join("apps", "typesense", "views", "SearchSettings.page.tsx"))));
 
     const app = filesOf(ctx, "exports.views[0].app", "hellospec");
     assert.ok(app.some((f) => f.endsWith(path.join("apps", "hellospec", "app.yaml"))));

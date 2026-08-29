@@ -14,7 +14,7 @@
 | Per-app `Hooks` in `module.go` | Only the owning app can register |
 | `host.Provide` / `Lookup` | Ad hoc Go coupling |
 | GraphQL flat schema | Public API, but no formal `uses` / `provides` |
-| `@kaizengo/sdk-svelte/ui` | Shared widgets, no pluggable backends (search) |
+| `@kaizengo/sdk-solid/ui` | Shared widgets, no pluggable backends (search) |
 | Notes → `users(orgId)` | Works, but types/clients duplicated per SPA |
 
 We cannot install `typesense` and have every list view upgrade automatically. We cannot extend `hellospec.greeting.beforeCreate` from a separate addon module.
@@ -52,8 +52,8 @@ We cannot install `typesense` and have every list view upgrade automatically. We
         └──────────────────┴──────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│  packages/sdk-svelte — components (UserPicker), clients (identity) │
-│  packages/sdk-svelte/ui — SearchInput → platform.search                │
+│  packages/sdk-solid — components (UserPicker), clients (identity) │
+│  packages/sdk-solid/ui — SearchInput → platform.search                │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
@@ -113,11 +113,11 @@ Reusable SPA building blocks backed by published GraphQL:
 
 | Component | Capability | Package |
 |-----------|------------|---------|
-| `UserPicker`, `UserTable` | `identity.users` | `packages/sdk-svelte/identity` |
-| `SearchInput` (backend-aware) | `platform.search` | `packages/sdk-svelte/ui` + `packages/sdk-svelte/search` |
-| `OrgUnitTree` | `identity.organizations` | `packages/sdk-svelte/identity` |
+| `UserPicker`, `UserTable` | `identity.users` | `packages/sdk-solid/identity` |
+| `SearchInput` (backend-aware) | `platform.search` | `packages/sdk-solid/ui` + `packages/sdk-solid/search` |
+| `OrgUnitTree` | `identity.organizations` | `packages/sdk-solid/identity` |
 
-Apps import from `@kaizengo/sdk-svelte`, not from `apps/identity/spa`.
+Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 
 ---
 
@@ -180,10 +180,10 @@ Apps import from `@kaizengo/sdk-svelte`, not from `apps/identity/spa`.
 
 **Deliverables**
 
-- [ ] `packages/sdk-svelte/identity/`:
+- [ ] `packages/sdk-solid/identity/`:
   - `client.ts` — `fetchUsers`, `fetchUser`, types (move from Notes duplication)
-  - `UserPicker.svelte`, `UserTable.svelte` (minimal)
-- [ ] Export from `packages/sdk-svelte/package.json`
+  - `UserPicker.tsx`, `UserTable.tsx` (minimal)
+- [ ] Export from `packages/sdk-solid/package.json`
 - [ ] Refactor `apps/notes/spa` to use SDK client + `UserPicker` for share dialog
 - [ ] GraphQL documented as stable under [auth.md](auth.md) or new `docs/capabilities.md`
 - [ ] `identity` app.yaml lists `provides: [identity.users, …]`
@@ -202,7 +202,7 @@ Apps import from `@kaizengo/sdk-svelte`, not from `apps/identity/spa`.
 - [ ] `packages/sdk-go/appspec`: optional `search.collections[]` on models
 - [ ] Engine: `AfterCreate`/`AfterUpdate`/`AfterDelete` → `search.Upsert/Delete` when collection declared
 - [ ] GraphQL: `search(q: String!, collections: [String!]): [SearchHit!]!`
-- [ ] `@kaizengo/sdk-svelte/ui/SearchInput` — debounced query → GraphQL `search` → `onResults` callback
+- [ ] `@kaizengo/sdk-solid/ui/SearchInput` — debounced query → GraphQL `search` → `onResults` callback
 - [ ] Migrate Notes list filter to `SearchInput` (Typesense-ready)
 - [ ] Stub app `apps/search` or `apps/typesense` (driver only, env-gated) registering `platform.search.backend`
 
@@ -284,7 +284,7 @@ Apps import from `@kaizengo/sdk-svelte`, not from `apps/identity/spa`.
 ## Success metrics
 
 1. **Audit addon** logs all engine model mutations with zero per-app code.
-2. **Notes** uses `@kaizengo/sdk-svelte/identity` — no local `IdentityUser` type copy.
+2. **Notes** uses `@kaizengo/sdk-solid/identity` — no local `IdentityUser` type copy.
 3. **Typesense addon** indexes hellospec + notes via wildcard hook + yaml `search:` — no edits to those apps’ hooks.go.
 4. **New app** `uses: [identity.users]` fails fast if identity not in `KaizenGo_APPS`.
 5. Docs: a third-party developer can build an addon from [sdk.md](sdk.md) + this plan alone.

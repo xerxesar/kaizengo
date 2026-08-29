@@ -1,0 +1,16 @@
+entries:
+  - name: dennnyyy
+    role: member
+    effect: deny
+    resource: identity.query.identityPing
+    actions: [read]
+    priority: 2000
+    fields: "*"
+
+  - name: dennnyyymenus
+    role: member
+    effect: deny
+    resource: identity.menu.*
+    actions: [read]
+    priority: 2000
+    fields: "*"

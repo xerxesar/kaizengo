@@ -6,7 +6,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.common.cancel"
 msgstr ""
 
@@ -14,7 +14,7 @@ msgstr ""
 msgid "identity.create"
 msgstr ""
 
-#: app.yaml views/Users.page.svelte
+#: app.yaml views/Users.page.tsx
 msgid "identity.created"
 msgstr ""
 
@@ -102,7 +102,7 @@ msgstr ""
 msgid "identity.new_placeholder"
 msgstr ""
 
-#: views/Overview.page.svelte views/Settings.page.svelte views/Structure.page.svelte
+#: views/Overview.page.tsx views/Settings.page.tsx views/Structure.page.tsx
 msgid "identity.no_org"
 msgstr ""
 
@@ -114,27 +114,27 @@ msgstr ""
 msgid "identity.organization.search"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.overview.about"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.overview.about_title"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.overview.actions"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.overview.edit_structure"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.overview.manage_users"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.overview.org_settings"
 msgstr ""
 
@@ -150,155 +150,155 @@ msgstr ""
 msgid "identity.saved"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.admin_email"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.admin_password"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.appearance"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.created"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.general"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.general_desc"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.id"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.name"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.profile"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.save"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.saved"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.security"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.security_body"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.slug"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.slug_hint"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.theme"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.theme_desc"
 msgstr ""
 
-#: views/Settings.page.svelte
+#: views/Settings.page.tsx
 msgid "identity.settings.theme_label"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.stat.org"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.stat.units"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.stat.units_hint"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.stat.users"
 msgstr ""
 
-#: views/Overview.page.svelte
+#: views/Overview.page.tsx
 msgid "identity.stat.users_hint"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.add"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.add_title"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.count"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.create"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.details"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.field.created"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.field.id"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.field.parent"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.field.type"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.name"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.name_placeholder"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.parent"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.parent_hint"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.root"
 msgstr ""
 
-#: views/Structure.page.svelte
+#: views/Structure.page.tsx
 msgid "identity.structure.select_hint"
 msgstr ""
 
@@ -350,31 +350,43 @@ msgstr ""
 msgid "identity.user.search"
 msgstr ""
 
-#: views/Users.page.svelte
+#: views/Users.page.tsx
 msgid "identity.users.create"
 msgstr ""
 
-#: views/Users.page.svelte
+#: views/Users.page.tsx
 msgid "identity.users.email"
 msgstr ""
 
-#: views/Users.page.svelte
+#: views/Users.page.tsx
 msgid "identity.users.empty"
 msgstr ""
 
-#: views/Users.page.svelte
+#: views/Users.page.tsx
 msgid "identity.users.name"
 msgstr ""
 
-#: views/Users.page.svelte
+#: views/Users.page.tsx
 msgid "identity.users.placeholder.email"
 msgstr ""
 
-#: views/Users.page.svelte
+#: views/Users.page.tsx
 msgid "identity.users.placeholder.name"
 msgstr ""
 
 #: app.yaml
 msgid "nav.identity"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.menu.access"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.menu.group"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.menu.roles"
 msgstr ""
 

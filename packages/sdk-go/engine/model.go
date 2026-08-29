@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"kaizengo/internal/module"
+	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/appspec"
 	"kaizengo/packages/sdk-go/events"
 	"kaizengo/packages/sdk-go/events/pgstore"
@@ -49,22 +50,10 @@ func newModelService(store *pgstore.Store, spec appspec.AppSpec, model appspec.M
 }
 
 func (s *modelService) List(ctx context.Context, orgID string) ([]Record, error) {
-	rows, err := s.pool.Query(ctx, fmt.Sprintf(`
-		SELECT %s FROM %s WHERE org_id = $1 AND deleted = false ORDER BY updated_at DESC
-	`, s.selectList(), s.qtable()), orgID)
-	if err != nil {
-		return nil, err
+	if s.skipACL(ctx) {
+		return s.listRaw(ctx, orgID)
 	}
-	defer rows.Close()
-	out := []Record{}
-	for rows.Next() {
-		rec, err := s.scan(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, rec)
-	}
-	return out, rows.Err()
+	return s.listWithACL(ctx, orgID)
 }
 
 func (s *modelService) listAll(ctx context.Context) ([]Record, error) {
@@ -149,7 +138,10 @@ func (s *modelService) Get(ctx context.Context, orgID, id string) (Record, error
 	if str(rec["orgId"]) != orgID || boolVal(rec["deleted"]) {
 		return nil, errNotFound
 	}
-	return rec, nil
+	if s.skipACL(ctx) {
+		return rec, nil
+	}
+	return s.maskRead(ctx, orgID, rec)
 }
 
 func (s *modelService) rejectExternalWrite(ctx context.Context) error {
@@ -162,6 +154,13 @@ func (s *modelService) rejectExternalWrite(ctx context.Context) error {
 func (s *modelService) Create(ctx context.Context, orgID, authorID string, fields map[string]any) (Record, error) {
 	if err := s.rejectExternalWrite(ctx); err != nil {
 		return nil, err
+	}
+	if !s.skipACL(ctx) {
+		cleaned, err := s.enforceWrite(ctx, orgID, acl.ActCreate, nil, fields)
+		if err != nil {
+			return nil, err
+		}
+		fields = cleaned
 	}
 	id := uuid.NewString()
 	if v, ok := fields["id"].(string); ok && strings.TrimSpace(v) != "" {
@@ -199,24 +198,49 @@ func (s *modelService) Create(ctx context.Context, orgID, authorID string, field
 	if err := s.project(ctx, evs...); err != nil {
 		return nil, err
 	}
-	rec, err := s.Get(ctx, orgID, id)
+	// Load without ACL mask for hooks; mask on return for external callers.
+	rec, err := s.getRaw(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if str(rec["orgId"]) != orgID || boolVal(rec["deleted"]) {
+		return nil, errNotFound
 	}
 	hc.Record = rec
 	_ = s.runHook(s.hooks.AfterCreate, hc)
 	_ = runExtensions(modelPoint(s.spec.Name, s.model.Name, "afterCreate"), hc, false)
 	syncSearchIndex(ctx, s.spec, s.model, orgID, rec, false)
-	return rec, nil
+	if s.skipACL(ctx) {
+		return rec, nil
+	}
+	return s.maskRead(ctx, orgID, rec)
 }
 
 func (s *modelService) Update(ctx context.Context, orgID, id string, fields map[string]any) (Record, error) {
 	if err := s.rejectExternalWrite(ctx); err != nil {
 		return nil, err
 	}
-	rec, err := s.Get(ctx, orgID, id)
+	rec, err := s.getRaw(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if str(rec["orgId"]) != orgID || boolVal(rec["deleted"]) {
+		return nil, errNotFound
+	}
+	if !s.skipACL(ctx) {
+		// record-level + field write check
+		authz := s.authorizer()
+		res := s.resourceName()
+		if err := authz.MustAllow(ctx, acl.Check{
+			OrgID: orgID, Resource: res, Action: acl.ActUpdate, Record: rec,
+		}); err != nil {
+			return nil, err
+		}
+		cleaned, err := s.enforceWrite(ctx, orgID, acl.ActUpdate, rec, fields)
+		if err != nil {
+			return nil, err
+		}
+		fields = cleaned
 	}
 	payload, err := s.normalizeFields(fields, false)
 	if err != nil {
@@ -250,7 +274,7 @@ func (s *modelService) Update(ctx context.Context, orgID, id string, fields map[
 	if err := s.project(ctx, evs...); err != nil {
 		return nil, err
 	}
-	updated, err := s.Get(ctx, orgID, id)
+	updated, err := s.getRaw(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -258,16 +282,30 @@ func (s *modelService) Update(ctx context.Context, orgID, id string, fields map[
 	_ = s.runHook(s.hooks.AfterUpdate, hc)
 	_ = runExtensions(modelPoint(s.spec.Name, s.model.Name, "afterUpdate"), hc, false)
 	syncSearchIndex(ctx, s.spec, s.model, orgID, updated, false)
-	return updated, nil
+	if s.skipACL(ctx) {
+		return updated, nil
+	}
+	return s.maskRead(ctx, orgID, updated)
 }
 
 func (s *modelService) Delete(ctx context.Context, orgID, id string) error {
 	if err := s.rejectExternalWrite(ctx); err != nil {
 		return err
 	}
-	rec, err := s.Get(ctx, orgID, id)
+	rec, err := s.getRaw(ctx, id)
 	if err != nil {
 		return err
+	}
+	if str(rec["orgId"]) != orgID || boolVal(rec["deleted"]) {
+		return errNotFound
+	}
+	if !s.skipACL(ctx) {
+		authz := s.authorizer()
+		if err := authz.MustAllow(ctx, acl.Check{
+			OrgID: orgID, Resource: s.resourceName(), Action: acl.ActDelete, Record: rec,
+		}); err != nil {
+			return err
+		}
 	}
 	hc := HookContext{
 		Context: ctx, App: s.spec, Model: s.model,

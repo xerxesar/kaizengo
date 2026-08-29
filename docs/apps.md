@@ -18,7 +18,7 @@ kaizengo is organized as a **platform kernel** plus **apps** (products):
 | `appman` | App manager — install / upgrade bundled apps, runs migrations |
 | `identity` | Users, org structure, memberships |
 | `auth` | Login, sessions, `/auth/*`, `me` query |
-| `permissions` | RBAC service (no SPA); guards identity GraphQL |
+| `permissions` | RBAC service + Identity Access UI (`exports.menus`); guards engine CRUD — see [ACL system](acl.md) |
 | `settings` | Locale, default calendar, shell title |
 
 Bundled apps include **appman**, **hellospec**, **inventory**, **settings**, **typesense**, and **audit**. See [auth.md](auth.md) for identity and permissions.
@@ -31,7 +31,7 @@ apps/<name>/
   app.yaml       # required — declarative manifest
   module.go      # engine.New(...) or custom App
   models/        # optional — per-model spec.yaml + hooks
-  views/         # optional UI — <Name>.page.svelte pages
+  views/         # optional UI — <Name>.page.tsx pages
   lib/           # optional shared TS for views
 ```
 
@@ -70,15 +70,15 @@ host.GQL.RegisterMutation("…", &graphql.Field{…})
 The core SPA (after login):
 
 1. `GET /api/apps` → nav catalog (requires session; see [auth.md](auth.md))
-2. On route change → resolve menu view → render matching `apps/<app>/views/<View>.svelte`
+2. On route change → resolve menu view → render matching `apps/<app>/views/<View>.tsx`
 
-All views compile into the single central SPA at `apps/core/spa`. See [svelte.md](svelte.md).
+All views compile into the single central SPA at `apps/core/spa`. See [solid.md](solid.md).
 
 ## Creating an app without touching core
 
 1. Add `apps/myapp` (or use `kaizengo new-app`)
 2. Blank-import in `apps/apps.go`
-3. Add views under `apps/myapp/views/` (one `.svelte` per menu view)
+3. Add views under `apps/myapp/views/` (one `.tsx` per menu view)
 4. Do **not** edit `apps/core` for GraphQL or nav — register on `host` in your `Setup`
 5. Locales load automatically from `apps/myapp/locale/*.po`; use `i18n.T` / `i18n.Error` from `kaizengo/packages/sdk-go/i18n`
 

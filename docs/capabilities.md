@@ -59,7 +59,7 @@ Always available without an app provider:
 | `identity.users` | `identity` | GraphQL `identityUsers`, `identityUser` |
 | `identity.organizations` | `identity` | Orgs, org units, memberships |
 | `auth.sessions` | `auth` | `/auth/login`, sessions, `me` query |
-| `permissions.rbac` | `permissions` | `Can` / role checks on resources |
+| `permissions.rbac` | `permissions` | Unified `acl_entry` RBAC (`Can` / `MustAllow` / `ListDomain`) |
 | `appman.apps` | `appman` | GraphQL `apps`, `installApp`, `upgradeApp` |
 | `platform.search.backend` | `typesense` | GraphQL `search`, index sync on CRUD |
 
@@ -94,7 +94,7 @@ The Typesense addon:
 
 ## Identity users — GraphQL contract
 
-Apps that `uses: [identity.users]` should consume users via GraphQL or `@kaizengo/sdk-svelte/identity`, not by importing another app's Go types.
+Apps that `uses: [identity.users]` should consume users via GraphQL or `@kaizengo/sdk-solid/identity`, not by importing another app's Go types.
 
 ### Query: list org members
 
@@ -132,14 +132,14 @@ query ($id: ID!) {
 ### TypeScript client
 
 ```ts
-import { fetchUsers, fetchActiveUsers, UserPicker } from '@kaizengo/sdk-svelte/identity'
+import { fetchUsers, fetchActiveUsers, UserPicker } from '@kaizengo/sdk-solid/identity'
 
 const users = await fetchActiveUsers(orgId)
 ```
 
-`UserPicker` is a Svelte component that loads active users for an org and renders a `@kaizengo/sdk-svelte/ui` `Select`. Used in Notes share dialog.
+`UserPicker` is a Solid component that loads active users for an org and renders a `@kaizengo/sdk-solid/ui` `Select`. Used in Notes share dialog.
 
-Add `@kaizengo/sdk-svelte` to your SPA `package.json` (same pattern as `@kaizengo/sdk-svelte/ui`). Vite resolves it via `packages/sdk-svelte/spa-config/app-vite.ts`.
+Add `@kaizengo/sdk-solid` to your SPA `package.json` (same pattern as `@kaizengo/sdk-solid/ui`). Vite resolves it via `packages/sdk-solid/spa-config/app-vite.ts`.
 
 ## Validation
 
@@ -153,6 +153,7 @@ Implementation: `sdk/appspec.ValidateLoadedCapabilities`.
 
 ## Related
 
-- [auth.md](auth.md) — sessions and RBAC
+- [auth.md](auth.md) — sessions and identity
+- [acl.md](acl.md) — unified ACL policies and enforcement
 - [sdk.md](sdk.md) — extension points and engine hooks
 - [extension-platform.md](extension-platform.md) — full extension platform design

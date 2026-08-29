@@ -13,17 +13,18 @@ Start with **Tutorial → Develop a Kaizen app**.
 
 | Guide | Contents |
 |-------|----------|
-| [Internals & SDKs](internals/index.md) | Boot flow, Go/Svelte SDKs with code examples |
+| [Internals & SDKs](internals/index.md) | Boot flow, Go/Solid SDKs with code examples |
 | [Installation](installation.md) | Prerequisites, clone, install tooling |
 | [Development](development.md) | `make` targets, ports, env vars |
-| [Auth & identity](auth.md) | Sessions, identity app, permissions RBAC |
+| [Auth & identity](auth.md) | Sessions, identity app, permissions service |
+| [ACL system](acl.md) | Resource ids, policies, `security.yaml`, enforcement |
 | [Apps system](apps.md) | Architecture, lifecycle, registering apps |
 | [SDK architecture](sdk.md) | Odoo-like app pattern on sdk/internal/apps |
 | [Capabilities](capabilities.md) | `provides` / `uses` contracts and identity SDK |
 | [Extension platform plan](extension-platform.md) | Capabilities, global hooks, SDK components — roadmap |
 | [Platform](platform.md) | Kernel APIs (time, i18n), drivers, fork-vs-patch |
 | [CLI](cli.md) | `kaizengo new-app` bootstrapper |
-| [Svelte apps](svelte.md) | ESM modules, `@kaizengo/sdk-svelte/ui`, theming |
+| [Solid apps](solid.md) | ESM modules, `@kaizengo/sdk-solid/ui`, theming |
 | [GraphQL](graphql.md) | Runtime field registry, auth-aware clients |
 
 ## Quick start

@@ -1,21 +1,21 @@
 import { defineConfig } from 'vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
+import solid from 'vite-plugin-solid'
 import tailwindcss from '@tailwindcss/vite'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { poCatalogPlugin } from '../../../packages/sdk-svelte/spa-config/app-vite.ts'
+import { poCatalogPlugin } from '../../../packages/sdk-solid/spa-config/app-vite.ts'
 
 const spaRoot = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(spaRoot, '../../..')
 
 export default defineConfig({
   base: '/app/',
-  plugins: [svelte(), tailwindcss(), poCatalogPlugin(repoRoot)],
+  plugins: [solid(), tailwindcss(), poCatalogPlugin(repoRoot)],
   resolve: {
-    dedupe: ['svelte'],
+    dedupe: ['solid-js'],
     alias: {
       '@apps': resolve(repoRoot, 'apps'),
-      '@kaizengo/sdk-svelte': resolve(repoRoot, 'packages/sdk-svelte'),
+      '@kaizengo/sdk-solid': resolve(repoRoot, 'packages/sdk-solid'),
     },
   },
   server: {

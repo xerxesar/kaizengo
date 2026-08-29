@@ -12,15 +12,15 @@ internal/module     → App interface, registry, Host bag, GraphQL registry
 internal/platform   → i18n, time, config, postgres, search
 internal/auth       → session middleware / principal
 packages/sdk-go     → engine, appspec, events, extension, gql guards
-packages/sdk-svelte → UI kit, model client, identity/search clients
+packages/sdk-solid → UI kit, model client, identity/search clients
 apps/<name>         → app.yaml + module.go + views + migrations
 ```
 
 | Layer | Owns | Must not own |
 |-------|------|--------------|
 | `internal/` | Kernel, lifecycle, middleware | Per-app business rules |
-| `packages/sdk-go` | Spec → CRUD/GQL/events | App-specific schemas |
-| `packages/sdk-svelte` | Shared UI + GraphQL clients | Product screens |
+| `packages/sdk-go` | Spec → CRUD/GQL/events, ACL enforcement | App-specific schemas |
+| `packages/sdk-solid` | Shared UI + GraphQL clients | Product screens |
 | `apps/` | Spec, hooks, views, migrations | Platform kernel forks |
 
 ## Boot sequence
@@ -135,18 +135,18 @@ normalize → app Before* hooks → extension Before*
 
 ## Frontend path
 
-There is **one** shell SPA (`apps/core/spa`). App pages live under `apps/<name>/views/*.page.svelte` and are discovered at build time:
+There is **one** shell SPA (`apps/core/spa`). App pages live under `apps/<name>/views/*.page.tsx` and are discovered at build time:
 
 ```ts
 // apps/core/spa/src/lib/views/registry.ts
 const appViewModules = import.meta.glob<ViewModule>(
-  '../../../../../*/views/**/*.svelte',
+  '../../../../../*/views/**/*.tsx',
   { eager: true },
 )
 // maps "hellospec.GreetingList" → component
 ```
 
-Menus from GraphQL (`{app}Menus`) pick a leaf `view`; the shell resolves `{app}.{view}` and mounts it. Shared UI and GraphQL helpers come from `@kaizengo/sdk-svelte/*`.
+Menus from GraphQL (`{app}Menus`) pick a leaf `view`; the shell resolves `{app}.{view}` and mounts it. Shared UI and GraphQL helpers come from `@kaizengo/sdk-solid/*`.
 
 ## Package index
 
@@ -157,9 +157,9 @@ Menus from GraphQL (`{app}Menus`) pick a leaf `view`; the shell resolves `{app}.
 | Events / projection | `…/events`, `…/projection` | [Go SDK](go-sdk.md) |
 | Extension points | `…/extension` | [Go SDK](go-sdk.md), [extension platform](../extension-platform.md) |
 | GQL guards | `…/gql` | [Go SDK](go-sdk.md), [GraphQL](../graphql.md) |
-| UI + model client | `@kaizengo/sdk-svelte/ui` | [Svelte SDK](svelte-sdk.md) |
-| Identity client | `@kaizengo/sdk-svelte/identity` | [Svelte SDK](svelte-sdk.md) |
-| Search client | `@kaizengo/sdk-svelte/search` | [Svelte SDK](svelte-sdk.md) |
+| UI + model client | `@kaizengo/sdk-solid/ui` | [Solid SDK](solid-sdk.md) |
+| Identity client | `@kaizengo/sdk-solid/identity` | [Solid SDK](solid-sdk.md) |
+| Search client | `@kaizengo/sdk-solid/search` | [Solid SDK](solid-sdk.md) |
 
 ## Worked example: hellospec
 
@@ -168,15 +168,15 @@ Menus from GraphQL (`{app}Menus`) pick a leaf `view`; the shell resolves `{app}.
 | `apps/hellospec/app.yaml` | Model `greeting`, menus, search fields |
 | `apps/hellospec/module.go` | `engine.New` + hooks registration |
 | `apps/hellospec/hooks.go` | Trim, prefix, protect deletes |
-| `apps/hellospec/views/GreetingList.page.svelte` | `<KTable model="hellospec.greeting" />` |
-| `apps/hellospec/views/GreetingForm.page.svelte` | `<KForm>` + `<KFormField>` |
+| `apps/hellospec/views/GreetingList.page.tsx` | `<KTable model="hellospec.greeting" />` |
+| `apps/hellospec/views/GreetingForm.page.tsx` | `<KForm>` + `<KFormField>` |
 | `apps/hellospec/migrations/` | Event store + `greetings_read` |
 
 List page (entire UI for the menu leaf):
 
 ```svelte
 <script lang="ts">
-  import { KTable, KAppStatus, t } from '@kaizengo/sdk-svelte/ui'
+  import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
 </script>
 
 <KTable model="hellospec.greeting" emptyMessage={t('hellospec.empty')} />
@@ -188,6 +188,7 @@ List page (entire UI for the menu leaf):
 ## Next
 
 - [Go SDK](go-sdk.md) — packages, hooks, events, extensions
-- [Svelte SDK](svelte-sdk.md) — UI, clients, Vite aliases
+- [Solid SDK](solid-sdk.md) — UI, clients, Vite aliases
+- [ACL system](../acl.md) — policies, resource ids, enforcement
 - [Apps system](../apps.md) — install / load / Host details
 - [Platform](../platform.md) — i18n, calendars, config

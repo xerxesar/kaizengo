@@ -1,0 +1,223 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "permissions.menu.access"
+msgstr "Access rules"
+
+msgid "permissions.menu.group"
+msgstr "Permissions"
+
+msgid "permissions.menu.roles"
+msgstr "Roles"
+
+msgid "permissions.col.members"
+msgstr "Members"
+
+msgid "permissions.loading"
+msgstr "Loading access policies…"
+
+msgid "permissions.saved"
+msgstr "Access policies updated."
+
+msgid "permissions.roles_title"
+msgstr "Roles"
+
+msgid "permissions.roles_empty"
+msgstr "No roles found."
+
+msgid "permissions.select_role"
+msgstr "Select a role to view users and rules."
+
+msgid "permissions.refresh"
+msgstr "Refresh"
+
+msgid "permissions.users_title"
+msgstr "Users with this role"
+
+msgid "permissions.users_empty"
+msgstr "No users assigned to this role."
+
+msgid "permissions.rules_title"
+msgstr "Access rules"
+
+msgid "permissions.rules_hint"
+msgstr "Click column headers to sort. Custom overrides are highlighted in yellow."
+
+msgid "permissions.rules_count"
+msgstr "%d rules shown"
+
+msgid "permissions.rules_empty"
+msgstr "No active rules for this role."
+
+msgid "permissions.activate"
+msgstr "Activate"
+
+msgid "permissions.deactivate"
+msgstr "Deactivate"
+
+msgid "permissions.override_title"
+msgstr "Add rule override"
+
+msgid "permissions.override_hint"
+msgstr "Creates a new acl_entry. Use a higher priority than existing rules to override them."
+
+msgid "permissions.override_submit"
+msgstr "Create override"
+
+msgid "permissions.col.role"
+msgstr "Role"
+
+msgid "permissions.col.slug"
+msgstr "Name"
+
+msgid "permissions.col.user"
+msgstr "User"
+
+msgid "permissions.col.email"
+msgstr "Email"
+
+msgid "permissions.col.effect"
+msgstr "Effect"
+
+msgid "permissions.col.priority"
+msgstr "Priority"
+
+msgid "permissions.col.resource"
+msgstr "Resource"
+
+msgid "permissions.col.actions"
+msgstr "Actions"
+
+msgid "permissions.col.fields"
+msgstr "Fields"
+
+msgid "permissions.col.domain"
+msgstr "Domain"
+
+msgid "permissions.col.name"
+msgstr "Rule name"
+
+msgid "permissions.field.name"
+msgstr "Rule name"
+
+msgid "permissions.field.effect"
+msgstr "Effect"
+
+msgid "permissions.field.resource"
+msgstr "Resource"
+
+msgid "permissions.field.actions"
+msgstr "Actions (JSON)"
+
+msgid "permissions.field.actions_hint"
+msgstr "e.g. [\"read\",\"update\"] or [\"*\"]"
+
+msgid "permissions.field.fields"
+msgstr "Fields (JSON)"
+
+msgid "permissions.field.fields_hint"
+msgstr "e.g. \"*\" or [\"message\",\"mood\"]"
+
+msgid "permissions.field.domain"
+msgstr "Domain (JSON)"
+
+msgid "permissions.field.domain_hint"
+msgstr "e.g. [] or [[\"authorId\",\"=\",\"$user.id\"]]"
+
+msgid "permissions.field.priority"
+msgstr "Priority"
+
+msgid "permissions.field.priority_hint"
+msgstr "Higher wins (use 1000+ for overrides)"
+
+msgid "permissions.effect.allow"
+msgstr "allow"
+
+msgid "permissions.effect.deny"
+msgstr "deny"
+
+msgid "permissions.error.name_required"
+msgstr "Rule name is required"
+
+msgid "permissions.error.resource_required"
+msgstr "Resource is required"
+
+msgid "permissions.error.priority_invalid"
+msgstr "Priority must be a number"
+
+msgid "permissions.delete"
+msgstr "Delete"
+
+msgid "permissions.field.role"
+msgstr "Role"
+
+msgid "permissions.filter.role_all"
+msgstr "All roles"
+
+msgid "permissions.filter.search"
+msgstr "Search"
+
+msgid "permissions.filter.search_placeholder"
+msgstr "Name, resource, actions…"
+
+msgid "permissions.filter.source"
+msgstr "Source"
+
+msgid "permissions.filter.source_all"
+msgstr "All rules"
+
+msgid "permissions.filter.status"
+msgstr "Status"
+
+msgid "permissions.filter.status_all"
+msgstr "All"
+
+msgid "permissions.filter.status_active"
+msgstr "Active only"
+
+msgid "permissions.filter.status_inactive"
+msgstr "Inactive only"
+
+msgid "permissions.filter.effect"
+msgstr "Effect"
+
+msgid "permissions.filter.effect_all"
+msgstr "All effects"
+
+msgid "permissions.filter.resource_prefix"
+msgstr "Resource prefix"
+
+msgid "permissions.filter.min_priority"
+msgstr "Min priority"
+
+msgid "permissions.source.seed"
+msgstr "Seed"
+
+msgid "permissions.source.override"
+msgstr "Override"
+
+msgid "permissions.seed_rules_title"
+msgstr "Seed rules"
+
+msgid "permissions.seed_rules_empty"
+msgstr "No seed rules match the current filters."
+
+msgid "permissions.override_rules_title"
+msgstr "Custom overrides"
+
+msgid "permissions.override_rules_empty"
+msgstr "No custom overrides match the current filters."
+
+msgid "permissions.fields.all"
+msgstr "All fields (*)"
+
+msgid "permissions.fields.custom"
+msgstr "Custom JSON"
+
+msgid "permissions.domain.all"
+msgstr "No domain filter"
+
+msgid "permissions.domain.custom"
+msgstr "Custom domain"

@@ -90,41 +90,43 @@ const vanillaSpaJSTmpl = "/**\n" +
 	"\n" +
 	"export default plugin\n"
 
-const svelteViewTmpl = `<script lang="ts">
-  import { KAppStatus, t } from '@kaizengo/sdk-svelte/ui'
-</script>
+const solidViewTmpl = `import { KAppStatus, t } from '@kaizengo/sdk-solid/ui'
 
-<p class="lead">{t('{{.Name}}.subtitle')}</p>
-
-<KAppStatus />
-
-<style>
-  .lead {
-    margin: 0 0 var(--kg-space-05);
-    color: var(--kg-text-secondary);
-  }
-</style>
+export default function Index() {
+  return (
+    <>
+      <p class="m-0 mb-[var(--kg-space-05)] text-[var(--kg-text-secondary)]">{t('{{.Name}}.subtitle')}</p>
+      <KAppStatus />
+    </>
+  )
+}
 `
 
-const svelteListViewTmpl = `<script lang="ts">
-  import { KTable, KAppStatus, t } from '@kaizengo/sdk-svelte/ui'
-</script>
+const solidListViewTmpl = `import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
 
-<KTable model="{{.Name}}.item" emptyMessage={t('{{.Name}}.empty')} />
-
-<KAppStatus />
+export default function Items() {
+  return (
+    <>
+      <KTable model="{{.Name}}.item" emptyMessage={t('{{.Name}}.empty')} />
+      <KAppStatus />
+    </>
+  )
+}
 `
 
-const svelteFormViewTmpl = `<script lang="ts">
-  import { KForm, KAppStatus } from '@kaizengo/sdk-svelte/ui'
-</script>
+const solidFormViewTmpl = `import { KForm, KAppStatus } from '@kaizengo/sdk-solid/ui'
 
-<KForm model="{{.Name}}.item" />
-
-<KAppStatus />
+export default function NewItem() {
+  return (
+    <>
+      <KForm model="{{.Name}}.item" />
+      <KAppStatus />
+    </>
+  )
+}
 `
 
-const svelteGraphQLTSTmpl = `async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+const solidGraphQLTSTmpl = `async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch('/graphql', {
     method: 'POST',
     credentials: 'include',
@@ -142,50 +144,6 @@ const svelteGraphQLTSTmpl = `async function gql<T>(query: string, variables?: Re
 export async function ping(): Promise<string> {
   const data = await gql<{ {{.Pkg}}Ping: string }>('query { {{.Pkg}}Ping }')
   return data.{{.Pkg}}Ping
-}
-`
-
-const svelteViteConfig = `// Per-app Vite builds are no longer used — views compile into apps/core/spa.
-`
-
-const svelteConfigJS = `import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
-
-/** @type {import('@sveltejs/vite-plugin-svelte').SvelteConfig} */
-export default {
-  preprocess: vitePreprocess(),
-}
-`
-
-const svelteTSConfig = `{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,
-    "strict": true,
-    "skipLibCheck": true
-  },
-  "include": ["./**/*.ts", "./**/*.svelte"]
-}
-`
-
-const sveltePackageJSONTmpl = `{
-  "name": "kaizengo-{{.Name}}-spa",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch --mode development"
-  },
-  "dependencies": {
-    "@kaizengo/sdk-svelte": "file:../../../packages/sdk-svelte"
-  },
-  "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "file:../../core/spa/node_modules/@sveltejs/vite-plugin-svelte",
-    "svelte": "file:../../core/spa/node_modules/svelte",
-    "vite": "file:../../core/spa/node_modules/vite",
-    "typescript": "file:../../core/spa/node_modules/typescript"
-  }
 }
 `
 

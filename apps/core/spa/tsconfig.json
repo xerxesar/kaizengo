@@ -1,21 +1,29 @@
 {
-  "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["svelte"]
+    "types": ["vite/client"],
+    "paths": {
+      "@kaizengo/sdk-solid/*": ["../../../packages/sdk-solid/*"],
+      "solid-js": ["./node_modules/solid-js"],
+      "solid-js/*": ["./node_modules/solid-js/*"],
+      "solid-js/jsx-runtime": ["./node_modules/solid-js/jsx-runtime"]
+    }
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.svelte",
+    "src/**/*.tsx",
     "src/**/*.d.ts",
-    "../../../apps/**/views/**/*.svelte",
-    "../../../apps/**/lib/**/*.ts"
+    "../../../apps/**/views/**/*.tsx",
+    "../../../packages/sdk-solid/**/*.ts",
+    "../../../packages/sdk-solid/**/*.tsx"
   ]
 }

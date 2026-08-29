@@ -15,7 +15,7 @@
 
 ---
 
-KaizenGo is a platform for building integrated operational software: a single host that registers apps, serves a shared Svelte shell with login, and composes GraphQL from plugins. The architecture favors **continuous improvement** — add apps without forking the core, wire services through a registry, localize with `.po` catalogs, and ship UI as lazy-loaded modules on `@kaizengo/sdk-svelte`.
+KaizenGo is a platform for building integrated operational software: a single host that registers apps, serves a shared Solid shell with login, and composes GraphQL from plugins. The architecture favors **continuous improvement** — add apps without forking the core, wire services through a registry, localize with `.po` catalogs, and ship UI as lazy-loaded modules on `@kaizengo/sdk-solid`.
 
 ## Features
 
@@ -24,8 +24,8 @@ KaizenGo is a platform for building integrated operational software: a single ho
 | HTTP routing | [chi](https://github.com/go-chi/chi) |
 | App lifecycle | Registry, manifests, dependency injection |
 | Auth | Session cookies (`kg_session`), identity + auth apps, RBAC permissions |
-| Frontend shell | Svelte 5 SPA with dynamic `import()` and login gate |
-| Svelte SDK | `@kaizengo/sdk-svelte` — ui, identity/search clients, spa-config |
+| Frontend shell | SolidJS SPA with dynamic `import()` and login gate |
+| Solid SDK | `@kaizengo/sdk-solid` — ui, identity/search clients, spa-config |
 | Localization | gettext `.po` catalogs, GraphQL `i18n`, RTL (`fa`) |
 | API | Composable GraphQL field registry (auth-protected) |
 | Tooling | `kaizengo` CLI for scaffolding new apps; VS Code extension for `app.yaml` navigation |
@@ -71,18 +71,18 @@ Open **http://localhost:5173/app/** (Vite `base` is `/app/`). Sign in with `admi
 | [Apps system](docs/apps.md) | Architecture and app lifecycle |
 | [Platform](docs/platform.md) | Kernel APIs — time, i18n, config |
 | [CLI](docs/cli.md) | `kaizengo new-app` bootstrapper |
-| [Svelte apps](docs/svelte.md) | ESM modules and `@kaizengo/sdk-svelte/ui` |
+| [Solid apps](docs/solid.md) | ESM modules and `@kaizengo/sdk-solid/ui` |
 | [GraphQL](docs/graphql.md) | Runtime field registry and queries |
 | [Whitepaper (v1)](whitepaper_v1.md) | Vision, problem space, and platform design |
 
 ## Create a new app
 
 ```bash
-./bin/kaizengo new-app notes --type svelte --with-graphql
+./bin/kaizengo new-app notes --type solid --with-graphql
 cd apps/notes/spa && npm install && npm run build
 ```
 
-Details: [CLI](docs/cli.md) · [Apps system](docs/apps.md) · [Svelte apps](docs/svelte.md)
+Details: [CLI](docs/cli.md) · [Apps system](docs/apps.md) · [Solid apps](docs/solid.md)
 
 ## Project layout
 
@@ -90,7 +90,7 @@ Details: [CLI](docs/cli.md) · [Apps system](docs/apps.md) · [Svelte apps](docs
 apps/           # Registered apps (core shell, identity, clock, …)
 packages/
   sdk-go/       # Go app SDK (engine, appspec, extension, events)
-  sdk-svelte/   # Svelte SDK (@kaizengo/sdk-svelte) — ui, identity, search, spa-config
+  sdk-solid/   # Solid SDK (@kaizengo/sdk-solid) — ui, search, spa-config
 cmd/            # server and kaizengo CLI entrypoints
 docs/           # Developer guides
 internal/       # Platform kernel (module host, auth, config, i18n, GraphQL)

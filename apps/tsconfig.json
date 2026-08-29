@@ -1,0 +1,7 @@
+{
+  "extends": "./core/spa/tsconfig.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "include": ["**/views/**/*.tsx", "**/lib/**/*.tsx"]
+}

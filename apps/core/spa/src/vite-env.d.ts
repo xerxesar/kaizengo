@@ -1,3 +1,12 @@
-/// <reference types="svelte" />
 /// <reference types="vite/client" />
-/// <reference path="../../../packages/sdk-svelte/spa-config/virtual-kaizengo-i18n.d.ts" />
+
+declare module 'virtual:kaizengo-i18n' {
+  export const catalogs: Record<string, Record<string, string>>
+  export const localeDirs: Record<string, 'ltr' | 'rtl'>
+}
+
+declare module '*.tsx' {
+  import type { Component } from 'solid-js'
+  const component: Component
+  export default component
+}

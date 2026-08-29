@@ -6,7 +6,7 @@ Page views still live in the **core** SPA. You do not add a Vite app or a client
 
 ## Add a page
 
-Create `apps/todo/views/Overview.page.svelte` and point a menu leaf at `Overview`. Names must match the file (without `.page.svelte`):
+Create `apps/todo/views/Overview.page.tsx` and point a menu leaf at `Overview`. Names must match the file (without `.page.tsx`):
 
 ```yaml
 menus:
@@ -24,7 +24,7 @@ menus:
         view: TaskForm
 ```
 
-Core glob-imports `apps/*/views/**/*.svelte` and keys pages as `{app}.{Name}` (`todo.Overview`). A new `.page.svelte` file is enough; do not register the component in Go.
+Core glob-imports `apps/*/views/**/*.tsx` and keys pages as `{app}.{Name}` (`todo.Overview`). A new `.page.tsx` file is enough; do not register the component in Go.
 
 Add strings to `apps/todo/locale/en.po`:
 
@@ -49,7 +49,7 @@ msgstr "Complete all"
 
 `listModelRecords` is the same helper `KTable` uses (session cookie included).
 
-`apps/todo/views/Overview.svelte`:
+`apps/todo/views/Overview.tsx`:
 
 ```svelte
 <script lang="ts">
@@ -62,7 +62,7 @@ msgstr "Complete all"
     StatCard,
     listModelRecords,
     t,
-  } from '@kaizengo/sdk-svelte/ui'
+  } from '@kaizengo/sdk-solid/ui'
   import { completeTodoTasks } from '../lib/graphql'
 
   let loading = $state(true)
@@ -171,8 +171,8 @@ You can drive the open-count StatCard from `todoOpenCount()` instead of filterin
 
 ## Layout rules
 
-- One `.page.svelte` file per menu view under `apps/<app>/views/`.
-- Import UI from `@kaizengo/sdk-svelte/ui` (`Alert`, `Button`, `Card`, `Page`, `Spinner`, `StatCard`, `TreeView`, …).
+- One `.page.tsx` file per menu view under `apps/<app>/views/`.
+- Import UI from `@kaizengo/sdk-solid/ui` (`Alert`, `Button`, `Card`, `Page`, `Spinner`, `StatCard`, `TreeView`, …).
 - Navigate with `navigateApp(menuPagePath('todo', 'task_list'))` — do not `window.location` into another app’s HTML.
 - `make dev` hot-reloads Svelte. New Go (`gql.go`, `service.go`) needs a process restart.
 
@@ -180,8 +180,8 @@ You can drive the open-count StatCard from `todoOpenCount()` instead of filterin
 
 | File | What it shows |
 |------|----------------|
-| `apps/identity/views/Overview.svelte` | `listModelRecords` + `StatCard` |
-| `apps/identity/views/Structure.svelte` | Custom query, `TreeView`, modal create |
+| `apps/identity/views/Overview.tsx` | `listModelRecords` + `StatCard` |
+| `apps/identity/views/Structure.tsx` | Custom query, `TreeView`, modal create |
 | `apps/identity/lib/graphql.ts` | `credentials: 'include'` client |
 
 Next: [what to learn after the tutorial](../whats-next.md).

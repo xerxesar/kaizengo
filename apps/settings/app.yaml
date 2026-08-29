@@ -15,6 +15,9 @@ menus:
   - id: general
     labelKey: settings.menu.general
     view: General
+  - id: keymap
+    labelKey: settings.menu.keymap
+    view: Keymap
 locales:
   - id: en
     name: English

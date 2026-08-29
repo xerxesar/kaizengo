@@ -29,3 +29,6 @@ msgstr "API status"
 
 msgid "settings.menu.general"
 msgstr "General"
+
+msgid "settings.menu.keymap"
+msgstr "Keyboard shortcuts"

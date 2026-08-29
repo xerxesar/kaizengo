@@ -4,13 +4,34 @@ package types
 
 import "time"
 
+// GreetingMood is the enum for greeting.mood.
+type GreetingMood string
+
+const (
+	GreetingMoodHappy   GreetingMood = "happy"
+	GreetingMoodNeutral GreetingMood = "neutral"
+	GreetingMoodFormal  GreetingMood = "formal"
+)
+
+// Valid reports whether v is a known GreetingMood value.
+func (v GreetingMood) Valid() bool {
+	switch v {
+	case GreetingMoodHappy, GreetingMoodNeutral, GreetingMoodFormal:
+		return true
+	default:
+		return false
+	}
+}
+
 // Greeting is the generated type for hellospec.greeting.
 type Greeting struct {
-	ID        string    `json:"id"`
-	OrgID     string    `json:"orgId"`
-	AuthorID  string    `json:"authorId"`
-	Deleted   bool      `json:"deleted"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Message   string    `json:"message"` // required
+	ID           string       `json:"id"`
+	OrgID        string       `json:"orgId"`
+	AuthorID     string       `json:"authorId"`
+	Deleted      bool         `json:"deleted"`
+	CreatedAt    time.Time    `json:"createdAt"`
+	UpdatedAt    time.Time    `json:"updatedAt"`
+	Message      string       `json:"message"` // required
+	Mood         GreetingMood `json:"mood"`    // default=happy, required
+	InternalNote string       `json:"internalNote"`
 }

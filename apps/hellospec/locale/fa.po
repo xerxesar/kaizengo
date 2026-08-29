@@ -38,3 +38,13 @@ msgstr "همه سلام‌ها"
 
 msgid "hellospec.menu.new"
 msgstr "سلام جدید"
+
+msgid "hellospec.mood"
+msgstr "حال"
+
+msgid "hellospec.internal_note"
+msgstr "یادداشت داخلی (ادمین)"
+
+msgid "hellospec.acl_hint"
+msgstr "نمونه ACL: کاربر member فقط سلام‌های خودش را ویرایش می‌کند و internalNote را فقط روی ردیف‌های خودش می‌بیند."
+

@@ -34,14 +34,14 @@ Vanilla module (no build step):
 Svelte single-component app:
 
 ```bash
-./bin/kaizengo new-app notes --type svelte
+./bin/kaizengo new-app notes --type solid
 cd apps/notes/spa && npm install && npm run build
 ```
 
 Svelte + GraphQL sample:
 
 ```bash
-./bin/kaizengo new-app notes --type svelte --with-graphql --title "Notes"
+./bin/kaizengo new-app notes --type solid --with-graphql --title "Notes"
 cd apps/notes/spa && npm install && npm run build
 # Append apps/notes/spa to APP_SPAS in the Makefile
 go run ./cmd/server
@@ -64,25 +64,25 @@ apps/<name>/
 apps/<name>/
   module.go           # TitleKey: nav.<name> for i18n menu labels
   spa/
-    App.svelte
+    App.tsx
     main.ts           # mount/unmount adapter
     vite.config.ts    # library build → dist/spa.js
     package.json
     …
 ```
 
-### Recommended follow-ups for Svelte apps
+### Recommended follow-ups for Solid apps
 
 Scaffolded templates are a starting point. Event-sourced mode writes `app.yaml` plus an `packages/sdk-go/engine` one-liner module — GraphQL CRUD and projections come from the spec.
 
 Align new apps with the rest of the monorepo:
 
-1. Depend on `@kaizengo/sdk-svelte/ui` (`file:../../../packages/sdk-svelte`) and import `@kaizengo/sdk-svelte/ui/styles.css`
-2. Prefer `createAppViteConfig` from `packages/sdk-svelte/spa-config/app-vite.ts` instead of a one-off Vite config
+1. Depend on `@kaizengo/sdk-solid/ui` (`file:../../../packages/sdk-solid`) and import `@kaizengo/sdk-solid/ui/styles.css`
+2. Prefer `createAppViteConfig` from `packages/sdk-solid/spa-config/app-vite.ts` instead of a one-off Vite config
 3. Edit `apps/<name>/app.yaml` models/views — avoid hand-written service/gql unless you need custom domain rules
 4. Use `credentials: 'include'` on every `/graphql` fetch (required under session auth)
 5. Append `apps/<name>/spa` to `APP_SPAS` in the Makefile
-6. Use the `Layout` contract from [svelte.md](svelte.md) for page chrome
+6. Use the `Layout` contract from [solid.md](solid.md) for page chrome
 7. Set `KaizenGo_POSTGRES_DSN` (see `make db-up`); grant the app `resource` in permissions for non-admin roles
 
 See [sdk.md](sdk.md), [auth.md](auth.md), and [development.md](development.md).

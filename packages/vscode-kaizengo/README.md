@@ -10,7 +10,7 @@ In any `apps/<name>/app.yaml`, **F12** / **Ctrl+click** (Go to Definition) and h
 |-----------|--------|
 | `depends` app name | that app's `app.yaml` |
 | `uses` capability | the `provides` entry (or platform source for `platform.*`) |
-| `menus.view` | `views/<Name>.page.svelte` |
+| `menus.view` | `views/<Name>.page.tsx` |
 | `models:` path | `models/<name>/spec.yaml` |
 | `models` name | generated `__types__/<model>.go` |
 | `relation` / `inverse` | the related model or field in YAML |

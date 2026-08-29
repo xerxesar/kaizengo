@@ -1,6 +1,6 @@
 # KaizenGo
 
-KaizenGo is a modular host for operational software: apps register themselves, share a Svelte shell with login, and compose GraphQL from a spec.
+KaizenGo is a modular host for operational software: apps register themselves, share a Solid shell with login, and compose GraphQL from a spec.
 
 This site is the developer documentation. Start with the tutorial if you want to ship an app.
 
@@ -13,13 +13,13 @@ apps/<name>/
   app.yaml       # models, menus, locales
   module.go      # engine.New(...) — one-liner for spec apps
   models/        # optional per-model spec.yaml + hooks
-  views/         # <Name>.page.svelte in the core shell
+  views/         # <Name>.page.tsx in the core shell
   migrations/    # Postgres event store + read models
 ```
 
-The engine turns `app.yaml` into event-sourced CRUD, GraphQL, nav, and permissions checks. You write YAML first; Go and Svelte only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
+The engine turns `app.yaml` into event-sourced CRUD, GraphQL, nav, and [ACL checks](acl.md). You write YAML first; Go and Svelte only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
 
-To see how the host boots and which packages to import, read [Internals & SDKs](internals/index.md) — boot flow, `packages/sdk-go`, and `@kaizengo/sdk-svelte` with code examples from `hellospec`.
+To see how the host boots and which packages to import, read [Internals & SDKs](internals/index.md) — boot flow, `packages/sdk-go`, and `@kaizengo/sdk-solid` with code examples from `hellospec`.
 
 ## Preview this site
 

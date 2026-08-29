@@ -6,14 +6,15 @@ A Kaizen app is a directory under `apps/` plus a one-line Go registration. The e
 
 ```text
 apps/todo/
-  app.yaml              # contract: models, menus, locales
+  app.yaml              # contract: models, menus, locales, security:
+  security.yaml         # optional — roles, ACL entries, demo users
   module.go             # engine.New(...)
   models/task/
     spec.yaml           # or keep the model inline in app.yaml
     hooks.go            # optional BeforeCreate / AfterUpdate / …
   views/
-    TaskList.page.svelte
-    TaskForm.page.svelte
+    TaskList.page.tsx
+    TaskForm.page.tsx
   locale/template.pot   # generated — msgid list; do not edit
   locale/en.po          # gettext strings
   migrations/
@@ -31,11 +32,12 @@ Compare with `apps/hellospec/` — same shape, different names.
 | Spec | Runtime |
 |------|---------|
 | `models` | Event-sourced CRUD, GraphQL, `{app}Views` list/form metadata (`internal: true` keeps writes in-process) |
-| pages (`views/*.page.svelte`) | Svelte screens menus mount |
+| pages (`views/*.page.tsx`) | Svelte screens menus mount |
 | `nav` | Entry in the shell Apps menu |
 | `menus` | In-app menu tree (`todoMenus`) |
 | `locales` | Loaded `.po` catalogs |
 | `depends` / `uses` | Load order and capability checks |
+| `security:` | Merged YAML files → roles, `acl_entry` policies, demo users on Setup |
 
 GraphQL names follow the spec. For app `todo` and model `task`:
 
@@ -72,7 +74,7 @@ import (
 
 - **Login and sessions** — `apps/auth`
 - **Users and orgs** — `apps/identity`
-- **RBAC** — `apps/permissions` (engine CRUD checks the app `resource`, defaulting to the app name)
+- **ACL** — `apps/permissions` + `packages/sdk-go/acl` (engine enforces models, menus, queries, and custom APIs). App-specific grants go in `security.yaml` — see [ACL system](../acl.md), not hand-written seed Go.
 - **Shell chrome** — `apps/core`
 
 Your app declares `depends: [core, identity, auth, permissions]` so those pieces are loaded first. It should not import their service packages for ordinary CRUD.

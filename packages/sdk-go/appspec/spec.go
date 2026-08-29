@@ -28,10 +28,12 @@ type AppSpec struct {
 	Nav              NavSpec
 	Menus            []MenuSpec
 	Models           []ModelSpec
-	Views            []ViewSpec // discovered from views/*.page.svelte
+	Views            []ViewSpec // discovered from views/*.page.tsx
 	Locales          []LocaleSpec
 	Extends          []ExtendSpec
 	Exports          ExportSpec
+	Security         SecuritySpec // merged from security: file list
+	Keymap           KeymapSpec   // merged from keymap: file list
 }
 
 type ModelSpec struct {
@@ -83,7 +85,7 @@ type ValidateSpec struct {
 
 type ViewSpec struct {
 	Name string
-	Type string // page — discovered from views/<Name>.page.svelte
+	Type string // page — discovered from views/<Name>.page.tsx
 }
 
 // NavSpec configures the shell apps dropdown entry for this module.
@@ -185,9 +187,9 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 	for _, v := range s.Views {
 		switch v.Type {
 		case "", "page":
-			// Discovered from views/*.page.svelte — menus mount that file.
+			// Discovered from views/*.page.tsx — menus mount that file.
 		default:
-			return fmt.Errorf("view %q has unsupported type %q (pages are views/*.page.svelte; list/form views are generated from models)", v.Name, v.Type)
+			return fmt.Errorf("view %q has unsupported type %q (pages are views/*.page.tsx; list/form views are generated from models)", v.Name, v.Type)
 		}
 	}
 	for _, l := range s.Locales {
@@ -211,6 +213,12 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 		return err
 	}
 	if err := validateExports(s.Exports); err != nil {
+		return err
+	}
+	if err := s.Security.validate(); err != nil {
+		return err
+	}
+	if err := s.Keymap.validate(s.Name); err != nil {
 		return err
 	}
 	return nil

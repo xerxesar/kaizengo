@@ -1,0 +1,67 @@
+# HelloSpec ACL demo: member may read/create greetings (message+mood),
+# update/delete only own rows; internalNote denied except own-record read.
+roles:
+  - name: member
+    label: Member
+
+disable:
+  - member-hellospec-greeting
+
+entries:
+  - name: hellospec-member-read
+    role: member
+    effect: allow
+    resource: hellospec.greeting
+    actions: [read]
+    fields: [message, mood]
+
+  - name: hellospec-member-create
+    role: member
+    effect: allow
+    resource: hellospec.greeting
+    actions: [create]
+    fields: [message, mood, internalNote]
+
+  - name: hellospec-member-update-own
+    role: member
+    effect: allow
+    resource: hellospec.greeting
+    actions: [update]
+    fields: [message, mood]
+    domain: [[authorId, "=", "$user.id"]]
+
+  - name: hellospec-member-delete-own
+    role: member
+    effect: allow
+    resource: hellospec.greeting
+    actions: [delete]
+    fields: "*"
+    domain: [[authorId, "=", "$user.id"]]
+
+  - name: hellospec-member-deny-internal-note
+    role: member
+    effect: deny
+    resource: hellospec.greeting
+    actions: [read, update]
+    fields: [internalNote]
+    priority: 1000
+
+  # Higher priority than the deny so own-record read wins; others still denied.
+  - name: hellospec-member-allow-read-own-internal-note
+    role: member
+    effect: allow
+    resource: hellospec.greeting
+    actions: [read]
+    fields: [internalNote]
+    domain: [[authorId, "=", "$user.id"]]
+    priority: 1001
+
+users:
+  - email: jahan.doran@acme.example
+    name: Jahan Doran
+    password: member
+    roles: [member]
+  - email: john.doe@acme.example
+    name: John Doe
+    password: member
+    roles: [member]

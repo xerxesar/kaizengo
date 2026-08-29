@@ -23,6 +23,10 @@ msgid "settings.menu.general"
 msgstr ""
 
 #: app.yaml
+msgid "settings.menu.keymap"
+msgstr ""
+
+#: app.yaml
 msgid "settings.ping"
 msgstr ""
 
