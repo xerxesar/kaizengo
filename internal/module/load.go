@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/extension"
 )
 
 // Load sets up and mounts apps from the registry in dependency order.

@@ -59,7 +59,7 @@ package todo
 
 import (
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func init() {
@@ -101,36 +101,49 @@ System columns (`id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_a
 
 ## 4. Views
 
-Views are SolidJS files compiled into the **core** SPA. Pages are `views/<Name>.page.tsx`.
+Views are Solid files compiled into the **core** SPA. Pages are `views/<Name>.page.tsx`.
 
 `apps/todo/views/TaskList.page.tsx`:
 
-```svelte
-<script lang="ts">
-  import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
-</script>
+```tsx
+import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
 
-<KTable model="todo.task" emptyMessage={t('todo.empty')} />
-
-<KAppStatus />
+export default function TaskList() {
+  return (
+    <>
+      <KTable model="todo.task" emptyMessage={t('todo.empty')} />
+      <KAppStatus />
+    </>
+  )
+}
 ```
 
 `apps/todo/views/TaskForm.page.tsx`:
 
-```svelte
-<script lang="ts">
-  import { KForm, KFormField, KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
+```tsx
+import { createSignal } from 'solid-js'
+import { KForm, KFormField, KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
 
-  let table = $state<{ refresh: () => Promise<void> }>()
-</script>
+export default function TaskForm() {
+  const [refreshToken, setRefreshToken] = createSignal(0)
 
-<KForm model="todo.task" onsuccess={() => void table?.refresh()}>
-  <KFormField field="title" label={t('todo.create')} placeholder={t('todo.new_placeholder')} />
-</KForm>
+  return (
+    <>
+      <KForm model="todo.task" onsuccess={() => setRefreshToken((n) => n + 1)}>
+        <KFormField field="title" label={t('todo.create')} placeholder={t('todo.new_placeholder')} />
+      </KForm>
 
-<KTable bind:this={table} model="todo.task" emptyMessage={t('todo.empty')} class="mt-4" />
+      <KTable
+        model="todo.task"
+        emptyMessage={t('todo.empty')}
+        class="mt-4"
+        refreshToken={refreshToken()}
+      />
 
-<KAppStatus />
+      <KAppStatus />
+    </>
+  )
+}
 ```
 
 `model="todo.task"` is `{app}.{model}`. The SDK maps that to `todoTasks` / `createTodoTask` and sends the session cookie.
@@ -198,7 +211,7 @@ Same layout, generated for you:
 
 ```bash
 make cli
-./bin/kaizengo new-app todo --type svelte --title Todo
+./bin/kaizengo new-app todo --type solid --title Todo
 ```
 
 The scaffold uses an `item` model and `Items` / `NewItem` views. Rename in `app.yaml` and the view files if you want `task` instead.

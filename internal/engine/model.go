@@ -11,8 +11,8 @@ import (
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/packages/sdk-go/events"
-	"kaizengo/packages/sdk-go/events/pgstore"
+	"kaizengo/internal/events"
+	"kaizengo/internal/events/pgstore"
 	"kaizengo/packages/sdk-go/i18n"
 
 	"github.com/google/uuid"

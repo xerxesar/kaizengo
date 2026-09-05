@@ -5,7 +5,7 @@
 | Tool | Version | Notes |
 |------|---------|--------|
 | Go | 1.22+ (repo uses 1.26) | [go.dev/dl](https://go.dev/dl/) |
-| Node.js | 20+ | for the core SPA and Svelte app builds |
+| Node.js | 20+ | for the core SPA and Solid app builds |
 | npm | comes with Node | |
 
 ## Get the code

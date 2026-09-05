@@ -1,81 +1,389 @@
-# Go SDK (`packages/sdk-go`)
+# Go SDK
 
-Public Go libraries for spec-driven apps. Prefer these over reaching into `internal/` from app code (except `internal/module` for `Register` / `Host`).
+How to declare apps, register hooks, and use Go contracts from app code.
+
+The portable SDK lives in `packages/sdk-go` (appspec, acl, i18n, views, codegen). The **engine**, hook runtime, extension registry, events, and GQL guards live under **`internal/`** — in-tree apps import them today; they are host APIs, not the future remote SDK surface.
+
+Architecture, boot, and data flows: [Internals](index.md). UI: [Solid SDK](solid-sdk.md). Day-to-day workflow: [Development](../development/index.md).
 
 ## Package map
 
+### `packages/sdk-go` (contracts)
+
 | Path | Purpose |
 |------|---------|
-| `engine` | `New` / `Options` — load `app.yaml`, wire CRUD, GQL, hooks |
 | `appspec` | Load and validate YAML; capability checks |
-| `app` | Locales, nav helpers, installed-apps store, Postgres helpers |
-| `events` | Event / store interfaces |
-| `events/pgstore` | Postgres event store |
-| `projection` | Projection runner + read-model sinks |
-| `extension` | Global lifecycle handlers + yaml `extends` / `exports` |
-| `gql` | Principal helpers; `RequireAction` for non-model APIs |
 | `acl` | Unified ACL evaluator (domains, field masks, Authorizer) |
-| `i18n` | `T` / `Error` over loaded `.po` catalogs |
-| `views` | Menu / view helpers used by the engine |
+| `i18n` | `T` / `Error` facade over platform catalogs |
+| `views` | Menu / view DTOs |
 | `codegen` | Type and `.pot` generation (`godino`) |
 
-Import path prefix: `kaizengo/packages/sdk-go/…`.
+Import prefix: `kaizengo/packages/sdk-go/…`.
 
-## Engine: one-liner app
+### `internal/` (host — in-tree apps)
+
+| Path | Purpose |
+|------|---------|
+| `engine` | `New` / `Options`, SetupEvents, model CRUD, GQL, install `Manager` |
+| `app` | Locales, nav helpers, installed-apps store |
+| `events` (+ `pgstore`) | Event store interfaces + Postgres |
+| `projection` | Projection runners |
+| `extension` | Global lifecycle handlers + YAML `extends` / `exports` |
+| `gql` | `RequireAction` / `RequirePrincipal` |
+| `module` | `App`, `Host`, `Load`, GraphQL registry |
+
+Import prefix: `kaizengo/internal/…`. **Cycle rule:** `engine` may import `module`; `module` must not import `engine`.
+
+## What you import
+
+| Need | Import |
+|------|--------|
+| Spec types / load helpers | `kaizengo/packages/sdk-go/appspec` |
+| `i18n.T` / `i18n.Error` | `kaizengo/packages/sdk-go/i18n` |
+| ACL checks in custom GQL | `kaizengo/packages/sdk-go/acl` + `kaizengo/internal/gql` |
+| Spec-driven app | `kaizengo/internal/engine` + `kaizengo/internal/module` |
+| Cross-app hooks | `kaizengo/internal/extension` |
+
+UI lives in [Solid SDK](solid-sdk.md). Host boot and mutation pipeline: [Internals](index.md).
+
+App development is **spec-first**:
+
+1. Declare the app in `app.yaml` (`packages/sdk-go/appspec`)
+2. Register a one-liner with `internal/engine`
+3. Add views under `views/*.page.tsx` — GraphQL CRUD comes from the spec
+
+Hand-written Go is only for rules YAML cannot express (hooks, custom HTTP, aggregates). Auth is a hybrid: `engine.New` plus `Setup` / `Mount` for `/auth/*`.
+
+## Spec-first app (recommended)
+
+```text
+apps/hello/
+  app.yaml                 # manifest, menus, locales; models inline or included
+  module.go                # engine.New(...)
+  models/greeting/         # optional per-model dir
+    spec.yaml
+    hooks.go
+  views/GreetingList.page.tsx
+  locale/*.po
+```
+
+`module.go`:
 
 ```go
-package hellospec
+package hello
 
 import (
+	"kaizengo/internal/engine"
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
 )
 
 func init() {
-	app := engine.New(engine.Options{
-		AppName: "hellospec",
+	module.Register(engine.New(engine.Options{
+		AppName: "hello",
 		Version: "0.3.0",
-	})
-	module.Register(app.Hooks("greeting", greetingHooks()))
+	}))
 }
 ```
 
-`Options` highlights:
+`app.yaml` (minimal):
 
-| Field | Role |
-|-------|------|
-| `AppName` | Directory under `apps/` and default route |
-| `Version` | Manifest version |
-| `Hooks` | Per-model lifecycle (usually via `.Hooks(...)`) |
-| `Setup` | Extra Go after engine wiring (seed, custom services) |
-| `Mount` | HTTP routes after all apps finished Setup |
+```yaml
+name: hello
+title: Hello
+summary: Spec-driven greetings
+depends: [core, identity, auth, permissions]
+uses:
+  - identity.users
+  - permissions.rbac
+extensions: true   # allow model.* wildcard handlers from addons
+events:
+  enabled: true
+models:
+  - name: greeting
+    fields:
+      - name: message
+        type: string
+        required: true
+```
 
-Hybrid example pattern (auth): `engine.New` plus `Setup` / `Mount` for `/auth/*`.
+List and form metadata for `KTable` / `KForm` is **auto-generated from `models`**. Pages are not declared in YAML: any `views/<Name>.page.tsx` file is a menu-mountable page (`view: GreetingList` → `views/GreetingList.page.tsx`). Other `.tsx` files under `views/` are components, not pages.
 
-## Lifecycle hooks
+Large apps can split models into directories referenced from `app.yaml`:
 
-Hooks sit on the model name from `app.yaml`. `Before*` can mutate `Fields` or abort; `After*` see the projected `Record`.
+```yaml
+models:
+  - models/greeting
+  - models/item
+```
+
+Each directory is `models/<model>/spec.yaml` plus optional Go (`hooks.go`, controllers). See `apps/inventory`.
+
+Set `internal: true` on a model to keep GraphQL **read-only** (list/get stay; create/update/delete are not registered, and no form view is generated). Writes succeed only from Go via `engine.WithInternal(ctx)`:
+
+```yaml
+models:
+  - name: cost_layer
+    internal: true
+    fields:
+      - name: quantity
+        type: number
+```
 
 ```go
-type HookContext struct {
-	Context  context.Context
-	App      appspec.AppSpec
-	Model    appspec.ModelSpec
-	OrgID    string
-	UserID   string
-	RecordID string
-	Fields   map[string]any
-	Record   Record
+_, err := registry.Create(engine.WithInternal(ctx), orgID, userID, "cost_layer", fields)
+```
+
+The rejected-write message is `{app}.error.{model}.internal`. Inventory uses this for `cost_layer`, `stock_ledger`, and `stock_quant` (posting still writes them in-process).
+
+### What the engine wires automatically
+
+| From spec | Runtime |
+|---|---|
+| `models[].fields` | Event-sourced CRUD + `{app}Views` list/form metadata (tables via migrations) |
+| `models` (events on) | GraphQL CRUD + `{app}Views` list/form metadata |
+| `models[].internal` | No public mutations or form view; Go writes use `engine.WithInternal` |
+| `models` + `RegisterModel` | YAML fields/search merged with Go handlers (legacy; prefer events) |
+| `views/*.page.tsx` | Solid pages menus mount (`view: Name`) |
+| `nav` | Shell apps dropdown entry (label, route, order) |
+| `menus` | `{app}Menus` in-app navigation tree |
+| app name | `helloPing`, SPA mount, locales |
+| `resource` (app-level; models use `{app}.{model}`) | ACL via `packages/sdk-go/acl` + `permissions` |
+| `security:` file list | Roles, `acl_entry` rows, demo users (`security.yaml`) |
+
+Stream defaults to `{app}.{model}`; schema defaults to app name (`KaizenGo_<APP>_SCHEMA` overrides).
+
+### App checklist (current standard)
+
+Every app under `apps/<name>/` should have:
+
+| Piece | Requirement |
+|-------|-------------|
+| `app.yaml` | Spec (models optional); events always on |
+| `security.yaml` (optional) | Listed under `security:`; roles, ACL entries, demo users |
+| `migrations/001_events.sql` | Event store tables |
+| `migrations/*_read.sql` | One per model (`{model}s_read`) |
+| `__types__/` | Generated by `make generate` / `kaizengo gen-types` |
+| `locale/template.pot` | Generated catalog template (msgids from spec + `t()` / `labelKey`) |
+| `locale/*.po` | Translations (`en.po`, `fa.po`, …) — edit these, not the `.pot` |
+| `//go:generate go run ../../cmd/godino gen-types <name>` | In `module.go` |
+| Postgres | Via `engine.SetupEvents` or `postgres.FromHost(host)` — never a private pool |
+
+```go
+db, err := postgres.FromHost(host)
+pool := db.Pool()
+// or in handlers:
+db, ok := postgres.FromContext(ctx)
+```
+
+`make generate` (also run before `make build` / `make dev`) runs:
+
+```bash
+go run ./cmd/godino gen-types          # all apps
+go run ./cmd/godino gen-types identity # one app
+```
+
+Each model becomes `apps/<app>/__types__/<model>.go` (package `types`) with:
+
+- system fields: `ID`, `OrgID`, `AuthorID`, `Deleted`, `CreatedAt`, `UpdatedAt`
+- declared fields (enums get a typed string + `Valid()`)
+- `// Code generated … DO NOT EDIT` header
+
+It also writes `apps/<app>/locale/template.pot` (and `internal/platform/i18n/locale/template.pot` on a full generate) from `app.yaml` keys plus static `t('…')` / `labelKey` / `emptyKey` in the app sources. Translate in `en.po` / `fa.po`; do not edit the `.pot`.
+
+Import `kaizengo/apps/identity/__types__` for generated model structs and enums.
+
+### Field attributes
+
+| Attribute | Meaning |
+|-----------|---------|
+| `type` | `string`, `text`, `int`, `number`, `bool`, `enum`, `date`, `datetime`, `json`, `many2one`, `one2many`, `many2many` (aliases: `float`, `integer`, `fk`, `relation`, …) |
+| `required` | Must be present on create (unless `default` is set) |
+| `default` | Applied on create when the field is omitted |
+| `readonly` | Omitted from GraphQL create/update args; ignored on update |
+| `values` | Allowed values when `type: enum` (or when `values:` is set) |
+| `relation` | Target `model` or `app.model` (required for relation types) |
+| `inverse` | Field name on the related model (`one2many` only) |
+| `indexed` | Hint for SQL indexes in migrations |
+| `validate` | `minLength`, `maxLength`, `pattern`, `min`, `max` |
+
+Example:
+
+```yaml
+fields:
+  - name: status
+    type: enum
+    values: [active, suspended, invited]
+    default: active
+  - name: slug
+    type: string
+    required: true
+    readonly: true
+    default: draft
+  - name: qty
+    type: number
+  - name: categoryId
+    type: many2one
+    relation: category
+```
+
+### Database migrations
+
+There is **no auto schema sync**. Every app uses Postgres with explicit SQL migrations under `apps/<app>/migrations/`. All apps are **event-sourced** (`events.enabled: false` is rejected).
+
+The server connects once via `internal/platform/postgres` and registers `platform.postgres` on the host. Apps call `postgres.FromHost(host)` (setup) or `postgres.FromContext(ctx)` (handlers). `engine.SetupEvents` uses that shared pool and opens a schema-scoped `pgstore` without creating extra connections.
+
+| App style | Migrations |
+|-----------|------------|
+| Spec-driven (`engine`) | `apps/<app>/migrations/*.sql` — applied at startup in sorted order |
+| Hybrid (auth sessions) | Same directory; side tables + `001_events.sql` |
+
+Event-sourced apps need at least:
+
+1. **`001_events.sql`** — `streams` and `events` tables (see `apps/hellospec/migrations/`)
+2. **`002_<model>s_read.sql`** — read-model table per spec model (table name: `{model}s_read`)
+
+Read-model tables share standard columns: `id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_at`, plus one column per model field (snake_case). The engine does not generate DDL from `app.yaml`.
+
+Hand-written side tables live in the same `migrations/` folder (see auth `002_auth.sql`). Custom stores use `postgres.FromHost(host).Pool()` or `events.Pool` from `Options.Setup` — never open a separate connection.
+
+### Navigation and menus
+
+**Shell menu** (`nav`) — one entry in the core Apps dropdown:
+
+```yaml
+nav:
+  labelKey: nav.hello        # i18n key (preferred)
+  # label: Hello             # literal fallback
+  route: hello               # default: app name → /app/hello
+  order: 45                  # sort order in dropdown
+```
+
+If `nav` is omitted, defaults are `labelKey: nav.{name}`, `route: {name}`, `label: {title}`.
+
+**In-app menus** (`menus`) — Odoo-style tree linking to views:
+
+```yaml
+menus:
+  - id: greetings
+    labelKey: hello.menu.greetings
+    children:
+      - id: greeting_list
+        labelKey: hello.menu.list
+        view: GreetingList
+      - id: greeting_new
+        labelKey: hello.menu.new
+        view: GreetingForm
+```
+
+Rules:
+- `id` must be unique across the tree
+- leaf items need `view` (or `children` for folders)
+- `view` must match a `views/<Name>.page.tsx` file (for the owning app’s own menus)
+- if `menus` is omitted, apps without menus fall back to `views/Index.page.tsx`
+
+GraphQL: `helloMenus { id label view route children { … } }`
+
+SPAs do **not** own menus. The **core** shell loads `{app}Menus`, renders the menubar, and mounts the matching `views/<Name>.page.tsx` from the central bundle:
+
+```text
+/app/settings/search
+  → core LayoutMenu (settingsMenus)
+  → leaf view SearchSettings (optionally sourceApp/component from an addon)
+  → registry resolves settings.SearchSettings or typesense.SearchSettings
+```
+
+URL shape: `/app/{hostApp}/{page}` (page defaults to menu `id`). Contributed menu items may point at another app’s view via `sourceApp` / `component`.
+
+Helpers: `fetchAppMenus`, `navigateApp`, `contentAppForMenu` from `@kaizengo/sdk-solid/ui`.
+
+**Cross-app menu contributions** — addons inject items into another app’s menu tree:
+
+```yaml
+# apps/typesense/app.yaml
+exports:
+  menus:
+    - app: settings              # target app
+      # parent: general          # optional: nest under an existing menu id
+      id: search
+      labelKey: typesense.menu.search
+      view: SearchSettings
+      component: typesense.SearchSettings
+      order: 50
+```
+
+`{app}Menus` merges the app’s own `menus:` with all `exports.menus` targeting that app (top-level or under `parent`).
+
+### Lifecycle hooks
+
+CRUD mutations run through a fixed pipeline:
+
+```text
+normalize
+→ app-local Before*
+→ extension.Run(model.<app>.<model>.before*)
+→ spec validate
+→ append event → project
+→ app-local After*
+→ extension.Run(model.<app>.<model>.after*)
+```
+
+**Declarative validation** in `app.yaml` (no Go code):
+
+```yaml
+fields:
+  - name: message
+    type: string
+    required: true
+    validate:
+      minLength: 1
+      maxLength: 500
+      pattern: "^[A-Za-z].*"   # optional regex
+  - name: count
+    type: int
+    validate:
+      min: 0
+      max: 100
+```
+
+**Go hooks** for custom controller logic (trim, defaults, side effects). See `apps/hellospec/hooks.go` for a full runnable example.
+
+Register hooks on the model name from `app.yaml`:
+
+```go
+app := engine.New(engine.Options{AppName: "hellospec"})
+module.Register(app.Hooks("greeting", engine.Hooks{
+	BeforeCreate: beforeCreateGreeting,
+	AfterCreate:  logGreetingCreated,
+	BeforeUpdate: beforeUpdateGreeting,
+	BeforeDelete: protectPinnedGreetings,
+	AfterDelete:  logGreetingDeleted,
+}))
+```
+
+#### Example: normalize + default (BeforeCreate)
+
+Runs after normalize, before `validate:`. Mutate `hc.Fields` in place:
+
+```go
+func trimGreetingMessage(hc engine.HookContext) error {
+	msg, ok := hc.Fields["message"].(string)
+	if !ok {
+		return nil
+	}
+	hc.Fields["message"] = strings.TrimSpace(msg)
+	return nil
 }
 
-type Hooks struct {
-	BeforeCreate, AfterCreate func(HookContext) error
-	BeforeUpdate, AfterUpdate func(HookContext) error
-	BeforeDelete, AfterDelete func(HookContext) error
+func ensureGreetingPrefix(hc engine.HookContext) error {
+	msg, _ := hc.Fields["message"].(string)
+	if msg != "" && !strings.HasPrefix(strings.ToLower(msg), "hello") {
+		hc.Fields["message"] = "Hello, " + msg
+	}
+	return nil
 }
 ```
 
-From `apps/hellospec/hooks.go`:
+Chain multiple Before* helpers in one callback:
 
 ```go
 func beforeCreateGreeting(hc engine.HookContext) error {
@@ -90,67 +398,134 @@ func beforeCreateGreeting(hc engine.HookContext) error {
 	}
 	return nil
 }
+```
 
-func greetingHooks() engine.Hooks {
-	return engine.Hooks{
-		BeforeCreate: beforeCreateGreeting,
-		AfterCreate:  logGreetingCreated,
-		BeforeUpdate: beforeUpdateGreeting,
-		BeforeDelete: protectPinnedGreetings,
-		AfterDelete:  logGreetingDeleted,
+#### Example: business rule / abort (BeforeDelete)
+
+`Before*` errors cancel the mutation. Use `hc.Record` for the current projected row:
+
+```go
+func protectPinnedGreetings(hc engine.HookContext) error {
+	msg, _ := hc.Record["message"].(string)
+	if strings.Contains(msg, "[protected]") {
+		return fmt.Errorf("protected greetings cannot be deleted")
 	}
-}
-```
-
-Translated errors (same catalogs as the SPA):
-
-```go
-return hc.T("inventory.error.qty_positive")
-// or: i18n.Error("inventory.error.qty_positive")
-```
-
-Pipeline order: app-local hooks, then global `extension.Run` on `model.<app>.<model>.<phase>`.
-
-## Events and projections
-
-Event store interfaces live in `packages/sdk-go/events`:
-
-```go
-type Store interface {
-	Appender
-	Loader
-}
-
-type Appender interface {
-	Append(ctx context.Context, streamID, streamType string,
-		expectedVersion int64, events ...NewEvent) ([]Event, error)
-}
-```
-
-`engine.SetupEvents` uses the **shared** Postgres pool (`postgres.FromHost`) and schema `KaizenGo_<APP>_SCHEMA` (default = app name). Apps never open a private pool.
-
-Read models are ordinary SQL tables (`{model}s_read`) applied from `apps/<name>/migrations/*.sql`. The engine does not invent DDL from YAML.
-
-Internal-only models (`internal: true` in the spec) skip public mutations; Go writes use:
-
-```go
-_, err := registry.Create(engine.WithInternal(ctx), orgID, userID, "cost_layer", fields)
-```
-
-## Extension points
-
-Addon apps attach without editing product apps:
-
-```go
-import "kaizengo/packages/sdk-go/extension"
-
-extension.Register("model.*.*.afterCreate", 100, func(ctx extension.Context) error {
-	slog.Info("audit", "point", ctx.Point, "recordId", ctx.RecordID)
 	return nil
+}
+```
+
+Try creating a greeting with message `[protected] Keep this` — delete will fail with that error.
+
+#### Example: side effect (AfterCreate)
+
+`After*` runs after projection. `hc.Record` is the stored row; `hc.UserID` is set on create:
+
+```go
+func logGreetingCreated(hc engine.HookContext) error {
+	slog.Info("greeting created",
+		"id", hc.RecordID,
+		"orgId", hc.OrgID,
+		"authorId", hc.UserID,
+		"message", hc.Record["message"],
+	)
+	return nil
+}
+```
+
+`After*` errors are ignored today — use them for logging, notifications, or fire-and-forget work, not invariants.
+
+#### Hook reference
+
+| Hook | When | `Fields` | `Record` |
+|---|---|---|---|
+| `BeforeCreate` | Before event append | mutable input | — |
+| `AfterCreate` | After projection | final input | created row |
+| `BeforeUpdate` | Before event append | mutable patch | previous row |
+| `AfterUpdate` | After projection | patch | updated row |
+| `BeforeDelete` | Before event append | — | row being deleted |
+| `AfterDelete` | After projection | — | deleted row |
+
+Return an error from `Before*` to abort the mutation (GraphQL surfaces it to the client). Use the same `.po` catalogs as the SPA:
+
+```go
+import "kaizengo/packages/sdk-go/i18n"
+
+return i18n.Error("inventory.error.qty_positive")
+// or in a hook: hc.T("inventory.error.qty_positive")
+```
+
+The engine loads `apps/<name>/locale/*.po` during Setup. `T` / `Tf` follow the active platform locale (set by the settings app), then English, then the key.
+
+**Spec validate vs hooks:** put structural rules in `app.yaml` (`minLength`, `pattern`, …). Use Go hooks for cross-field logic, defaults, external calls, and side effects.
+
+### Global extension points
+
+Addon apps register handlers on shared lifecycle points without editing product app code. Registry: `internal/extension`.
+
+| API | Purpose |
+|-----|---------|
+| `extension.Register(pattern, priority, fn)` | Register a handler |
+| `extension.Run(point, ctx, stopOnError)` | Run matching handlers (priority ascending) |
+| `extension.ModelPoint(app, model, phase)` | Build point name, e.g. `model.hellospec.greeting.afterCreate` |
+
+**Point naming:** `model.<app>.<model>.<phase>` where phase is `beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, or `afterDelete`.
+
+**Wildcards:** `*` matches one segment. Example: `model.*.*.afterCreate` matches all engine apps' after-create hooks.
+
+**Opt-in:** Apps must set `extensions: true` in `app.yaml` before wildcard handlers (`model.*`) run against them. Exact points (no `*`) always match.
+
+**Order:** App-local hooks run first, then global extensions. `Before*` extensions stop on first error; `After*` errors are logged and execution continues.
+
+**Proof addon:** `apps/audit` registers `model.*.*.afterCreate|afterUpdate|afterDelete` and logs structured JSON via `slog`. Enable with audit in `KaizenGo_APPS`; create a hellospec greeting and watch server logs.
+
+```go
+extension.Register("model.*.*.afterCreate", 100, func(ctx extension.Context) error {
+    slog.Info("audit", "point", ctx.Point, "recordId", ctx.RecordID)
+    return nil
 })
 ```
 
-Or declare named handlers and wire them from YAML:
+See [extension-platform.md](../extension-platform.md) and [capabilities.md](../capabilities.md). How extension dispatch works: [Internals](index.md#mutation-data-flow).
+
+### Capability contracts
+
+Declare `provides` and `uses` in `app.yaml`. Startup validates every `uses` against loaded `provides` plus platform built-ins (`platform.i18n`, `platform.time`, `platform.config`).
+
+```yaml
+provides:
+  - identity.users
+uses:
+  - identity.users
+  - permissions.rbac
+```
+
+Full catalog: [capabilities.md](../capabilities.md).
+
+### Frontend SDK (`@kaizengo/sdk-solid`)
+
+Shared clients and Solid components for capability surfaces. First package: identity.
+
+```ts
+import { fetchUsers, fetchActiveUsers, UserPicker } from '@kaizengo/sdk-solid/identity'
+```
+
+Add to SPA `package.json`:
+
+```json
+"@kaizengo/sdk-solid": "file:../../../packages/sdk-solid"
+```
+
+Vite alias is configured in `packages/sdk-solid/spa-config/app-vite.ts` (same pattern as `@kaizengo/sdk-solid/ui`).
+
+Search bar (requires `apps/typesense` loaded):
+
+```ts
+import { SearchBar, searchQuery } from '@kaizengo/sdk-solid/search'
+```
+
+### Yaml `extends` (addon apps)
+
+Addon apps register named handlers in Go, then wire them from `app.yaml`:
 
 ```yaml
 extends:
@@ -161,50 +536,106 @@ extends:
 
 ```go
 extension.RegisterNamed("indexDocument", indexDocument)
-// in Setup:
+// module.Setup:
 extension.SetupAddon(spec)
 ```
 
-Wildcard handlers require `extensions: true` on the target app. See [extension-platform.md](../extension-platform.md).
+Scaffold: `kaizengo new-app myaddon --addon`
 
-## GraphQL guards
+### View slots
 
-Engine-registered model CRUD requires a session only; **ACL is enforced in `modelService`** (`packages/sdk-go/acl` via the `permissions` host service). Resource ids default to `{app}.{model}`. See [ACL system](../acl.md) for menus, queries, and `security.yaml`.
+Addon apps export components and inject them into product app views:
 
-Non-model resolvers still check explicitly:
-
-```go
-import (
-  "kaizengo/packages/sdk-go/acl"
-  "kaizengo/packages/sdk-go/gql"
-)
-
-pr, err := gql.RequireAction(host, acl.ServiceName, p, "appman", acl.ActRead)
-// or later: "workflow.action.approve", "execute"
+```yaml
+exports:
+  components:
+    - id: platform.SearchBar
+      module: "@kaizengo/sdk-solid/search/SearchBar.tsx"
+    - id: typesense.SearchSettings
+      module: "@apps/typesense/views/SearchSettings.page.tsx"
+  views:
+    - app: hellospec
+      match: "*.list"
+      slot: toolbar
+      component: platform.SearchBar
+    - app: settings
+      match: SearchSettings
+      slot: page
+      component: typesense.SearchSettings
+  menus:
+    - app: settings
+      id: search
+      labelKey: typesense.menu.search
+      view: SearchSettings
+      component: typesense.SearchSettings
 ```
 
-`RequirePrincipal` only checks the session.
+GraphQL: `hellospecViewSlots(view: "GreetingList") { slot component module sourceApp id labelKey }`  
+Menus: `{app}Menus` includes local `menus:` plus `exports.menus` contributions (`component`, `sourceApp` on contributed items).
 
-Custom fields still register on the host:
+### Platform search
 
-```go
-host.GQL.RegisterQuery("myField", &graphql.Field{
-	Type: graphql.NewNonNull(graphql.String),
-	Resolve: func(p graphql.ResolveParams) (any, error) {
-		return "hi", nil
-	},
-})
+Declare indexing on engine models:
+
+```yaml
+models:
+  - name: greeting
+    search:
+      collection: hellospec.greeting
+      fields: [message]
 ```
 
-## Generated types
+GraphQL: `search(q: "hello", collections: ["hellospec.greeting"]) { id title snippet }`
+
+Backend: in-memory by default. `apps/typesense` registers write sync and **query middleware** (`search.UseQuery` / `platform.search.query`) so indexed-field searches go to Typesense when `KaizenGo_TYPESENSE_URL` is set, falling through to memory on error.
+
+### GraphQL naming convention
+
+For app `hello` and model `greeting`:
+
+```graphql
+query { helloPing }
+query { helloViews { name kind model } }
+query { helloGreetings { id message updatedAt } }
+mutation { createHelloGreeting(message: "Hi") { id } }
+mutation { updateHelloGreeting(id: "…", message: "…") { id } }
+mutation { deleteHelloGreeting(id: "…") }
+```
+
+Layer ownership and the host package map live in [Internals](../internals/index.md#layer-map).
+
+## Custom apps (escape hatch)
+
+When you need sharing, complex aggregates, or non-CRUD APIs (see Notes):
+
+```text
+apps/<name>/
+  app.yaml          # still useful as documentation
+  module.go         # manual Setup
+  domain/
+  service/
+  gql/
+  spa/
+```
+
+Use `kaizengo/internal/events`, `…/events/pgstore`, `…/projection`, and `…/gql` directly.
+
+## Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `KaizenGo_POSTGRES_DSN` | Shared PostgreSQL DSN (`internal/platform/postgres`) |
+| `KaizenGo_<APP>_SCHEMA` | Per-app schema override (default = app name) |
+| `KaizenGo_MONGO_URI` | Optional Mongo URI for projection sinks |
+
+## Generator
 
 ```bash
-make generate
-# or: go run ./cmd/godino gen-types hellospec
+./bin/kaizengo new-app demo --type solid --event-sourced
 ```
 
-Produces `apps/<app>/__types__/<model>.go` (system fields + declared fields) and refreshes `locale/template.pot`. Put `//go:generate` in `module.go` as hellospec does.
+Creates `app.yaml`, engine `module.go`, locales, and SPA stubs. Add `security:` / `security.yaml` entries for `{app}.{model}` if non-admin roles need access (admin already has `*`). See [ACL system](../acl.md).
 
-## Escape hatch
+See [cli.md](../cli.md) and [Workflow](../development/workflow.md).
 
-When YAML is not enough (aggregates, custom HTTP, non-CRUD APIs), keep `app.yaml` for nav/capabilities and implement `Setup` / `Mount` yourself. Use `events`, `pgstore`, `projection`, and `gql` directly — same building blocks the engine uses. See `apps/auth` and [SDK architecture → Custom apps](../sdk.md#custom-apps-escape-hatch).
+For cross-app addons (search, audit, shared components), see [extension-platform.md](../extension-platform.md).

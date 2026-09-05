@@ -17,7 +17,7 @@ In any `apps/<name>/app.yaml`, **F12** / **Ctrl+click** (Go to Definition) and h
 | `labelKey` | `msgid` in `locale/*.po` (and platform nav catalogs) |
 | `locales` id | `locale/<id>.po` |
 | `extends.handler` | `RegisterNamed("…")` in the app's Go code |
-| `exports.components.module` | the Svelte/TS module |
+| `exports.components.module` | the Solid/TS module |
 | `exports.*.app` | the target app's `app.yaml` |
 
 **Shift+F12** (Find All References) lists the other side: `uses` of a capability, `relation` fields of a model, menus that point at a view.

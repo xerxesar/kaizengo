@@ -8,9 +8,9 @@ import (
 
 	"kaizengo/internal/module"
 	tsbackend "kaizengo/internal/platform/search/typesense"
-	"kaizengo/packages/sdk-go/app"
-	"kaizengo/packages/sdk-go/engine"
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/app"
+	"kaizengo/internal/engine"
+	"kaizengo/internal/extension"
 )
 
 const appName = "typesense"

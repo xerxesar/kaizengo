@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/extension"
 )
 
 func toExtensionContext(point string, hc HookContext) extension.Context {

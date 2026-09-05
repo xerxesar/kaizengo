@@ -2,7 +2,7 @@ package engine
 
 import (
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/extension"
 	"kaizengo/packages/sdk-go/views"
 )
 

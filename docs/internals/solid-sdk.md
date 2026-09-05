@@ -1,112 +1,82 @@
-# Solid SDK (`packages/sdk-solid`)
+# Solid SDK
 
-Shared UI and GraphQL clients for the central shell and app views. Consumed as **source** (not a published npm build); Vite aliases resolve it from the monorepo.
+How to write app views and call shared UI / GraphQL clients.
 
-## Package exports
+Shell registry, Vite aliases, and GraphQL naming plumbing are covered below and in [Internals](index.md#frontend-data-flow). Go contracts and engine: [Go SDK](go-sdk.md). Workflow: [Development](../development/index.md).
 
-From `packages/sdk-solid/package.json`:
+## Idea
+
+There is **one central Solid SPA** at `apps/core/spa`. Apps contribute `.tsx` views under `apps/<name>/views/`. The shell resolves menu selections to those views at build time.
+
+```text
+apps/core/spa                 →  single Vite SPA (/app/)
+apps/myapp/views/*.page.tsx   →  compiled into the central bundle
+```
+
+## Bootstrap
+
+```bash
+./bin/kaizengo new-app myapp --type solid
+make spa-build
+```
+
+## Layout
+
+| Path | Role |
+|------|------|
+| `apps/<name>/views/<View>.page.tsx` | Menu page (matches `menus.view`) |
+| `apps/<name>/views/*.tsx` | Components / partials (not menu targets) |
+| `apps/<name>/lib/` | Optional shared TS for that app’s views |
+| `apps/<name>/app.yaml` | Nav, models, menus |
+| `apps/<name>/module.go` | Go setup — no SPA asset routes |
+
+Apps without menus use `views/Index.page.tsx` as the default page.
+
+## Imports
 
 | Import | Role |
 |--------|------|
-| `@kaizengo/sdk-solid/ui` | Layout, `KTable` / `KForm`, i18n `t()`, menu helpers, model client |
-| `@kaizengo/sdk-solid/ui/styles.css` | Theme tokens (imported once in core `main.ts`) |
+| `@kaizengo/sdk-solid/ui` | Layout, `KTable` / `KForm`, `t()`, model client, menus |
+| `@kaizengo/sdk-solid/ui/styles.css` | Theme tokens (once in core `main.ts`) |
 | `@kaizengo/sdk-solid/identity` | `fetchUsers`, `UserPicker` |
 | `@kaizengo/sdk-solid/search` | `SearchBar`, `searchQuery` |
-| `@kaizengo/sdk-solid/spa-config/app-vite.js` | Shared Vite config for optional per-app library builds |
 
-In an app’s `package.json` (when it has its own Vite entry):
+Core already aliases `@kaizengo/sdk-solid` to `packages/sdk-solid`. Optional per-app Vite entries use `file:../../../packages/sdk-solid`.
 
-```json
-"@kaizengo/sdk-solid": "file:../../../packages/sdk-solid"
+## Spec-driven pages
+
+```tsx
+import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
+
+export default function GreetingList() {
+  return (
+    <>
+      <KTable model="hellospec.greeting" emptyMessage={t('hellospec.empty')} />
+      <KAppStatus />
+    </>
+  )
+}
 ```
 
-Core SPA already aliases `@kaizengo/sdk-solid` to `packages/sdk-solid`.
+Form + refresh:
 
-## Views in the shell
+```tsx
+import { KForm, KFormField, KTable, t } from '@kaizengo/sdk-solid/ui'
 
-App pages are plain Svelte files under `apps/<name>/views/`:
-
-| Pattern | Meaning |
-|---------|---------|
-| `Foo.page.tsx` | Menu-mountable page (`view: Foo`) |
-| other `*.tsx` | Components / partials (not menu targets) |
-
-The registry glob in core maps them to `{app}.{name}` keys and resolves menu leaves (including cross-app `component` exports).
-
-## UI kit
-
-Import components from `@kaizengo/sdk-solid/ui`:
-
-```svelte
-<script lang="ts">
-  import { Layout, LayoutMain, Button, Table, t } from '@kaizengo/sdk-solid/ui'
-</script>
+export default function GreetingForm() {
+  let table: { refresh: () => Promise<void> } | undefined
+  return (
+    <>
+      <KForm model="hellospec.greeting" onsuccess={() => void table?.refresh()}>
+        <KFormField field="message" label={t('hellospec.create')} />
+      </KForm>
+      <KTable ref={(el) => (table = el)} model="hellospec.greeting" />
+    </>
+  )
+}
 ```
 
-Core owns `<Page>`; app views use `<Layout>` / `<LayoutMain>` only. Prefer left-aligned layouts; `variant="centered"` is for auth-style screens.
-
-### Table cells
-
-`Table` columns take plain text via `render`, or custom markup via a `cell` snippet (same idea as the `actions` snippet):
-
-```svelte
-<script lang="ts">
-  import { Badge, Table, type Column } from '@kaizengo/sdk-solid/ui'
-
-  const columns: Column<Row>[] = $derived([
-    { key: 'name', label: 'Name', render: (r) => r.name },
-    { key: 'status', label: 'Status', cell: statusCell },
-  ])
-</script>
-
-{#snippet statusCell(row: Row)}
-  <Badge variant={row.ok ? 'success' : 'muted'}>{row.ok ? 'on' : 'off'}</Badge>
-{/snippet}
-
-<Table {columns} {rows} />
-```
-
-### Spec-driven CRUD components
-
-`KTable` and `KForm` bind to namespaced models (`app.model`). They load `{app}Views` metadata and call list/create/update/delete mutations automatically.
-
-**List** (`apps/hellospec/views/GreetingList.page.tsx`):
-
-```svelte
-<script lang="ts">
-  import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
-</script>
-
-<KTable model="hellospec.greeting" emptyMessage={t('hellospec.empty')} />
-<KAppStatus />
-```
-
-**Form + refresh** (`GreetingForm.page.tsx`):
-
-```svelte
-<script lang="ts">
-  import { KForm, KFormField, KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
-
-  let table = $state<{ refresh: () => Promise<void> }>()
-  function onFormSuccess() {
-    void table?.refresh()
-  }
-</script>
-
-<KForm model="hellospec.greeting" onsuccess={onFormSuccess}>
-  <KFormField
-    field="message"
-    label={t('hellospec.create')}
-    placeholder={t('hellospec.new_placeholder')}
-  />
-</KForm>
-
-<KTable bind:this={table} model="hellospec.greeting" class="mt-4" />
-```
-
-### Model client (imperative GraphQL)
-
-When you need custom UI, use the same naming helpers the smart components use:
+`KTable` / `KForm` load `{app}Views` and call list/create/update/delete automatically. Imperative helpers when you need custom UI:
 
 ```ts
 import {
@@ -122,49 +92,37 @@ const rows = await listModelRecords('hellospec', 'greeting')
 await createModelRecord('hellospec', 'greeting', { message: 'Hello, world' })
 ```
 
-Requests go to `/graphql` with `credentials: 'include'` (session cookie).
-
-Naming for app `hellospec`, model `greeting`:
+Requests go to `/graphql` with `credentials: 'include'`. Field names for app `hellospec`, model `greeting`:
 
 | Operation | Field |
 |-----------|-------|
 | List | `hellospecGreetings` |
-| Get | `hellospecGreeting` |
 | Create | `createHellospecGreeting` |
-| Update | `updateHellospecGreeting` |
-| Delete | `deleteHellospecGreeting` |
-| Views | `hellospecViews` |
-| Menus | `hellospecMenus` |
+| Views / Menus | `hellospecViews` / `hellospecMenus` |
+
+→ GraphQL registration internals: [Go SDK](go-sdk.md) · naming conventions in [Go SDK → GraphQL naming](go-sdk.md#graphql-naming-convention).
 
 ## i18n
 
-```svelte
-<script lang="ts">
-  import { t } from '@kaizengo/sdk-solid/ui'
-</script>
+```tsx
+import { t } from '@kaizengo/sdk-solid/ui'
 
 <h1>{t('hellospec.title')}</h1>
 ```
 
-`make generate` harvests static `t('…')` keys into `locale/template.pot`. Vite’s `poCatalogPlugin` (via spa-config) compiles `.po` files into the shell; locale switches update the UI without a reload. Go uses the same catalogs through `packages/sdk-go/i18n`.
+`make generate` harvests static `t('…')` keys into `locale/template.pot`. Vite compiles `.po` files into the shell. Go uses the same catalogs via `packages/sdk-go/i18n` — see [Platform APIs → Localization](../development/platform.md#localization).
 
-## Identity & search clients
-
-Capability-facing packages wrap GraphQL so product apps do not hardcode identity queries:
+## Identity & search
 
 ```ts
 import { fetchActiveUsers, UserPicker } from '@kaizengo/sdk-solid/identity'
-
-const users = await fetchActiveUsers()
-```
-
-```ts
 import { SearchBar, searchQuery } from '@kaizengo/sdk-solid/search'
 
+const users = await fetchActiveUsers()
 const hits = await searchQuery('hello', { collections: ['hellospec.greeting'] })
 ```
 
-Search requires the Typesense app (or memory backend) and model `search:` config in YAML. Identity requires the identity app and `uses: [identity.users]`.
+Identity needs `uses: [identity.users]`. Search needs model `search:` in YAML and the Typesense (or memory) backend. Contracts: [capabilities.md](../capabilities.md).
 
 ## Menus and routing helpers
 
@@ -172,22 +130,15 @@ Search requires the Typesense app (or memory backend) and model `search:` config
 import {
   fetchAppMenus,
   navigateApp,
-  resolveMenuSelection,
   contentAppForMenu,
+  fetchViewSlots,
+  KViewSlots,
 } from '@kaizengo/sdk-solid/ui'
 ```
 
-- `fetchAppMenus(app)` → `{app}Menus` tree (local menus + `exports.menus` contributions)
-- `contentAppForMenu(item, hostApp)` → which app bundle/view owns a contributed leaf
-- Shell URL shape: `/app/{hostApp}/{page}`
-
-View slots from addons:
-
-```ts
-import { fetchViewSlots, KViewSlots } from '@kaizengo/sdk-solid/ui'
-
-const slots = await fetchViewSlots('hellospec', 'GreetingList')
-```
+- `fetchAppMenus(app)` → `{app}Menus` (local + `exports.menus`)
+- Shell URL: `/app/{hostApp}/{page}`
+- Declaring menus / contributions: [Go SDK → navigation](go-sdk.md#navigation-and-menus)
 
 ## Theming
 
@@ -202,8 +153,11 @@ initTheme('carbon')
 
 Themes live under `packages/sdk-solid/ui/src/styles/themes/`. Switch at runtime with `setTheme()`.
 
-## Related
+## Dev
 
-- [Solid apps](../solid.md) — central SPA layout and build
-- [Go SDK](go-sdk.md) — what those GraphQL fields come from
-- [Capabilities](../capabilities.md) — `identity.users`, search contracts
+```bash
+cd apps/core/spa && npm run dev
+# or from repo root: make dev
+```
+
+Open **http://localhost:5173/app/**. Edits to the shell, SDK UI, or any `apps/*/views/*.page.tsx` hot-reload. Full command table: [Workflow](../development/workflow.md).

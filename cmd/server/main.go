@@ -17,20 +17,23 @@ import (
 	"kaizengo/internal/platform/config"
 	_ "kaizengo/internal/platform/drivers"
 	"kaizengo/internal/platform/postgres"
-	"kaizengo/packages/sdk-go/app"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/app"
+	"kaizengo/internal/engine"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
+	// HTTP router with request logging and panic recovery.
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	// Module host: shared registry for services, routes, and lifecycle.
 	host := module.NewHost(r, slog.Default())
 
+	// Postgres: connect, expose to modules, and inject into request context.
 	db, err := postgres.Connect(context.Background(), config.PostgresDSN())
 	if err != nil {
 		log.Fatalf("postgres: %v", err)
@@ -38,6 +41,7 @@ func main() {
 	postgres.Attach(host, db)
 	r.Use(postgres.Middleware(db))
 
+	// Session auth: resolve the auth app's service and validate cookies per request.
 	r.Use(auth.SessionMiddleware(func(sessionID string) (*auth.Principal, error) {
 		raw, ok := host.Lookup(authsvc.Name)
 		if !ok {
@@ -50,6 +54,7 @@ func main() {
 		return svc.ValidateSession(sessionID)
 	}))
 
+	// App engine: persistent store of installed apps + manager wired into the host.
 	store, err := app.OpenInstalledStore(context.Background(), db.Pool())
 	if err != nil {
 		log.Fatalf("installed apps: %v", err)
@@ -57,6 +62,7 @@ func main() {
 	mgr := engine.NewManager(host, module.Default, store)
 	host.Provide(engine.ManagerKey, mgr)
 
+	// Resolve KaizenGo_APPS, load those modules, then sync the installed-apps table.
 	wanted, err := mgr.Wanted(context.Background(), module.ParseAppList(os.Getenv("KaizenGo_APPS")))
 	if err != nil {
 		log.Fatalf("resolve apps: %v", err)
@@ -68,8 +74,10 @@ func main() {
 		log.Fatalf("sync installed apps: %v", err)
 	}
 
+	// Platform route listing loaded apps.
 	r.Get("/apps", module.AppsHandler(host))
 
+	// Serve HTTP and shut down cleanly on SIGINT/SIGTERM.
 	addr := envOr("ADDR", ":8080")
 	log.Printf("listening on %s (apps: %v)", addr, appNames(host))
 	srv := &http.Server{Addr: addr, Handler: r}

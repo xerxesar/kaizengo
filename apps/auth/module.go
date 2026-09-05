@@ -7,7 +7,7 @@ import (
 
 	permsvc "kaizengo/apps/permissions/service"
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func init() {

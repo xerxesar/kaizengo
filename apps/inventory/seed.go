@@ -6,7 +6,7 @@ import (
 
 	inv "kaizengo/apps/inventory/internal"
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 const seedAuthor = "00000000-0000-0000-0000-000000000001"

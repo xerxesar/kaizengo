@@ -9,7 +9,7 @@ make cli
 
 ## `kaizengo new-app`
 
-Bootstraps `apps/<name>/`, writes UI stubs, and registers a blank import in `apps/apps.go`.
+Bootstraps `apps/<name>/`, writes Solid view stubs, and registers a blank import in `apps/apps.go`.
 
 ```bash
 kaizengo new-app <name> [flags]
@@ -17,75 +17,57 @@ kaizengo new-app <name> [flags]
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--type` | `vanilla` | `vanilla` or `svelte` |
+| `--type` | `solid` | UI type (`solid` only) |
 | `--title` | Title-cased name | Apps menu label |
 | `--summary` | `"<title> app"` | Manifest summary |
 | `--with-graphql` | off | Sample Query field `<pkg>Ping` + client call |
 | `--event-sourced` | `true` | Scaffold PostgreSQL event-sourced module pattern |
+| `--addon` | off | Cross-app addon (extension points, no views) |
 
 ### Examples
 
-Vanilla module (no build step):
+Solid event-sourced app (default):
 
 ```bash
-./bin/kaizengo new-app notes
+./bin/kaizengo new-app notes --title Notes
+make spa-build
 ```
 
-Svelte single-component app:
+With a sample GraphQL client helper:
 
 ```bash
-./bin/kaizengo new-app notes --type solid
-cd apps/notes/spa && npm install && npm run build
-```
-
-Svelte + GraphQL sample:
-
-```bash
-./bin/kaizengo new-app notes --type solid --with-graphql --title "Notes"
-cd apps/notes/spa && npm install && npm run build
-# Append apps/notes/spa to APP_SPAS in the Makefile
+./bin/kaizengo new-app notes --type solid --with-graphql --title Notes
+make spa-build
 go run ./cmd/server
 # Sign in → Apps → Notes, or http://localhost:8080/app/notes
 ```
 
 ### What gets created
 
-**Vanilla**
+**Solid (event-sourced, default)**
 
 ```text
 apps/<name>/
-  module.go
-  spa/spa.js          # served as /app-assets/<name>/spa.js
+  app.yaml
+  module.go              # engine.New one-liner
+  hooks.go
+  migrations/
+  locale/
+  views/*.page.tsx       # list/form pages for the core shell
 ```
 
-**Svelte**
+Views compile into the central SPA (`apps/core/spa`); there is no per-app Vite bundle.
 
-```text
-apps/<name>/
-  module.go           # TitleKey: nav.<name> for i18n menu labels
-  spa/
-    App.tsx
-    main.ts           # mount/unmount adapter
-    vite.config.ts    # library build → dist/spa.js
-    package.json
-    …
-```
+### Recommended follow-ups
 
-### Recommended follow-ups for Solid apps
+Scaffolded templates are a starting point. Event-sourced mode writes `app.yaml` plus an `internal/engine` one-liner — GraphQL CRUD and projections come from the spec.
 
-Scaffolded templates are a starting point. Event-sourced mode writes `app.yaml` plus an `packages/sdk-go/engine` one-liner module — GraphQL CRUD and projections come from the spec.
+1. Import from `@kaizengo/sdk-solid/ui` in views (already aliased in the core SPA)
+2. Edit `apps/<name>/app.yaml` models/views — avoid hand-written services unless you need custom domain rules
+3. Use `credentials: 'include'` on every `/graphql` fetch (session auth)
+4. Set `KaizenGo_POSTGRES_DSN` (see `make db-up`); grant the app `resource` in permissions for non-admin roles
 
-Align new apps with the rest of the monorepo:
-
-1. Depend on `@kaizengo/sdk-solid/ui` (`file:../../../packages/sdk-solid`) and import `@kaizengo/sdk-solid/ui/styles.css`
-2. Prefer `createAppViteConfig` from `packages/sdk-solid/spa-config/app-vite.ts` instead of a one-off Vite config
-3. Edit `apps/<name>/app.yaml` models/views — avoid hand-written service/gql unless you need custom domain rules
-4. Use `credentials: 'include'` on every `/graphql` fetch (required under session auth)
-5. Append `apps/<name>/spa` to `APP_SPAS` in the Makefile
-6. Use the `Layout` contract from [solid.md](solid.md) for page chrome
-7. Set `KaizenGo_POSTGRES_DSN` (see `make db-up`); grant the app `resource` in permissions for non-admin roles
-
-See [sdk.md](sdk.md), [auth.md](auth.md), and [development.md](development.md).
+See [Go SDK](internals/go-sdk.md), [Solid SDK](internals/solid-sdk.md), [auth.md](auth.md), and [Workflow](development/workflow.md).
 
 ### Name rules
 

@@ -1,0 +1,6 @@
+{#- Load Mermaid before the theme bundle so it never falls back to unpkg.com. -#}
+{% extends "base.html" %}
+{% block libs %}
+  {{ super() }}
+  <script src="{{ 'javascripts/mermaid.min.js' | url }}"></script>
+{% endblock %}

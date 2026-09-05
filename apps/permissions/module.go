@@ -11,8 +11,8 @@ import (
 	"kaizengo/apps/permissions/service"
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
-	"kaizengo/packages/sdk-go/app"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/app"
+	"kaizengo/internal/engine"
 )
 
 func init() {

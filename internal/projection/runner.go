@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"kaizengo/packages/sdk-go/events"
+	"kaizengo/internal/events"
 )
 
 var ErrNoEvents = errors.New("no events available")

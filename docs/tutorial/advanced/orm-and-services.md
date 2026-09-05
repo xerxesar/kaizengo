@@ -15,7 +15,7 @@ package todo
 
 import (
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func init() {
@@ -80,7 +80,7 @@ import (
 	"context"
 	"fmt"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 const Name = "todo"
@@ -141,7 +141,7 @@ package todo
 import (
 	permsvc "kaizengo/apps/permissions/service"
 	"kaizengo/internal/module"
-	sdkgql "kaizengo/packages/sdk-go/gql"
+	sdkgql "kaizengo/internal/gql"
 
 	"github.com/graphql-go/graphql"
 )

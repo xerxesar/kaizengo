@@ -24,7 +24,7 @@ app.yaml + security.yaml
 | Policy store | `apps/permissions` models `role`, `user_role`, `acl_entry` | Persist and seed policies |
 | Evaluator | `packages/sdk-go/acl` | Match resources, domains, field masks, priority |
 | Authorizer API | `permissions` host service (`acl.ServiceName`) | `Can`, `CanCatalog`, `MustAllow`, `ListDomain`, `DeniedFields` |
-| Enforcement | `packages/sdk-go/engine` | Model CRUD, menu catalog, `{app}Ping`, custom GQL |
+| Enforcement | `internal/engine` | Model CRUD, menu catalog, `{app}Ping`, custom GQL |
 | Declarative seed | `security.yaml` in each app | Upsert roles, entries, demo users on boot |
 | Admin UI | Identity → **Access** tab | Inspect roles, rules, create overrides |
 
@@ -279,7 +279,7 @@ Model rows: `permissionsAclEntrys`, `permissionsRoles`, `permissionsUserRoles`.
 ```go
 import (
   "kaizengo/packages/sdk-go/acl"
-  sdkgql "kaizengo/packages/sdk-go/gql"
+  sdkgql "kaizengo/internal/gql"
 )
 
 // Inside a resolver:
@@ -314,6 +314,6 @@ Prefer `security.yaml` for declarative, reviewable policies.
 ## Related docs
 
 - [Auth & identity](auth.md) — sessions, login, identity app
-- [SDK architecture → security](sdk.md) — `security:` in `app.yaml`
+- [Go SDK → security](internals/go-sdk.md) — `security:` in `app.yaml`
 - [ORM and services](tutorial/advanced/orm-and-services.md) — `RequireAction` for hybrid resolvers
-- [Go SDK internals](internals/go-sdk.md) — `acl` and `gql` packages
+- [Go SDK](internals/go-sdk.md) — `acl` and `gql` packages

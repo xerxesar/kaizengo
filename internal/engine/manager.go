@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/app"
+	"kaizengo/internal/app"
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/extension"
 )
 
 // ManagerKey is the host bag key for the app install manager.

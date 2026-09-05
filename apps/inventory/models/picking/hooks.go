@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	inv "kaizengo/apps/inventory/internal"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 	"kaizengo/packages/sdk-go/i18n"
 )
 

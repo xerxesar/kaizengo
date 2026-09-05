@@ -10,7 +10,7 @@
 
 | Today | Limit |
 |-------|-------|
-| `app.yaml` + `packages/sdk-go/engine` | Spec-first CRUD within one app |
+| `app.yaml` + `internal/engine` | Spec-first CRUD within one app |
 | Per-app `Hooks` in `module.go` | Only the owning app can register |
 | `host.Provide` / `Lookup` | Ad hoc Go coupling |
 | GraphQL flat schema | Public API, but no formal `uses` / `provides` |
@@ -127,7 +127,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 
 **Deliverables**
 
-- [ ] This plan reviewed and linked from [sdk.md](sdk.md) and [platform.md](platform.md)
+- [ ] This plan reviewed and linked from [internals/go-sdk.md](internals/go-sdk.md) and [development/platform.md](development/platform.md)
 - [ ] Glossary in [apps.md](apps.md): *capability*, *extension point*, *addon*, *provider*
 - [ ] Inventory of existing cross-app calls (Notes→users, counter→permissions, etc.)
 
@@ -157,7 +157,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 
 **Deliverables**
 
-- [ ] New package `packages/sdk-go/extension`:
+- [ ] New package `internal/extension`:
   ```go
   func Register(point string, priority int, fn func(ext.Context) error)
   func Run(point string, hc ext.Context) error  // sorted by priority, short-circuit on error
@@ -170,7 +170,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
   ```
 - [ ] Keep existing per-app `engine.Hooks` (app-local) — run **before** global extensions or document order
 - [ ] Proof addon: `apps/audit` (or test module) registers `model.*.afterCreate` → structured log
-- [ ] Document extension point catalog in [sdk.md](sdk.md)
+- [ ] Document extension point catalog in [internals/go-sdk.md](internals/go-sdk.md)
 
 **Exit criteria:** audit addon logs greeting create/delete without editing `hellospec/hooks.go`.
 
@@ -250,7 +250,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 ## Non-goals (explicit)
 
 - Odoo `_inherit` on models or views
-- Runtime patching of Go types or Svelte AST
+- Runtime patching of Go types or Solid AST
 - Cross-app direct database joins
 - Automatic GraphQL schema merging / federation per app
 - Extension handlers in interpreted scripts (WASM/JS) — Go only for v1
@@ -287,7 +287,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 2. **Notes** uses `@kaizengo/sdk-solid/identity` — no local `IdentityUser` type copy.
 3. **Typesense addon** indexes hellospec + notes via wildcard hook + yaml `search:` — no edits to those apps’ hooks.go.
 4. **New app** `uses: [identity.users]` fails fast if identity not in `KaizenGo_APPS`.
-5. Docs: a third-party developer can build an addon from [sdk.md](sdk.md) + this plan alone.
+5. Docs: a third-party developer can build an addon from [internals/go-sdk.md](internals/go-sdk.md) + this plan alone.
 
 ---
 

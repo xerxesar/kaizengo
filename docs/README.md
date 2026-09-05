@@ -9,22 +9,21 @@ pip install -r requirements-docs.txt
 make docs          # http://localhost:8000
 ```
 
+Fonts and Mermaid are **vendored under `docs/`** (no Google Fonts / unpkg at runtime). See [assets/README.md](assets/README.md). Mermaid is injected early via [`overrides/main.html`](../overrides/main.html).
+
 Start with **Tutorial → Develop a Kaizen app**.
 
-| Guide | Contents |
-|-------|----------|
-| [Internals & SDKs](internals/index.md) | Boot flow, Go/Solid SDKs with code examples |
+| Section | Contents |
+|---------|----------|
+| [Development](development/index.md) | Workflow, platform APIs, auth, ACL, GraphQL, apps, CLI |
+| [Reference](internals/index.md) | Internals, [Go SDK](internals/go-sdk.md), [Solid SDK](internals/solid-sdk.md) |
 | [Installation](installation.md) | Prerequisites, clone, install tooling |
-| [Development](development.md) | `make` targets, ports, env vars |
 | [Auth & identity](auth.md) | Sessions, identity app, permissions service |
 | [ACL system](acl.md) | Resource ids, policies, `security.yaml`, enforcement |
 | [Apps system](apps.md) | Architecture, lifecycle, registering apps |
-| [SDK architecture](sdk.md) | Odoo-like app pattern on sdk/internal/apps |
 | [Capabilities](capabilities.md) | `provides` / `uses` contracts and identity SDK |
 | [Extension platform plan](extension-platform.md) | Capabilities, global hooks, SDK components — roadmap |
-| [Platform](platform.md) | Kernel APIs (time, i18n), drivers, fork-vs-patch |
 | [CLI](cli.md) | `kaizengo new-app` bootstrapper |
-| [Solid apps](solid.md) | ESM modules, `@kaizengo/sdk-solid/ui`, theming |
 | [GraphQL](graphql.md) | Runtime field registry, auth-aware clients |
 
 ## Quick start

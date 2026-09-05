@@ -64,6 +64,6 @@ Apps register in `init()` via a blank import in `apps/apps.go`. `module.Load` ru
 | `make spa-build` | Production shell bundle |
 | `make db-logs` | Follow Postgres |
 
-Go changes (new `module.go`) need a restart of `make dev`. Svelte files under `apps/*/views/` hot-reload.
+Go changes (new `module.go`) need a restart of `make dev`. Solid files under `apps/*/views/` hot-reload.
 
 When the shell loads and you can open HelloSpec, continue to [app anatomy](app-anatomy.md).

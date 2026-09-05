@@ -5,7 +5,7 @@ import (
 
 	"kaizengo/internal/module"
 	"kaizengo/internal/platform/postgres"
-	"kaizengo/packages/sdk-go/events/pgstore"
+	"kaizengo/internal/events/pgstore"
 )
 
 // SchemaStore returns a schema-scoped event store on the platform Postgres pool.

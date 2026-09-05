@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"kaizengo/packages/sdk-go/events"
+	"kaizengo/internal/events"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"

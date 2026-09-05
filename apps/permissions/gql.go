@@ -3,7 +3,7 @@ package permissions
 import (
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
-	sdkgql "kaizengo/packages/sdk-go/gql"
+	sdkgql "kaizengo/internal/gql"
 
 	"github.com/graphql-go/graphql"
 )

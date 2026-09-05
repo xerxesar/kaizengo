@@ -6,7 +6,7 @@ import (
 	"math"
 	"time"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 	"kaizengo/packages/sdk-go/i18n"
 )
 

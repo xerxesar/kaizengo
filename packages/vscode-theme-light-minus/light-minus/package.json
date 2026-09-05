@@ -1,0 +1,21 @@
+{
+  "name": "light-minus",
+  "displayName": "light-minus",
+  "description": "light-plus theme but a little dimmer",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.136.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Light -",
+        "uiTheme": "vs",
+        "path": "./themes/Light --color-theme.json"
+      }
+    ]
+  }
+}

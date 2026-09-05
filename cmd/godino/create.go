@@ -44,11 +44,11 @@ func createApp(opts AppOptions) error {
 	}
 
 	typ := strings.ToLower(strings.TrimSpace(opts.Type))
-	if typ != "vanilla" && typ != "solid" && typ != "svelte" {
-		return fmt.Errorf("type must be solid, got %q (svelte is deprecated; use solid)", typ)
-	}
-	if typ == "svelte" {
+	if typ == "" {
 		typ = "solid"
+	}
+	if typ != "solid" {
+		return fmt.Errorf("type must be solid, got %q", typ)
 	}
 
 	root, err := findModuleRoot()
@@ -105,9 +105,6 @@ func createApp(opts AppOptions) error {
 		files["views/NewItem.page.tsx"] = render(solidFormViewTmpl, data)
 	} else {
 		files["module.go"] = render(moduleGoTmpl, data)
-	}
-	if typ == "vanilla" {
-		return fmt.Errorf("vanilla apps are no longer supported; use --type solid")
 	}
 	if !opts.EventSourced {
 		files["views/Index.page.tsx"] = render(solidViewTmpl, data)

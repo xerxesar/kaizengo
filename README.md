@@ -24,7 +24,7 @@ KaizenGo is a platform for building integrated operational software: a single ho
 | HTTP routing | [chi](https://github.com/go-chi/chi) |
 | App lifecycle | Registry, manifests, dependency injection |
 | Auth | Session cookies (`kg_session`), identity + auth apps, RBAC permissions |
-| Frontend shell | SolidJS SPA with dynamic `import()` and login gate |
+| Frontend shell | Solid SPA with dynamic `import()` and login gate |
 | Solid SDK | `@kaizengo/sdk-solid` — ui, identity/search clients, spa-config |
 | Localization | gettext `.po` catalogs, GraphQL `i18n`, RTL (`fa`) |
 | API | Composable GraphQL field registry (auth-protected) |
@@ -56,7 +56,7 @@ cd apps/core/spa && npm install && cd -
 make dev APP=clock   # Go :8080 + Vite :5173/app/ + watch one app
 ```
 
-Open **http://localhost:5173/app/** (Vite `base` is `/app/`). Sign in with `admin@kaizengo.local` / `changeme`. Use `make spa-build` once to browse every module without watchers. See [Development](docs/development.md) and [Auth](docs/auth.md).
+Open **http://localhost:5173/app/** (Vite `base` is `/app/`). Sign in with `admin@kaizengo.local` / `changeme`. Use `make spa-build` once to browse every module without watchers. See [Development](docs/development/index.md) and [Auth](docs/auth.md).
 
 
 ## Documentation
@@ -66,12 +66,11 @@ Open **http://localhost:5173/app/** (Vite `base` is `/app/`). Sign in with `admi
 | [Docs index](docs/index.md) | Overview and tutorial |
 | [Tutorial](docs/tutorial/index.md) | Build a spec-driven Kaizen app |
 | [Installation](docs/installation.md) | Prerequisites, clone, build |
-| [Development](docs/development.md) | `make` targets, ports, workflow |
+| [Development](docs/development/index.md) | Workflow, platform APIs, Go/Solid SDK |
+| [Reference](docs/internals/index.md) | Internals, Go SDK, Solid SDK |
 | [Auth & identity](docs/auth.md) | Sessions, identity app, permissions |
 | [Apps system](docs/apps.md) | Architecture and app lifecycle |
-| [Platform](docs/platform.md) | Kernel APIs — time, i18n, config |
 | [CLI](docs/cli.md) | `kaizengo new-app` bootstrapper |
-| [Solid apps](docs/solid.md) | ESM modules and `@kaizengo/sdk-solid/ui` |
 | [GraphQL](docs/graphql.md) | Runtime field registry and queries |
 | [Whitepaper (v1)](whitepaper_v1.md) | Vision, problem space, and platform design |
 
@@ -82,14 +81,14 @@ Open **http://localhost:5173/app/** (Vite `base` is `/app/`). Sign in with `admi
 cd apps/notes/spa && npm install && npm run build
 ```
 
-Details: [CLI](docs/cli.md) · [Apps system](docs/apps.md) · [Solid apps](docs/solid.md)
+Details: [CLI](docs/cli.md) · [Apps system](docs/apps.md) · [Solid SDK](docs/internals/solid-sdk.md)
 
 ## Project layout
 
 ```text
 apps/           # Registered apps (core shell, identity, clock, …)
 packages/
-  sdk-go/       # Go app SDK (engine, appspec, extension, events)
+  sdk-go/       # Go app SDK contracts (appspec, acl, i18n, views)
   sdk-solid/   # Solid SDK (@kaizengo/sdk-solid) — ui, search, spa-config
 cmd/            # server and kaizengo CLI entrypoints
 docs/           # Developer guides

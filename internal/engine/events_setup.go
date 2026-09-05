@@ -8,9 +8,9 @@ import (
 	"kaizengo/internal/module"
 	"kaizengo/internal/platform/postgres"
 	"kaizengo/internal/platform/search"
-	"kaizengo/packages/sdk-go/app"
+	"kaizengo/internal/app"
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/packages/sdk-go/events/pgstore"
+	"kaizengo/internal/events/pgstore"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

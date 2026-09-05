@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/app"
+	"kaizengo/internal/app"
 )
 
 // KeymapBinding is one shortcut exposed to the SPA.

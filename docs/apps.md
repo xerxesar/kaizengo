@@ -3,7 +3,7 @@
 kaizengo is organized as a **platform kernel** plus **apps** (products):
 
 - **Platform** (`internal/platform`, `internal/auth`) — shared features and extension points (time calendars, i18n, sessions, …). Drivers blank-import to register.
-- **Apps** (`apps/*`) — loadable products that *use* the platform. Customize by forking an app, not by patching another app (see [platform.md](platform.md)).
+- **Apps** (`apps/*`) — loadable products that *use* the platform. Customize by forking an app, not by patching another app (see [Platform APIs](development/platform.md)).
 
 ## Concepts
 
@@ -22,9 +22,9 @@ kaizengo is organized as a **platform kernel** plus **apps** (products):
 | `settings` | Locale, default calendar, shell title |
 
 Bundled apps include **appman**, **hellospec**, **inventory**, **settings**, **typesense**, and **audit**. See [auth.md](auth.md) for identity and permissions.
-For the event-sourced module convention, see [sdk.md](sdk.md).
+For the event-sourced module convention, see [Go SDK](internals/go-sdk.md).
 
-Every app has an **`app.yaml`** manifest (name, depends, nav, locales, models). Apps using **`packages/sdk-go/engine`** (`hellospec`, `status`, `identity`, `auth`) are spec-driven; others load the spec for manifest/nav and keep custom `Setup` code.
+Every app has an **`app.yaml`** manifest (name, depends, nav, locales, models). Apps using **`internal/engine`** (`hellospec`, `status`, `identity`, `auth`) are spec-driven; others load the spec for manifest/nav and keep custom `Setup` code.
 
 ```text
 apps/<name>/
@@ -72,7 +72,7 @@ The core SPA (after login):
 1. `GET /api/apps` → nav catalog (requires session; see [auth.md](auth.md))
 2. On route change → resolve menu view → render matching `apps/<app>/views/<View>.tsx`
 
-All views compile into the single central SPA at `apps/core/spa`. See [solid.md](solid.md).
+All views compile into the single central SPA at `apps/core/spa`. See [Solid SDK](internals/solid-sdk.md).
 
 ## Creating an app without touching core
 

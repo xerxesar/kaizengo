@@ -2,7 +2,7 @@
 
 YAML covers fields, validation, and CRUD. Use Go hooks when a rule cannot be declared — normalize input, reject a value, or block a delete.
 
-To hide a model’s write API from GraphQL (and any other external caller) without a protect hook, set `internal: true` on the model spec. In-process posting still writes with `engine.WithInternal(ctx)`. See [SDK models](../sdk.md).
+To hide a model’s write API from GraphQL (and any other external caller) without a protect hook, set `internal: true` on the model spec. In-process posting still writes with `engine.WithInternal(ctx)`. See [Go SDK → models](../internals/go-sdk.md).
 
 ## Register
 
@@ -46,7 +46,7 @@ package todo
 import (
 	"strings"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func taskHooks() engine.Hooks {

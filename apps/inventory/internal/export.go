@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 // Registry is the event-sourced model store, set during app Setup.

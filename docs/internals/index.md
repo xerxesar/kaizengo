@@ -1,36 +1,111 @@
-# Internals & SDKs
+# Internals
 
-How KaizenGo boots, how apps plug in, and which SDK packages you call from Go and Svelte.
+How KaizenGo’s host and SDKs are structured and how data moves through the process. Trees, lifecycles, and data-flow maps for the host.
 
-For shipping an app step-by-step, use the [tutorial](../tutorial/index.md). For exhaustive field/hook catalogs, see [SDK architecture](../sdk.md).
+SDK usage recipes: [Go SDK](go-sdk.md) · [Solid SDK](solid-sdk.md). Day-to-day workflow: [Development](../development/index.md).
+
+| Guide | Contents |
+|-------|----------|
+| [This page](index.md) | Layer map, project tree, boot & load lifecycle, mutation & UI data flows |
+| [Go SDK](go-sdk.md) | Engine, hooks runtime, events/projections, extension dispatch, package map |
+| [Solid SDK](solid-sdk.md) | View registry, Vite aliases, model-client ↔ GraphQL naming |
 
 ## Layer map
 
 ```text
 cmd/server          → process entry, Host, Load, HTTP listen
 internal/module     → App interface, registry, Host bag, GraphQL registry
+internal/engine     → app.yaml → CRUD, GQL, hooks, install manager
+internal/extension  → global lifecycle handlers, exports/extends
+internal/events     → event store + projections (+ pgstore)
 internal/platform   → i18n, time, config, postgres, search
 internal/auth       → session middleware / principal
-packages/sdk-go     → engine, appspec, events, extension, gql guards
-packages/sdk-solid → UI kit, model client, identity/search clients
+packages/sdk-go     → appspec, acl, i18n, views, codegen (portable contracts)
+packages/sdk-solid  → UI kit, model client, identity/search clients
 apps/<name>         → app.yaml + module.go + views + migrations
 ```
 
 | Layer | Owns | Must not own |
 |-------|------|--------------|
-| `internal/` | Kernel, lifecycle, middleware | Per-app business rules |
-| `packages/sdk-go` | Spec → CRUD/GQL/events, ACL enforcement | App-specific schemas |
+| `internal/` | Kernel, engine, lifecycle, middleware | Per-app business rules |
+| `packages/sdk-go` | Spec/ACL/i18n contracts for apps | Host wiring / process kernel |
 | `packages/sdk-solid` | Shared UI + GraphQL clients | Product screens |
 | `apps/` | Spec, hooks, views, migrations | Platform kernel forks |
 
-## Boot sequence
+→ Calling these from app code: [Development](../development/index.md)
+
+## Project tree
+
+```text
+kaizengo/
+  cmd/
+    server/           # HTTP process: Host, Postgres, auth middleware, Load
+    godino/           # codegen (types, .pot)
+    kaizengo/         # CLI scaffold
+  internal/
+    module/           # Register, Host, Load, GQL registry, nav
+    engine/           # Options/New, SetupEvents, modelService, Manager
+    app/              # locales, installed-apps store, nav helpers
+    extension/        # Register / Run / ApplyExports|Extends
+    events/           # Store interfaces
+    events/pgstore/   # Postgres event store
+    projection/       # runners + read-model sinks
+    gql/              # RequireAction / RequirePrincipal
+    auth/             # session cookie → Principal
+    platform/         # postgres, i18n, time, search, config, drivers
+  packages/
+    sdk-go/
+      appspec/        # YAML load + validate
+      acl/            # evaluate / match / Authorizer
+      i18n/           # facade over platform catalogs
+      views/          # menu/view DTOs
+      codegen/        # godino helpers
+    sdk-solid/
+      ui/             # KTable, KForm, t(), model-client
+      identity/       # UserPicker, fetchUsers
+      search/         # SearchBar
+      spa-config/     # shared Vite
+  apps/
+    apps.go           # blank-imports every bundled app
+    <name>/
+      app.yaml
+      module.go
+      models/         # optional spec.yaml + hooks.go
+      views/          # *.page.tsx
+      migrations/
+      locale/
+```
+
+## Boot and load lifecycle
+
+```mermaid
+sequenceDiagram
+  participant Main as cmd/server
+  participant Reg as module.Registry
+  participant Host as module.Host
+  participant Eng as engine.Manager
+  participant App as module.App
+
+  Main->>Reg: blank-import apps (init Register)
+  Main->>Host: NewHost + postgres.Attach
+  Main->>Eng: NewManager + Wanted(KaizenGo_APPS)
+  Main->>Host: module.Load(wanted)
+  Note over Host,App: capability check, ApplyExports/Extends
+  loop dependency order
+    Host->>App: Setup
+  end
+  loop dependency order
+    Host->>App: Mount
+  end
+  Host->>Host: OnStart hooks
+```
 
 `cmd/server/main.go` wires the host, then loads apps:
 
 1. Blank-import `kaizengo/apps` so every bundled app’s `init()` runs `module.Register`
 2. Create `module.Host` (router + service bag + GraphQL registry)
 3. Connect Postgres and attach it to the host
-4. Install session middleware (looks up `auth` service at request time)
+4. Install session middleware (looks up `auth` at request time)
 5. Resolve **wanted** apps (`KaizenGo_APPS` or installed + `autoInstall`)
 6. `module.Load` — capability check → Setup (dep order) → Mount (dep order)
 
@@ -46,19 +121,7 @@ if err := module.Load(host, module.Default, wanted); err != nil {
 }
 ```
 
-Apps register themselves via blank imports in `apps/apps.go`:
-
-```go
-import (
-	_ "kaizengo/apps/core"
-	_ "kaizengo/apps/hellospec"
-	// …
-)
-```
-
 ### `module.App` contract
-
-Every loadable package implements:
 
 ```go
 type App interface {
@@ -68,16 +131,7 @@ type App interface {
 }
 ```
 
-`Load` resolves dependency order, validates `provides` / `uses`, applies cross-app `exports` / `extends`, then runs Setup for all apps before any Mount:
-
-```go
-for _, a := range apps {
-	if err := a.Setup(host); err != nil { /* … */ }
-}
-for _, a := range apps {
-	if err := a.Mount(host); err != nil { /* … */ }
-}
-```
+`Load` resolves dependency order, validates `provides` / `uses`, applies cross-app `exports` / `extends`, then runs **all** Setup before any Mount.
 
 ### Host bag
 
@@ -86,109 +140,75 @@ Apps share services through `Provide` / `Lookup` — they do not import each oth
 ```go
 host.Provide("my.service", svc)
 raw, ok := host.Lookup("my.service")
-
 host.GQL.RegisterQuery("myField", &graphql.Field{ /* … */ })
 host.RegisterNav(module.NavEntry{ID: "demo", Route: "demo"})
 ```
 
-## Spec → runtime (engine)
+→ Writing a one-liner app: [Development → Go](go-sdk.md)
 
-Most apps are one line of Go plus YAML. `engine.New` loads `apps/<name>/app.yaml` and wires locales, nav, event-sourced models, and GraphQL:
+## Mutation data flow
 
-```go
-// apps/hellospec/module.go
-func init() {
-	app := engine.New(engine.Options{
-		AppName: "hellospec",
-		Version: "0.3.0",
-	})
-	module.Register(app.Hooks("greeting", greetingHooks()))
-}
+When GraphQL calls `createHellospecGreeting` (or any engine model mutation):
+
+```mermaid
+flowchart TD
+  GQL[GraphQL model field] --> Norm[normalize fields]
+  Norm --> AppBefore[app Before* hooks]
+  AppBefore --> ExtBefore[extension Before*]
+  ExtBefore --> Val[appspec validate]
+  Val --> Append[event store Append]
+  Append --> Proj[project read model]
+  Proj --> AppAfter[app After* hooks]
+  AppAfter --> ExtAfter[extension After*]
 ```
 
-During `Setup`, the engine:
+```text
+normalize → app Before* → extension Before*
+→ validate → append event → project read model
+→ app After* → extension After*
+```
 
-1. Loads the appspec
+ACL for model CRUD is enforced inside `modelService` (`packages/sdk-go/acl` via the `permissions` host service). Details: [Go host](go-sdk.md) · [ACL](../acl.md).
+
+→ Authoring hooks: [Development → Go → lifecycle hooks](go-sdk.md#lifecycle-hooks)
+
+## Spec → runtime (engine Setup)
+
+`engine.New` returns a `module.App`. During `Setup` it:
+
+1. Loads the appspec (`apps/<name>/app.yaml`)
 2. Loads `.po` catalogs and registers shell nav
 3. Opens the shared Postgres pool and event store (`SetupEvents`)
 4. Registers CRUD GraphQL + `{app}Views` / `{app}Menus`
 5. Provides the model registry on the host (`ModelsKey(appName)`)
 
-```go
-func (a *App) Setup(host *module.Host) error {
-	spec, err := a.loadSpec()
-	// …
-	events, err := SetupEvents(host, a.opts.AppName, spec, a.opts.Hooks)
-	host.Provide(ModelsKey(a.opts.AppName), events.Models)
-	host.Provide(a.opts.AppName, a)
-	return nil
-}
+## Frontend data flow
+
+```mermaid
+flowchart LR
+  Menu["{app}Menus GraphQL"] --> Shell[core shell]
+  Shell --> Key["resolve app.ViewName"]
+  Key --> Reg[Vite import.meta.glob registry]
+  Reg --> Page["apps/.../views/X.page.tsx"]
+  Page --> Client[model-client / KTable]
+  Client --> GQL["/graphql CRUD fields"]
 ```
 
-Write path for a model mutation:
+There is **one** shell SPA (`apps/core/spa`). Pages under `apps/<name>/views/*.page.tsx` are discovered at build time and keyed as `{app}.{ViewName}`.
 
-```text
-normalize → app Before* hooks → extension Before*
-→ validate → append event → project read model
-→ app After* hooks → extension After*
-```
+→ Writing pages: [Development → Solid](solid-sdk.md) · registry details: [Solid shell](solid-sdk.md)
 
-## Frontend path
+## Worked map: hellospec
 
-There is **one** shell SPA (`apps/core/spa`). App pages live under `apps/<name>/views/*.page.tsx` and are discovered at build time:
+| File | Role in the flows above |
+|------|-------------------------|
+| `apps/hellospec/app.yaml` | Spec → engine Setup |
+| `apps/hellospec/module.go` | `engine.New` + `module.Register` |
+| `apps/hellospec/hooks.go` | App Before*/After* on the mutation path |
+| `apps/hellospec/views/*.page.tsx` | Shell registry → UI |
+| `apps/hellospec/migrations/` | Event store + `greetings_read` projection target |
 
-```ts
-// apps/core/spa/src/lib/views/registry.ts
-const appViewModules = import.meta.glob<ViewModule>(
-  '../../../../../*/views/**/*.tsx',
-  { eager: true },
-)
-// maps "hellospec.GreetingList" → component
-```
+## Related reference
 
-Menus from GraphQL (`{app}Menus`) pick a leaf `view`; the shell resolves `{app}.{view}` and mounts it. Shared UI and GraphQL helpers come from `@kaizengo/sdk-solid/*`.
-
-## Package index
-
-| Package | Import | Docs |
-|---------|--------|------|
-| Engine | `kaizengo/packages/sdk-go/engine` | [Go SDK](go-sdk.md) |
-| Appspec | `kaizengo/packages/sdk-go/appspec` | [Go SDK](go-sdk.md) |
-| Events / projection | `…/events`, `…/projection` | [Go SDK](go-sdk.md) |
-| Extension points | `…/extension` | [Go SDK](go-sdk.md), [extension platform](../extension-platform.md) |
-| GQL guards | `…/gql` | [Go SDK](go-sdk.md), [GraphQL](../graphql.md) |
-| UI + model client | `@kaizengo/sdk-solid/ui` | [Solid SDK](solid-sdk.md) |
-| Identity client | `@kaizengo/sdk-solid/identity` | [Solid SDK](solid-sdk.md) |
-| Search client | `@kaizengo/sdk-solid/search` | [Solid SDK](solid-sdk.md) |
-
-## Worked example: hellospec
-
-| File | Role |
-|------|------|
-| `apps/hellospec/app.yaml` | Model `greeting`, menus, search fields |
-| `apps/hellospec/module.go` | `engine.New` + hooks registration |
-| `apps/hellospec/hooks.go` | Trim, prefix, protect deletes |
-| `apps/hellospec/views/GreetingList.page.tsx` | `<KTable model="hellospec.greeting" />` |
-| `apps/hellospec/views/GreetingForm.page.tsx` | `<KForm>` + `<KFormField>` |
-| `apps/hellospec/migrations/` | Event store + `greetings_read` |
-
-List page (entire UI for the menu leaf):
-
-```svelte
-<script lang="ts">
-  import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
-</script>
-
-<KTable model="hellospec.greeting" emptyMessage={t('hellospec.empty')} />
-<KAppStatus />
-```
-
-`KTable` / `KForm` call the engine GraphQL naming convention (`hellospecGreetings`, `createHellospecGreeting`, …) via `model-client.ts` — you rarely hand-write those queries.
-
-## Next
-
-- [Go SDK](go-sdk.md) — packages, hooks, events, extensions
-- [Solid SDK](solid-sdk.md) — UI, clients, Vite aliases
-- [ACL system](../acl.md) — policies, resource ids, enforcement
-- [Apps system](../apps.md) — install / load / Host details
-- [Platform](../platform.md) — i18n, calendars, config
+- [Apps system](../apps.md) — install / upgrade / Host details
+- [Auth](../auth.md) · [ACL](../acl.md) · [GraphQL](../graphql.md) · [Capabilities](../capabilities.md)

@@ -231,7 +231,7 @@ const eventSourcedModuleGoTmpl = `package {{.Pkg}}
 
 import (
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func init() {
@@ -248,7 +248,7 @@ const eventSourcedHooksGoTmpl = `package {{.Pkg}}
 import (
 	"strings"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func itemHooks() engine.Hooks {
@@ -353,8 +353,8 @@ import (
 	"log/slog"
 
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/app"
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/app"
+	"kaizengo/internal/extension"
 )
 
 const appName = "{{.Name}}"

@@ -17,9 +17,15 @@ apps/<name>/
   migrations/    # Postgres event store + read models
 ```
 
-The engine turns `app.yaml` into event-sourced CRUD, GraphQL, nav, and [ACL checks](acl.md). You write YAML first; Go and Svelte only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
+The engine turns `app.yaml` into event-sourced CRUD, GraphQL, nav, and [ACL checks](acl.md). You write YAML first; Go and Solid only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
 
-To see how the host boots and which packages to import, read [Internals & SDKs](internals/index.md) — boot flow, `packages/sdk-go`, and `@kaizengo/sdk-solid` with code examples from `hellospec`.
+## Docs map
+
+| Section | Purpose |
+|---------|---------|
+| [Tutorial](tutorial/index.md) | Build your first app step by step |
+| [Development](development/index.md) | Workflow, platform APIs, auth, ACL, GraphQL, apps |
+| [Reference](internals/index.md) | Internals, Go SDK, Solid SDK |
 
 ## Preview this site
 

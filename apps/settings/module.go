@@ -8,9 +8,9 @@ import (
 	"kaizengo/internal/module"
 	"kaizengo/internal/platform/config"
 	ptime "kaizengo/internal/platform/time"
-	"kaizengo/packages/sdk-go/app"
-	"kaizengo/packages/sdk-go/engine"
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/app"
+	"kaizengo/internal/engine"
+	"kaizengo/internal/extension"
 	"kaizengo/packages/sdk-go/i18n"
 	"kaizengo/packages/sdk-go/views"
 

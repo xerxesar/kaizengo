@@ -11,7 +11,7 @@ import (
 
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/packages/sdk-go/events/pgstore"
+	"kaizengo/internal/events/pgstore"
 )
 
 // ApplyMigrationsFromDir loads apps/<appName>/migrations/*.sql in sorted order

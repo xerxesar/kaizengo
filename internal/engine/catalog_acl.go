@@ -6,7 +6,7 @@ import (
 	"kaizengo/internal/auth"
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
-	sdkgql "kaizengo/packages/sdk-go/gql"
+	sdkgql "kaizengo/internal/gql"
 	"kaizengo/packages/sdk-go/views"
 )
 

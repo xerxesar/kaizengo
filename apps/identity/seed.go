@@ -8,7 +8,7 @@ import (
 
 	idtypes "kaizengo/apps/identity/__types__"
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 
 	"github.com/google/uuid"
 )

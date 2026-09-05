@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 	"kaizengo/packages/sdk-go/i18n"
 )
 

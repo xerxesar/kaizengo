@@ -11,8 +11,8 @@ import (
 	"kaizengo/internal/module"
 	i18ngql "kaizengo/internal/platform/i18n/gql"
 	searchgql "kaizengo/internal/platform/search/gql"
-	"kaizengo/packages/sdk-go/app"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/app"
+	"kaizengo/internal/engine"
 
 	"github.com/go-chi/chi/v5"
 )

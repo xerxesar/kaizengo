@@ -155,5 +155,6 @@ Implementation: `sdk/appspec.ValidateLoadedCapabilities`.
 
 - [auth.md](auth.md) — sessions and identity
 - [acl.md](acl.md) — unified ACL policies and enforcement
-- [sdk.md](sdk.md) — extension points and engine hooks
+- [Go SDK](internals/go-sdk.md) — extension points and engine hooks
 - [extension-platform.md](extension-platform.md) — full extension platform design
+- [Go SDK](internals/go-sdk.md) — extension dispatch

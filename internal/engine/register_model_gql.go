@@ -4,7 +4,7 @@ import (
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/appspec"
-	sdkgql "kaizengo/packages/sdk-go/gql"
+	sdkgql "kaizengo/internal/gql"
 	"kaizengo/packages/sdk-go/views"
 
 	"github.com/graphql-go/graphql"

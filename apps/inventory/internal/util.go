@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func withInternal(ctx context.Context) context.Context {

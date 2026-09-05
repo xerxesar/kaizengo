@@ -32,7 +32,7 @@ Compare with `apps/hellospec/` — same shape, different names.
 | Spec | Runtime |
 |------|---------|
 | `models` | Event-sourced CRUD, GraphQL, `{app}Views` list/form metadata (`internal: true` keeps writes in-process) |
-| pages (`views/*.page.tsx`) | Svelte screens menus mount |
+| pages (`views/*.page.tsx`) | Solid screens menus mount |
 | `nav` | Entry in the shell Apps menu |
 | `menus` | In-app menu tree (`todoMenus`) |
 | `locales` | Loaded `.po` catalogs |

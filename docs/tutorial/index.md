@@ -1,6 +1,6 @@
 # Develop a Kaizen app
 
-This tutorial takes you from a running platform to a working app: a **Todo** module with a `task` model, list and form views, and a small Go hook. An optional advanced section then adds a service on the model registry and a custom Svelte page.
+This tutorial takes you from a running platform to a working app: a **Todo** module with a `task` model, list and form views, and a small Go hook. An optional advanced section then adds a service on the model registry and a custom Solid page.
 
 You will:
 
@@ -18,10 +18,10 @@ Expected time: about 30 minutes for the spec path, plus 20 minutes for advanced.
 | Tool | Why |
 |------|-----|
 | Go 1.22+ | Server and `kaizengo` CLI |
-| Node.js 20+ | Core Svelte shell |
+| Node.js 20+ | Core Solid shell |
 | Docker | Local Postgres (`make db-up`) |
 
-You should be comfortable editing Go, YAML, and a little Svelte. You do not need to know GraphQL by heart — the engine generates CRUD from the spec.
+You should be comfortable editing Go, YAML, and a little Solid. You do not need to know GraphQL by heart — the engine generates CRUD from the spec.
 
 ## What you will not do (on the spec path)
 
@@ -29,7 +29,7 @@ You should be comfortable editing Go, YAML, and a little Svelte. You do not need
 - Hand-write GraphQL resolvers for ordinary CRUD
 - Stand up a private database pool
 
-Those are the usual ways to fight the platform. Pages 1–4 stay on the spec/engine path used by `hellospec` and `identity`. [Advanced](advanced/index.md) is where you *do* write extra Go and Svelte — still using the shared pool and `ModelRegistry`, not a private ORM.
+Those are the usual ways to fight the platform. Pages 1–4 stay on the spec/engine path used by `hellospec` and `identity`. [Advanced](advanced/index.md) is where you *do* write extra Go and Solid — still using the shared pool and `ModelRegistry`, not a private ORM.
 
 ## Path
 

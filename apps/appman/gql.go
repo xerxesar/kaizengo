@@ -3,8 +3,8 @@ package appman
 import (
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
-	"kaizengo/packages/sdk-go/engine"
-	sdkgql "kaizengo/packages/sdk-go/gql"
+	"kaizengo/internal/engine"
+	sdkgql "kaizengo/internal/gql"
 
 	"github.com/graphql-go/graphql"
 )

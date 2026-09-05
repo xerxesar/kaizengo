@@ -6,6 +6,7 @@ repo_url = "https://github.com/xerxesar/kaizengo"
 docs_dir = "docs"
 site_dir = "site"
 copyright = "KaizenGo"
+extra_css = ["stylesheets/fonts.css"]
 
 nav = [
   { "Home" = "index.md" },
@@ -22,23 +23,33 @@ nav = [
     ] },
     "tutorial/whats-next.md",
   ] },
-  { "Internals & SDKs" = [
+  { "Development" = [
+    "development/index.md",
+    { "Workflow" = "development/workflow.md" },
+    { "Platform APIs" = "development/platform.md" },
+    "auth.md",
+    "acl.md",
+    "capabilities.md",
+    "graphql.md",
+    "apps.md",
+    "cli.md",
+    "installation.md",
+    "extension-platform.md",
+  ] },
+  { "Reference" = [
     "internals/index.md",
     { "Go SDK" = "internals/go-sdk.md" },
     { "Solid SDK" = "internals/solid-sdk.md" },
   ] },
-  { "Platform" = [
-    "auth.md",
-    "acl.md",
-    "capabilities.md",
-    "platform.md",
-    "graphql.md",
-    "apps.md",
-    "sdk.md",
-  ] },
 ]
 
 [project.theme]
+custom_dir = "overrides"
+# Disable Google Fonts CDN; self-hosted faces live in stylesheets/fonts.css.
+font = false
+logo = "assets/icon-mono.png"
+favicon = "assets/icon.png"
+
 features = [
   "navigation.sections",
   "navigation.indexes",

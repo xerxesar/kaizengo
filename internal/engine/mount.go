@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/app"
+	"kaizengo/internal/app"
 	"kaizengo/packages/sdk-go/appspec"
 )
 
