@@ -44,7 +44,7 @@ nav = [
 ]
 
 [project.theme]
-custom_dir = "overrides"
+custom_dir = "./docs/overrides"
 # Disable Google Fonts CDN; self-hosted faces live in stylesheets/fonts.css.
 font = false
 logo = "assets/icon-mono.png"
