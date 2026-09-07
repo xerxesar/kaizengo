@@ -135,6 +135,7 @@ Cross-app addons register on global extension points instead of patching product
 
 - Design: [extension-platform.md](../extension-platform.md)
 - Capability catalog: [capabilities.md](../capabilities.md)
+- Out-of-process providers: [grpc-plugins.md](../grpc-plugins.md)
 - Usage API: [Go SDK → extension points](../internals/go-sdk.md#global-extension-points)
 - Dispatch internals: [Go SDK → extension points](../internals/go-sdk.md#global-extension-points)
 

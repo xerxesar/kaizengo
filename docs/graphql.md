@@ -4,6 +4,8 @@
 
 GraphQL is a **runtime registry** on `host.GQL`. Apps register fields in `Setup`. Core mounts a single `/graphql` handler after all apps have set up — **core does not import other apps**.
 
+This is the **north–south** API (browser / Solid SDK). Cross-app or out-of-process capability calls are a separate lane — planned as gRPC via go-plugin; see [grpc-plugins.md](grpc-plugins.md). Do not use GraphQL as the east–west protocol between services.
+
 ```go
 // in your app Setup — do not edit apps/core for this
 host.GQL.RegisterQuery("myField", &graphql.Field{
@@ -124,3 +126,9 @@ Keep mutable state in your app package, `Provide` it on the host if other apps n
 KaizenGo_APPS=core,identity ./bin/server
 # { counter } → Cannot query field "counter"
 ```
+
+## Related
+
+- [grpc-plugins.md](grpc-plugins.md) — east–west capabilities (go-plugin + gRPC)
+- [capabilities.md](capabilities.md) — `provides` / `uses`
+- [extension-platform.md](extension-platform.md) — hooks and composition

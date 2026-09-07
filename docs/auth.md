@@ -111,7 +111,7 @@ Demo seed includes **Acme Mining Corp** and a small org tree for UI exploration.
 | Piece | Detail |
 |-------|--------|
 | Evaluator | `packages/sdk-go/acl` |
-| Policy store | models `role`, `user_role`, `acl_entry` (event-sourced) |
+| Policy store | models `role`, `user_role`, `acl_entry` |
 | Host name | `permissions` (implements `acl.Authorizer`) |
 | Postgres | schema `permissions` (`KaizenGo_PERMISSIONS_SCHEMA`) |
 | API | `Can`, `CanCatalog`, `MustAllow`, `ListDomain`, `DeniedFields`, `Roles`, `AssignRole`, `EnsureRole`, `EnsureEntry`, `SeedDefaults` |
@@ -123,7 +123,7 @@ Identity supplies subjects and org context; auth proves identity; permissions ev
 
 | Variable | Meaning |
 |----------|---------|
-| `KaizenGo_POSTGRES_DSN` | PostgreSQL DSN (required for identity, auth, permissions, and event-sourced apps) |
+| `KaizenGo_POSTGRES_DSN` | PostgreSQL DSN (required for identity, auth, permissions, and model-backed apps) |
 | `KaizenGo_IDENTITY_SCHEMA` | Identity schema (default `identity`) |
 | `KaizenGo_AUTH_SCHEMA` | Auth schema (default `auth`) |
 | `KaizenGo_PERMISSIONS_SCHEMA` | Permissions schema (default `permissions`) |

@@ -11,12 +11,11 @@ import (
 
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/internal/events/pgstore"
 )
 
 // ApplyMigrationsFromDir loads apps/<appName>/migrations/*.sql in sorted order
 // and applies any that have not been recorded in schema_migrations.
-func ApplyMigrationsFromDir(ctx context.Context, store *pgstore.Store, appName, schema string) error {
+func ApplyMigrationsFromDir(ctx context.Context, store *SchemaStore, appName, schema string) error {
 	dir := filepath.Join("apps", appName, "migrations")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -51,7 +50,7 @@ func ApplyMigrationsFromDir(ctx context.Context, store *pgstore.Store, appName, 
 // ApplyMigrationsFromFS applies embedded SQL files from migrations/*.sql.
 // versionPrefix is prepended to each filename stem for schema_migrations.version
 // (e.g. "identity_" → "identity_001_init").
-func ApplyMigrationsFromFS(ctx context.Context, store *pgstore.Store, migrations fs.FS, schema, versionPrefix string) error {
+func ApplyMigrationsFromFS(ctx context.Context, store *SchemaStore, migrations fs.FS, schema, versionPrefix string) error {
 	entries, err := fs.ReadDir(migrations, "migrations")
 	if err != nil {
 		return fmt.Errorf("read migrations dir: %w", err)
@@ -87,7 +86,7 @@ func Migrate(host *module.Host, appName string) error {
 	}
 	schema := Env("KaizenGo_"+strings.ToUpper(appName)+"_SCHEMA", spec.Schema)
 	ctx := context.Background()
-	store, err := SchemaStore(ctx, host, schema)
+	store, err := SchemaStoreFromHost(ctx, host, schema)
 	if err != nil {
 		return fmt.Errorf("%s: %w", appName, err)
 	}

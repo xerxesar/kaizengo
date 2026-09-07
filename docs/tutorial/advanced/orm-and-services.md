@@ -1,6 +1,6 @@
 # ORM and services
 
-KaizenGo has no classic ORM. Spec models are event-sourced. The type you use from Go is `engine.ModelRegistry`: it appends events, runs hooks, and projects the read-model table.
+KaizenGo has no classic ORM. Spec models persist directly to SQL tables. The type you use from Go is `engine.ModelRegistry`: it runs hooks and writes the model table.
 
 ## Setup
 
@@ -195,7 +195,7 @@ Load order matters: `depends:` in `app.yaml` must list `identity` so its Setup h
 
 ## Side tables (not spec models)
 
-Sessions and password hashes are not event-sourced models. Auth keeps them as ordinary SQL on `events.Pool` + `events.Schema` (`apps/auth/store.go`). Quote schema-qualified names; do not create a second pool.
+Sessions and password hashes are not spec models. Auth keeps them as ordinary SQL on `events.Pool` + `events.Schema` (`apps/auth/store.go`). Quote schema-qualified names; do not create a second pool.
 
 Never `UPDATE todo.tasks_read` from a service. Use `Models.Update` so hooks and the event log stay consistent.
 

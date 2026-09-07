@@ -12,6 +12,7 @@ import {
 import { fetchApps, installApp, upgradeApp, type App } from '../lib/graphql'
 
 export default function Index() {
+  console.log('Index')
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal('')
   const [apps, setApps] = createSignal<App[]>([])

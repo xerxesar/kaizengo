@@ -24,9 +24,6 @@ type fileSpec struct {
 	Extensions *bool    `yaml:"extensions"`
 	Schema     string   `yaml:"schema"`
 	Resource   string   `yaml:"resource"`
-	Events     struct {
-		Enabled *bool `yaml:"enabled"`
-	} `yaml:"events"`
 	SPA         *bool        `yaml:"spa"`
 	I18n        *bool        `yaml:"i18n"`
 	AutoInstall *bool        `yaml:"autoInstall"`
@@ -42,12 +39,10 @@ type fileSpec struct {
 }
 
 type fileModel struct {
-	Name      string      `yaml:"name"`
-	Stream    string      `yaml:"stream"`
-	Aggregate string      `yaml:"aggregate"`
-	Internal  bool        `yaml:"internal"`
-	Fields    []FieldSpec `yaml:"fields"`
-	Search    *SearchSpec `yaml:"search"`
+	Name     string      `yaml:"name"`
+	Internal bool        `yaml:"internal"`
+	Fields   []FieldSpec `yaml:"fields"`
+	Search   *SearchSpec `yaml:"search"`
 }
 
 type fileLocale struct {
@@ -125,15 +120,8 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 		Schema:       raw.Schema,
 		Resource:     raw.Resource,
 		EnableAuth:   true,
-		EnableEvents: true,
 		Nav:          raw.Nav,
 		Menus:        raw.Menus,
-	}
-	if raw.Events.Enabled != nil {
-		if !*raw.Events.Enabled {
-			return AppSpec{}, fmt.Errorf("events.enabled: false is not supported; all apps are event-sourced")
-		}
-		spec.EnableEvents = true
 	}
 	if raw.Extensions != nil {
 		spec.EnableExtensions = *raw.Extensions
@@ -160,12 +148,10 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 	}
 	for _, m := range models {
 		spec.Models = append(spec.Models, ModelSpec{
-			Name:      m.Name,
-			Stream:    m.Stream,
-			Aggregate: m.Aggregate,
-			Internal:  m.Internal,
-			Fields:    m.Fields,
-			Search:    m.Search,
+			Name:     m.Name,
+			Internal: m.Internal,
+			Fields:   m.Fields,
+			Search:   m.Search,
 		})
 	}
 	if appRoot != "" {

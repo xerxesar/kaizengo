@@ -68,9 +68,9 @@ cd apps/clock/spa && npm run dev
 
 After editing a mounted app, wait for the terminal line `built in …ms` from that app's watcher before expecting UI changes.
 
-## PostgreSQL (event-sourced apps)
+## PostgreSQL
 
-Notes, Hello, and other event-sourced modules need PostgreSQL. Start a local instance with Docker:
+Apps with models need PostgreSQL. Start a local instance with Docker:
 
 ```bash
 make db-up          # starts Postgres and creates .env if missing

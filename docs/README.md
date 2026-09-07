@@ -23,6 +23,7 @@ Start with **Tutorial → Develop a Kaizen app**.
 | [Apps system](apps.md) | Architecture, lifecycle, registering apps |
 | [Capabilities](capabilities.md) | `provides` / `uses` contracts and identity SDK |
 | [Extension platform plan](extension-platform.md) | Capabilities, global hooks, SDK components — roadmap |
+| [gRPC plugins](grpc-plugins.md) | East–west capabilities via hashicorp/go-plugin + gRPC |
 | [CLI](cli.md) | `kaizengo new-app` bootstrapper |
 | [GraphQL](graphql.md) | Runtime field registry, auth-aware clients |
 

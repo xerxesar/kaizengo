@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,8 +10,6 @@ import (
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/internal/events"
-	"kaizengo/internal/events/pgstore"
 	"kaizengo/packages/sdk-go/i18n"
 
 	"github.com/google/uuid"
@@ -24,11 +21,10 @@ var (
 	errRequired = errors.New("required field missing")
 )
 
-// Record is a projected document for a declarative model.
+// Record is a persisted document for a declarative model.
 type Record map[string]any
 
 type modelService struct {
-	store    *pgstore.Store
 	pool     *pgxpool.Pool
 	schema   string
 	spec     appspec.AppSpec
@@ -38,10 +34,9 @@ type modelService struct {
 	host     *module.Host
 }
 
-func newModelService(store *pgstore.Store, spec appspec.AppSpec, model appspec.ModelSpec, registry *HookRegistry) *modelService {
+func newModelService(pool *pgxpool.Pool, spec appspec.AppSpec, model appspec.ModelSpec, registry *HookRegistry) *modelService {
 	return &modelService{
-		store:  store,
-		pool:   store.Pool(),
+		pool:   pool,
 		schema: spec.Schema,
 		spec:   spec,
 		model:  model,
@@ -188,14 +183,7 @@ func (s *modelService) Create(ctx context.Context, orgID, authorID string, field
 		return nil, err
 	}
 
-	evs, err := s.store.Append(ctx, id, s.model.Stream, 0, events.NewEvent{
-		Type:    eventCreated(s.spec, s.model),
-		Payload: hc.Fields,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if err := s.project(ctx, evs...); err != nil {
+	if err := s.insertRecord(ctx, hc.Fields); err != nil {
 		return nil, err
 	}
 	// Load without ACL mask for hooks; mask on return for external callers.
@@ -260,18 +248,7 @@ func (s *modelService) Update(ctx context.Context, orgID, id string, fields map[
 		return nil, err
 	}
 
-	agg, err := s.loadVersion(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	evs, err := s.store.Append(ctx, id, s.model.Stream, agg, events.NewEvent{
-		Type:    eventUpdated(s.spec, s.model),
-		Payload: hc.Fields,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if err := s.project(ctx, evs...); err != nil {
+	if err := s.updateRecord(ctx, id, hc.Fields); err != nil {
 		return nil, err
 	}
 	updated, err := s.getRaw(ctx, id)
@@ -318,18 +295,7 @@ func (s *modelService) Delete(ctx context.Context, orgID, id string) error {
 		return err
 	}
 
-	agg, err := s.loadVersion(ctx, id)
-	if err != nil {
-		return err
-	}
-	evs, err := s.store.Append(ctx, id, s.model.Stream, agg, events.NewEvent{
-		Type:    eventDeleted(s.spec, s.model),
-		Payload: map[string]any{},
-	})
-	if err != nil {
-		return err
-	}
-	if err := s.project(ctx, evs...); err != nil {
+	if err := s.softDeleteRecord(ctx, id); err != nil {
 		return err
 	}
 	_ = s.runHook(s.hooks.AfterDelete, hc)
@@ -418,85 +384,57 @@ func enumContains(values []string, want string) bool {
 	return false
 }
 
-func (s *modelService) loadVersion(ctx context.Context, id string) (int64, error) {
-	evs, err := s.store.LoadStream(ctx, id)
-	if err != nil {
-		if errors.Is(err, events.ErrNotFound) {
-			return 0, errNotFound
+func (s *modelService) insertRecord(ctx context.Context, p map[string]any) error {
+	now := time.Now().UTC()
+	cols := []string{"id", "org_id", "author_id", "deleted", "created_at", "updated_at"}
+	args := []any{str(p["id"]), str(p["orgId"]), str(p["authorId"]), false, now, now}
+	for _, f := range s.model.Fields {
+		if !f.Stored() {
+			continue
 		}
-		return 0, err
+		cols = append(cols, colName(f.Name))
+		args = append(args, projectValue(f, p[f.Name]))
 	}
-	if len(evs) == 0 {
-		return 0, errNotFound
+	placeholders := make([]string, len(args))
+	for i := range args {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
 	}
-	return evs[len(evs)-1].Version, nil
+	setters := []string{"updated_at = excluded.updated_at", "deleted = excluded.deleted"}
+	for _, f := range s.model.Fields {
+		if !f.Stored() {
+			continue
+		}
+		setters = append(setters, fmt.Sprintf("%s = excluded.%s", quoteIdent(colName(f.Name)), quoteIdent(colName(f.Name))))
+	}
+	_, err := s.pool.Exec(ctx, fmt.Sprintf(`
+		INSERT INTO %s (%s) VALUES (%s)
+		ON CONFLICT(id) DO UPDATE SET %s
+	`, s.qtable(), joinIdents(cols), strings.Join(placeholders, ","), strings.Join(setters, ", ")), args...)
+	return err
 }
 
-func (s *modelService) project(ctx context.Context, evs ...events.Event) error {
-	for _, ev := range evs {
-		switch ev.Type {
-		case eventCreated(s.spec, s.model):
-			var p map[string]any
-			if err := json.Unmarshal(ev.Payload, &p); err != nil {
-				return err
-			}
-			cols := []string{"id", "org_id", "author_id", "deleted", "created_at", "updated_at"}
-			args := []any{str(p["id"]), str(p["orgId"]), str(p["authorId"]), false, ev.OccurredAt, ev.OccurredAt}
-			for _, f := range s.model.Fields {
-				if !f.Stored() {
-					continue
-				}
-				cols = append(cols, colName(f.Name))
-				args = append(args, projectValue(f, p[f.Name]))
-			}
-			placeholders := make([]string, len(args))
-			for i := range args {
-				placeholders[i] = fmt.Sprintf("$%d", i+1)
-			}
-			setters := []string{"updated_at = excluded.updated_at"}
-			for _, f := range s.model.Fields {
-				if !f.Stored() {
-					continue
-				}
-				setters = append(setters, fmt.Sprintf("%s = excluded.%s", quoteIdent(colName(f.Name)), quoteIdent(colName(f.Name))))
-			}
-			_, err := s.pool.Exec(ctx, fmt.Sprintf(`
-				INSERT INTO %s (%s) VALUES (%s)
-				ON CONFLICT(id) DO UPDATE SET %s
-			`, s.qtable(), joinIdents(cols), strings.Join(placeholders, ","), strings.Join(setters, ", ")), args...)
-			if err != nil {
-				return err
-			}
-		case eventUpdated(s.spec, s.model):
-			var p map[string]any
-			if err := json.Unmarshal(ev.Payload, &p); err != nil {
-				return err
-			}
-			sets := []string{"updated_at = $2"}
-			args := []any{ev.StreamID, ev.OccurredAt}
-			i := 3
-			for _, f := range s.model.Fields {
-				if _, ok := p[f.Name]; !ok || !f.Stored() {
-					continue
-				}
-				sets = append(sets, fmt.Sprintf("%s = $%d", quoteIdent(colName(f.Name)), i))
-				args = append(args, projectValue(f, p[f.Name]))
-				i++
-			}
-			_, err := s.pool.Exec(ctx, fmt.Sprintf(`UPDATE %s SET %s WHERE id = $1`, s.qtable(), strings.Join(sets, ", ")), args...)
-			if err != nil {
-				return err
-			}
-		case eventDeleted(s.spec, s.model):
-			_, err := s.pool.Exec(ctx, fmt.Sprintf(`
-				UPDATE %s SET deleted = true, updated_at = $2 WHERE id = $1
-			`, s.qtable()), ev.StreamID, ev.OccurredAt)
-			if err != nil {
-				return err
-			}
+func (s *modelService) updateRecord(ctx context.Context, id string, p map[string]any) error {
+	now := time.Now().UTC()
+	sets := []string{"updated_at = $2"}
+	args := []any{id, now}
+	i := 3
+	for _, f := range s.model.Fields {
+		if _, ok := p[f.Name]; !ok || !f.Stored() {
+			continue
 		}
+		sets = append(sets, fmt.Sprintf("%s = $%d", quoteIdent(colName(f.Name)), i))
+		args = append(args, projectValue(f, p[f.Name]))
+		i++
 	}
-	return nil
+	_, err := s.pool.Exec(ctx, fmt.Sprintf(`UPDATE %s SET %s WHERE id = $1`, s.qtable(), strings.Join(sets, ", ")), args...)
+	return err
+}
+
+func (s *modelService) softDeleteRecord(ctx context.Context, id string) error {
+	_, err := s.pool.Exec(ctx, fmt.Sprintf(`
+		UPDATE %s SET deleted = true, updated_at = $2 WHERE id = $1
+	`, s.qtable()), id, time.Now().UTC())
+	return err
 }
 
 func (s *modelService) getRaw(ctx context.Context, id string) (Record, error) {

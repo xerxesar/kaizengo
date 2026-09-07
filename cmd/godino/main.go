@@ -67,7 +67,7 @@ func runNewApp(args []string) error {
 	title := fs.String("title", "", "Apps menu title (default: name)")
 	summary := fs.String("summary", "", "manifest summary")
 	withGQL := fs.Bool("with-graphql", false, "register sample GraphQL query/mutation")
-	eventSourced := fs.Bool("event-sourced", true, "scaffold event-sourced app using sdk/appspec pattern")
+	eventSourced := fs.Bool("event-sourced", true, "scaffold appspec app with models + migrations (legacy flag name)")
 	addon := fs.Bool("addon", false, "scaffold a cross-app addon (extension points, no SPA)")
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, `Usage:

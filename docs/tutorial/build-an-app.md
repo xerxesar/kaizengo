@@ -70,18 +70,18 @@ func init() {
 }
 ```
 
-Hooks come in the [next page](hooks.md). For now this one-liner is enough: locales, nav, catalog queries, event store, and GraphQL CRUD all come from the spec.
+Hooks come in the [next page](hooks.md). For now this one-liner is enough: locales, nav, catalog queries, migrations, and GraphQL CRUD all come from the spec.
 
 ## 3. Migrations
 
 Every app gets its own Postgres schema (default: the app name). The engine does **not** generate tables from YAML — you write SQL.
 
-`apps/todo/migrations/001_events.sql` — copy the event store from `apps/hellospec/migrations/001_events.sql` (`streams` and `events`).
+`apps/todo/migrations/001_schema.sql` — placeholder is fine (schema is created by the platform migrator).
 
 `apps/todo/migrations/002_tasks_read.sql`:
 
 ```sql
--- Read model: todo.task  (table name = {model}s_read)
+-- Model table: todo.task  (table name = {model}s_read)
 
 CREATE TABLE IF NOT EXISTS tasks_read (
     id         TEXT PRIMARY KEY,

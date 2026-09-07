@@ -22,7 +22,7 @@ type Options struct {
 	Version string
 	// Hooks registers Go lifecycle callbacks per model.
 	Hooks *HookRegistry
-	// Setup runs after locales, nav, catalog queries, and event-sourced models.
+	// Setup runs after locales, nav, catalog queries, and model registration.
 	Setup func(host *module.Host, events *EventsSetup) error
 	// Mount registers HTTP routes after every app has completed Setup.
 	Mount func(host *module.Host) error
@@ -36,7 +36,7 @@ type App struct {
 }
 
 // New returns a module.App that loads apps/<name>/app.yaml and wires
-// locales, nav, SPA, GraphQL, and event-sourced CRUD from the spec.
+// locales, nav, SPA, GraphQL, and model CRUD from the spec.
 func New(opts Options) *App {
 	if opts.Version == "" {
 		opts.Version = "0.1.0"

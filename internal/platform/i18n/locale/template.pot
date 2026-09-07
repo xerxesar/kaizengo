@@ -31,10 +31,6 @@ msgid "nav.identity"
 msgstr ""
 
 #: app.yaml
-msgid "nav.inventory"
-msgstr ""
-
-#: app.yaml
 msgid "nav.permissions"
 msgstr ""
 

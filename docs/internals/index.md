@@ -7,7 +7,7 @@ SDK usage recipes: [Go SDK](go-sdk.md) · [Solid SDK](solid-sdk.md). Day-to-day 
 | Guide | Contents |
 |-------|----------|
 | [This page](index.md) | Layer map, project tree, boot & load lifecycle, mutation & UI data flows |
-| [Go SDK](go-sdk.md) | Engine, hooks runtime, events/projections, extension dispatch, package map |
+| [Go SDK](go-sdk.md) | Engine, hooks runtime, extension dispatch, package map |
 | [Solid SDK](solid-sdk.md) | View registry, Vite aliases, model-client ↔ GraphQL naming |
 
 ## Layer map
@@ -17,7 +17,7 @@ cmd/server          → process entry, Host, Load, HTTP listen
 internal/module     → App interface, registry, Host bag, GraphQL registry
 internal/engine     → app.yaml → CRUD, GQL, hooks, install manager
 internal/extension  → global lifecycle handlers, exports/extends
-internal/events     → event store + projections (+ pgstore)
+internal/app        → schema migrator, install store, nav helpers
 internal/platform   → i18n, time, config, postgres, search
 internal/auth       → session middleware / principal
 packages/sdk-go     → appspec, acl, i18n, views, codegen (portable contracts)
@@ -48,8 +48,7 @@ kaizengo/
     app/              # locales, installed-apps store, nav helpers
     extension/        # Register / Run / ApplyExports|Extends
     events/           # Store interfaces
-    events/pgstore/   # Postgres event store
-    projection/       # runners + read-model sinks
+    app/              # schema migrator, install store
     gql/              # RequireAction / RequirePrincipal
     auth/             # session cookie → Principal
     platform/         # postgres, i18n, time, search, config, drivers
@@ -206,7 +205,7 @@ There is **one** shell SPA (`apps/core/spa`). Pages under `apps/<name>/views/*.p
 | `apps/hellospec/module.go` | `engine.New` + `module.Register` |
 | `apps/hellospec/hooks.go` | App Before*/After* on the mutation path |
 | `apps/hellospec/views/*.page.tsx` | Shell registry → UI |
-| `apps/hellospec/migrations/` | Event store + `greetings_read` projection target |
+| `apps/hellospec/migrations/` | `greetings_read` model table |
 
 ## Related reference
 

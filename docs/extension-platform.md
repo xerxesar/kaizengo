@@ -23,7 +23,7 @@ We cannot install `typesense` and have every list view upgrade automatically. We
 
 ## Design principles
 
-1. **Contracts over internals** — publish GraphQL fields, UI components, lifecycle point names; never export `service/store` packages to other apps.
+1. **Contracts over internals** — publish GraphQL fields (browser), gRPC/protobuf capabilities ([go-plugin plan](grpc-plugins.md)), UI components, lifecycle point names; never export `service/store` packages to other apps.
 2. **Composition over inheritance** — ordered hook chains and slot injection, not class/view xpath patching.
 3. **Platform for horizontal concerns** — search, audit, notifications, metrics → `internal/platform/*` drivers + blank-import.
 4. **Declare intent in yaml** — `provides`, `uses`, `search`, `extensionPoints` for validation and docs.
@@ -301,11 +301,19 @@ Defer Phase 4 (search platform) until extension registry is proven — search is
 
 ---
 
+## Out-of-process capabilities
+
+In-tree apps keep `host.Provide` / `Lookup` and GraphQL. When an extension must run as a **separate binary**, east–west calls use **gRPC via [hashicorp/go-plugin](https://github.com/hashicorp/go-plugin)**. GraphQL stays north–south (SPA); hooks stay in-process; plugins implement `provides` as protobuf services.
+
+Full plan: [grpc-plugins.md](grpc-plugins.md).
+
+---
+
 ## Open questions
 
 1. **Hook order:** app-local hooks vs global extensions — local first or global first?
 2. **After* errors:** ignore (today) vs collect vs fail — align for extensions?
-3. **Capability versioning:** `identity.users/v2` when GraphQL breaking change?
+3. **Capability versioning:** `identity.users/v2` when GraphQL or protobuf breaking change?
 4. **Opt-in vs opt-out** for wildcard extensions on sensitive apps (identity, permissions)?
 
-Track decisions in this doc as ADR-style bullets when resolved.
+Track decisions in this doc as ADR-style bullets when resolved. See also open questions on [grpc-plugins.md](grpc-plugins.md).

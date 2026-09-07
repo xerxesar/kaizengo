@@ -97,7 +97,7 @@ func createApp(opts AppOptions) error {
 		files["app.yaml"] = render(appSpecYAMLTmpl, data)
 		files["module.go"] = render(eventSourcedModuleGoTmpl, data)
 		files["hooks.go"] = render(eventSourcedHooksGoTmpl, data)
-		files["migrations/001_events.sql"] = render(eventsMigrationSQLTmpl, data)
+		files["migrations/001_schema.sql"] = render(eventsMigrationSQLTmpl, data)
 		files["migrations/002_items_read.sql"] = render(readModelMigrationSQLTmpl, data)
 		files["locale/en.po"] = render(localeEnTmpl, data)
 		files["locale/fa.po"] = render(localeFaTmpl, data)

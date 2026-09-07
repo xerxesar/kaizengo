@@ -10,12 +10,11 @@ import (
 	"kaizengo/internal/platform/search"
 	"kaizengo/internal/app"
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/internal/events/pgstore"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// ModelRegistry exposes event-sourced CRUD for models declared in app.yaml.
+// ModelRegistry exposes CRUD for models declared in app.yaml.
 type ModelRegistry struct {
 	byName map[string]*modelService
 }
@@ -114,9 +113,9 @@ func (r *ModelRegistry) require(model string) (*modelService, error) {
 	return svc, nil
 }
 
-// EventsSetup is the result of wiring Postgres schema migrations and event-sourced models.
+// EventsSetup is the result of wiring Postgres schema migrations and models.
+// Name kept for call-site compatibility; there is no event store.
 type EventsSetup struct {
-	Store   *pgstore.Store
 	Models  *ModelRegistry
 	Schema  string
 	AppName string
@@ -132,7 +131,7 @@ func SetupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks 
 	}
 	schema := app.Env(schemaEnv(appName), spec.Schema)
 	ctx := context.Background()
-	store, err := pgstore.FromPool(ctx, db.Pool(), pgstore.Config{Schema: schema})
+	store, err := app.SchemaStoreFromHost(ctx, host, schema)
 	if err != nil {
 		return nil, fmt.Errorf("%s postgres schema %q: %w", appName, schema, err)
 	}
@@ -144,7 +143,7 @@ func SetupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks 
 
 	reg := &ModelRegistry{byName: map[string]*modelService{}}
 	for _, model := range spec.Models {
-		svc := newModelService(store, spec, model, hooks)
+		svc := newModelService(db.Pool(), spec, model, hooks)
 		svc.registry = reg
 		svc.host = host
 		reg.byName[model.Name] = svc
@@ -153,7 +152,7 @@ func SetupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks 
 		search.RegisterReindexer(spec.Name, model.Name, svc.reindexAll)
 	}
 
-	return &EventsSetup{Store: store, Models: reg, Schema: schema, AppName: appName, Pool: db.Pool()}, nil
+	return &EventsSetup{Models: reg, Schema: schema, AppName: appName, Pool: db.Pool()}, nil
 }
 
 func schemaEnv(appName string) string {

@@ -5,14 +5,13 @@ import (
 
 	"kaizengo/internal/module"
 	"kaizengo/internal/platform/postgres"
-	"kaizengo/internal/events/pgstore"
 )
 
-// SchemaStore returns a schema-scoped event store on the platform Postgres pool.
-func SchemaStore(ctx context.Context, host *module.Host, schema string) (*pgstore.Store, error) {
+// SchemaStoreFromHost returns a schema-scoped migrator on the platform Postgres pool.
+func SchemaStoreFromHost(ctx context.Context, host *module.Host, schema string) (*SchemaStore, error) {
 	db, err := postgres.FromHost(host)
 	if err != nil {
 		return nil, err
 	}
-	return pgstore.FromPool(ctx, db.Pool(), pgstore.Config{Schema: schema})
+	return NewSchemaStoreFromPool(ctx, db.Pool(), SchemaStoreConfig{Schema: schema})
 }

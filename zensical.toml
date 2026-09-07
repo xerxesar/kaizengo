@@ -35,6 +35,7 @@ nav = [
     "cli.md",
     "installation.md",
     "extension-platform.md",
+    { "gRPC plugins" = "grpc-plugins.md" },
   ] },
   { "Reference" = [
     "internals/index.md",

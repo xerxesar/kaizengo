@@ -49,18 +49,6 @@ func deleteName(spec appspec.AppSpec, model appspec.ModelSpec) string {
 	return "delete" + pascal(spec.Name) + pascal(model.Name)
 }
 
-func eventCreated(spec appspec.AppSpec, model appspec.ModelSpec) string {
-	return spec.Name + "." + pascal(model.Name) + "Created"
-}
-
-func eventUpdated(spec appspec.AppSpec, model appspec.ModelSpec) string {
-	return spec.Name + "." + pascal(model.Name) + "Updated"
-}
-
-func eventDeleted(spec appspec.AppSpec, model appspec.ModelSpec) string {
-	return spec.Name + "." + pascal(model.Name) + "Deleted"
-}
-
 func readTable(model appspec.ModelSpec) string {
 	return model.Name + "s_read"
 }

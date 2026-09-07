@@ -76,20 +76,6 @@ func registerModelResource(app string, model appspec.ModelSpec) {
 		Actions:     actions,
 		Surface:     "model",
 	})
-	stream := strings.TrimSpace(model.Stream)
-	if stream == "" {
-		stream = model.Name
-	}
-	acl.Register(acl.ResourceDescriptor{
-		App:         app,
-		Kind:        acl.KindEvent,
-		Name:        model.Name,
-		Resource:    acl.EventResource(app, model.Name),
-		Label:       model.Name + " events",
-		Description: "Event stream " + stream + " for model " + model.Name,
-		Actions:     append(acl.ReadActions(), acl.ActExecute),
-		Surface:     "event",
-	})
 }
 
 func registerRegisteredModelResource(app string, model RegisteredModel) {

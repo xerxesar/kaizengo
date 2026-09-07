@@ -17,7 +17,7 @@ apps/<name>/
   migrations/    # Postgres event store + read models
 ```
 
-The engine turns `app.yaml` into event-sourced CRUD, GraphQL, nav, and [ACL checks](acl.md). You write YAML first; Go and Solid only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
+The engine turns `app.yaml` into model CRUD, GraphQL, nav, and [ACL checks](acl.md). You write YAML first; Go and Solid only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
 
 ## Docs map
 

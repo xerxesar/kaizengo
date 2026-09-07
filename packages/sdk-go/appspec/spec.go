@@ -23,11 +23,12 @@ type AppSpec struct {
 	EnableAuth       bool
 	EnableI18n       bool
 	EnableSPA        bool
-	EnableEvents     bool
 	AutoInstall      bool // install on first boot; always loaded with the shell
 	Nav              NavSpec
 	Menus            []MenuSpec
 	Models           []ModelSpec
+	Queries          []QuerySpec
+	Commands         []CommandSpec
 	Views            []ViewSpec // discovered from views/*.page.tsx
 	Locales          []LocaleSpec
 	Extends          []ExtendSpec
@@ -37,12 +38,37 @@ type AppSpec struct {
 }
 
 type ModelSpec struct {
-	Name      string
-	Stream    string
-	Aggregate string
-	Internal  bool // create/update/delete only via engine.WithInternal
-	Fields    []FieldSpec
-	Search    *SearchSpec
+	Name     string
+	Internal bool // create/update/delete only via engine.WithInternal
+	Fields   []FieldSpec
+	Search   *SearchSpec
+}
+
+// QuerySpec declares a named read on the public GraphQL surface.
+// Use list/get shorthand for ModelRegistry reads, or omit them and register a Go handler.
+type QuerySpec struct {
+	Name    string
+	List    string     // model name → List
+	Get     string     // model name → Get by id
+	Args    []FieldSpec
+	Returns string     // optional explicit return hint (model, model[], int, bool, string)
+}
+
+// CommandSpec declares a named write/intent on the public GraphQL surface.
+// Use create/update/delete shorthand for ModelRegistry writes, or omit them and register a Go handler.
+type CommandSpec struct {
+	Name    string
+	Create  string // model name → Create
+	Update  string // model name → Update
+	Delete  string // model name → Delete
+	Args    []FieldSpec
+	Returns string
+}
+
+// HasCQRS reports whether the app declares a command/query public API
+// (GraphQL model CRUD is not registered in that mode).
+func (s AppSpec) HasCQRS() bool {
+	return len(s.Queries) > 0 || len(s.Commands) > 0
 }
 
 // SearchSpec declares a search collection for a model.
@@ -136,9 +162,6 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 			return fmt.Errorf("duplicate model name %q", m.Name)
 		}
 		models[m.Name] = struct{}{}
-		if strings.TrimSpace(m.Stream) == "" {
-			return fmt.Errorf("model %q stream is required", m.Name)
-		}
 		for _, f := range m.Fields {
 			if !fieldNameRe.MatchString(f.Name) {
 				return fmt.Errorf("model %q has invalid field %q", m.Name, f.Name)
@@ -259,7 +282,7 @@ func validateMenus(items []MenuSpec, views map[string]struct{}, seen map[string]
 	return nil
 }
 
-// ApplyDefaults fills schema, resource, streams, and aggregates when omitted.
+// ApplyDefaults fills schema, resource, and field defaults when omitted.
 func (s *AppSpec) ApplyDefaults() {
 	if s.Schema == "" {
 		s.Schema = s.Name
@@ -278,12 +301,6 @@ func (s *AppSpec) ApplyDefaults() {
 	}
 	for i := range s.Models {
 		m := &s.Models[i]
-		if m.Stream == "" {
-			m.Stream = s.Name + "." + m.Name
-		}
-		if m.Aggregate == "" {
-			m.Aggregate = pascal(m.Name) + "Aggregate"
-		}
 		for j := range m.Fields {
 			f := &m.Fields[j]
 			if f.Type == "" {

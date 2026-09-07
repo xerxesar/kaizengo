@@ -21,12 +21,12 @@ kaizengo new-app <name> [flags]
 | `--title` | Title-cased name | Apps menu label |
 | `--summary` | `"<title> app"` | Manifest summary |
 | `--with-graphql` | off | Sample Query field `<pkg>Ping` + client call |
-| `--event-sourced` | `true` | Scaffold PostgreSQL event-sourced module pattern |
+| `--event-sourced` | `true` | Scaffold appspec app with models + migrations (legacy flag name) |
 | `--addon` | off | Cross-app addon (extension points, no views) |
 
 ### Examples
 
-Solid event-sourced app (default):
+Solid appspec app (default):
 
 ```bash
 ./bin/kaizengo new-app notes --title Notes
@@ -44,7 +44,7 @@ go run ./cmd/server
 
 ### What gets created
 
-**Solid (event-sourced, default)**
+**Solid (appspec, default)**
 
 ```text
 apps/<name>/
@@ -60,7 +60,7 @@ Views compile into the central SPA (`apps/core/spa`); there is no per-app Vite b
 
 ### Recommended follow-ups
 
-Scaffolded templates are a starting point. Event-sourced mode writes `app.yaml` plus an `internal/engine` one-liner — GraphQL CRUD and projections come from the spec.
+Scaffolded templates are a starting point. Appspec mode writes `app.yaml` plus an `internal/engine` one-liner — GraphQL CRUD comes from the spec.
 
 1. Import from `@kaizengo/sdk-solid/ui` in views (already aliased in the core SPA)
 2. Edit `apps/<name>/app.yaml` models/views — avoid hand-written services unless you need custom domain rules

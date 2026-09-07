@@ -22,7 +22,7 @@ kaizengo is organized as a **platform kernel** plus **apps** (products):
 | `settings` | Locale, default calendar, shell title |
 
 Bundled apps include **appman**, **hellospec**, **inventory**, **settings**, **typesense**, and **audit**. See [auth.md](auth.md) for identity and permissions.
-For the event-sourced module convention, see [Go SDK](internals/go-sdk.md).
+For the module convention, see [Go SDK](internals/go-sdk.md).
 
 Every app has an **`app.yaml`** manifest (name, depends, nav, locales, models). Apps using **`internal/engine`** (`hellospec`, `status`, `identity`, `auth`) are spec-driven; others load the spec for manifest/nav and keep custom `Setup` code.
 
@@ -64,6 +64,8 @@ host.RegisterNav(module.NavEntry{
 host.GQL.RegisterQuery("…", &graphql.Field{…})
 host.GQL.RegisterMutation("…", &graphql.Field{…})
 ```
+
+`Provide` / `Lookup` is in-process only. Cross-process capability providers are planned via go-plugin + gRPC ([grpc-plugins.md](grpc-plugins.md)).
 
 ## Shell injection
 

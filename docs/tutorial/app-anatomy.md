@@ -18,7 +18,7 @@ apps/todo/
   locale/template.pot   # generated — msgid list; do not edit
   locale/en.po          # gettext strings
   migrations/
-    001_events.sql      # streams + events
+    001_events.sql      # schema placeholder (legacy name)
     002_tasks_read.sql  # read model for task
   __types__/            # generated — do not edit
 ```
