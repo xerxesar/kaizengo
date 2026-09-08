@@ -158,6 +158,10 @@ msgstr ""
 msgid "permissions.enum.acl_entry.kind.view"
 msgstr ""
 
+#: app.yaml
+msgid "permissions.error.acl_entry.internal"
+msgstr ""
+
 #: views/Access.page.tsx
 msgid "permissions.error.fields_required"
 msgstr ""
@@ -174,8 +178,16 @@ msgstr ""
 msgid "permissions.error.resource_required"
 msgstr ""
 
+#: app.yaml
+msgid "permissions.error.role.internal"
+msgstr ""
+
 #: views/Access.page.tsx
 msgid "permissions.error.role_required"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.error.user_role.internal"
 msgstr ""
 
 #: app.yaml

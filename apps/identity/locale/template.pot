@@ -55,6 +55,22 @@ msgid "identity.enum.user.status.suspended"
 msgstr ""
 
 #: app.yaml
+msgid "identity.error.membership.internal"
+msgstr ""
+
+#: app.yaml
+msgid "identity.error.org_unit.internal"
+msgstr ""
+
+#: app.yaml
+msgid "identity.error.organization.internal"
+msgstr ""
+
+#: app.yaml
+msgid "identity.error.user.internal"
+msgstr ""
+
+#: app.yaml
 msgid "identity.field.effectiveFrom"
 msgstr ""
 
