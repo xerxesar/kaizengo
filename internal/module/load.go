@@ -29,6 +29,8 @@ func Load(host *Host, reg *Registry, wanted []string) error {
 		return err
 	}
 
+	extension.ResetLoadState()
+
 	// Register component exports and view slots before wiring yaml extends.
 	for _, name := range names {
 		spec, err := appspec.LoadApp(name)

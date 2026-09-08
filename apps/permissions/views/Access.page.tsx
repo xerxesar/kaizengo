@@ -1,20 +1,22 @@
-import { createMemo, createSignal, For, onMount, Show, type JSX } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onMount, Show, type JSX } from 'solid-js'
 import {
   Alert,
   Badge,
   Button,
   Card,
-  Checkbox,
-  SearchableCombobox,
   FormActions,
   FormField,
   Input,
   KAppStatus,
+  Modal,
+  SearchableCombobox,
+  SearchableMultiSelect,
   Select,
   Spinner,
+  StatCard,
+  Toolbar,
   createModelRecord,
   deleteModelRecord,
-  fetchACLActions,
   fetchResources,
   listModelRecords,
   t,
@@ -22,13 +24,17 @@ import {
   type ModelField,
 } from '@kaizengo/sdk-solid/ui'
 import type { AclEntry, Role } from '../lib/types'
+import { inferResourceKind, isCallStyleKind, kindBadgeClass } from '../lib/types'
 
 const SEED_AUTHOR = '00000000-0000-0000-0000-000000000001'
+
+const KIND_FILTERS = ['', 'query', 'command', 'view', 'app', 'api', 'mutation'] as const
 
 const aclCreateFields: ModelField[] = [
   { key: 'name', type: 'string', required: true, label: 'name' },
   { key: 'roleId', type: 'many2one', required: true, label: 'roleId' },
   { key: 'effect', type: 'string', required: true, label: 'effect' },
+  { key: 'kind', type: 'string', required: true, label: 'kind' },
   { key: 'resource', type: 'string', required: true, label: 'resource' },
   { key: 'actions', type: 'string', required: true, label: 'actions' },
   { key: 'fields', type: 'string', required: true, label: 'fields' },
@@ -37,12 +43,16 @@ const aclCreateFields: ModelField[] = [
   { key: 'active', type: 'bool', required: true, label: 'active' },
 ]
 
-type ResourceOption = { value: string; label: string }
+type ResourceOption = { value: string; label: string; kind?: string; fields?: string[] }
 type SourceFilter = 'all' | 'seed' | 'override'
 type StatusFilter = 'all' | 'active' | 'inactive'
 type EffectFilter = 'all' | 'allow' | 'deny'
-type SortKey = 'resource' | 'name' | 'effect' | 'priority' | 'active' | 'source'
+type SortKey = 'resource' | 'name' | 'kind' | 'effect' | 'priority' | 'active' | 'source'
 type SortDir = 'asc' | 'desc'
+
+function entryKind(row: AclEntry): string {
+  return String(row.kind || inferResourceKind(String(row.resource ?? '')))
+}
 
 function formatJSON(v: unknown): string {
   if (v == null) return ''
@@ -70,8 +80,38 @@ function isSeedEntry(row: AclEntry): boolean {
   return String(row.authorId ?? '') === SEED_AUTHOR
 }
 
+function suggestRuleName(roleSlug: string, effect: string, kind: string, resource: string): string {
+  const role = (roleSlug || 'role').trim().toLowerCase() || 'role'
+  const eff = (effect || 'allow').trim().toLowerCase() || 'allow'
+  const k = (kind || 'resource').trim().toLowerCase() || 'resource'
+  const short = (resource.trim().split('.').pop() || resource.trim() || 'item')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+  return `${role}-${eff}-${k}-${short || 'item'}`
+}
+
+function sortIndicator(active: boolean, dir: SortDir): string {
+  if (!active) return '↕'
+  return dir === 'asc' ? '↑' : '↓'
+}
+
+function kindBadge(kind: string): JSX.Element {
+  return (
+    <span
+      class={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${kindBadgeClass(kind)}`}
+    >
+      {kind || '—'}
+    </span>
+  )
+}
+
 function effectBadge(row: AclEntry): JSX.Element {
-  return <Badge variant={String(row.effect) === 'deny' ? 'danger' : 'success'}>{String(row.effect ?? 'allow')}</Badge>
+  return (
+    <Badge variant={String(row.effect) === 'deny' ? 'danger' : 'success'}>
+      {String(row.effect ?? 'allow')}
+    </Badge>
+  )
 }
 
 function sourceBadge(row: AclEntry): JSX.Element {
@@ -85,82 +125,60 @@ function sourceBadge(row: AclEntry): JSX.Element {
 function matchesSearch(row: AclEntry, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
-  const hay = [
-    row.name,
-    row.resource,
-    row.effect,
-    row.actions,
-    row.fields,
-    row.domain,
-    String(row.priority ?? ''),
-  ]
+  const hay = [row.name, entryKind(row), row.resource, row.effect, row.actions, row.fields, row.domain, String(row.priority ?? '')]
     .map((v) => String(v ?? '').toLowerCase())
     .join(' ')
   return hay.includes(q)
 }
 
-function matchesResourcePrefix(row: AclEntry, prefix: string): boolean {
-  const p = prefix.trim().toLowerCase()
-  if (!p) return true
-  return String(row.resource ?? '').toLowerCase().startsWith(p)
-}
-
-function matchesMinPriority(row: AclEntry, min: string): boolean {
-  const raw = min.trim()
-  if (!raw) return true
-  const floor = parseInt(raw, 10)
-  if (Number.isNaN(floor)) return true
-  return Number(row.priority ?? 0) >= floor
-}
-
-function priorityCellStyle(priority: number, min: number, max: number): Record<string, string> {
-  const span = Math.max(max - min, 1)
-  const t = (priority - min) / span
-  const lightness = 94 - t * 34
-  const saturation = 35 + t * 45
-  return {
-    background: `hsl(275, ${saturation}%, ${lightness}%)`,
-    color: t > 0.55 ? '#faf5ff' : 'var(--kg-text)',
-  }
-}
-
-function sortIndicator(active: boolean, dir: SortDir): string {
-  if (!active) return '↕'
-  return dir === 'asc' ? '↑' : '↓'
-}
 async function loadResourceOptions(entryRows: AclEntry[]): Promise<ResourceOption[]> {
-  const seen = new Set<string>()
   const options: ResourceOption[] = []
+  const byValue = new Map<string, ResourceOption>()
 
-  function add(value: string) {
+  function add(value: string, kind?: string, fields?: string[]) {
     const v = value.trim()
-    if (!v || seen.has(v)) return
-    seen.add(v)
-    options.push({ value: v, label: v })
+    if (!v) return
+    const k = kind || inferResourceKind(v)
+    // Models/menus/nav are not client ACL catalog entries.
+    if (k === 'model' || k === 'menu' || k === 'nav') return
+    const existing = byValue.get(v)
+    if (existing) {
+      if (kind) existing.kind = k
+      // Prefer catalog field lists when an ACL entry was added first without them.
+      if (fields?.length) existing.fields = fields
+      return
+    }
+    const opt: ResourceOption = {
+      value: v,
+      label: v,
+      kind: k,
+      fields: fields?.length ? fields : undefined,
+    }
+    byValue.set(v, opt)
+    options.push(opt)
   }
 
-  for (const row of entryRows) add(String(row.resource ?? ''))
+  for (const row of entryRows) add(String(row.resource ?? ''), entryKind(row))
   try {
     const resources = await fetchResources()
-    for (const item of resources) add(item.resource)
+    for (const item of resources) add(item.resource, item.kind, item.fields)
   } catch {
-    // entry-based options are enough when catalog lookup fails
+    /* entry-based options are enough when catalog lookup fails */
   }
 
-  options.sort((a, b) => a.value.localeCompare(b.value))
+  options.sort((a, b) => {
+    const ka = a.kind || ''
+    const kb = b.kind || ''
+    if (ka !== kb) return ka.localeCompare(kb)
+    return a.value.localeCompare(b.value)
+  })
   return options
-}
-
-function serializeActions(actions: string[]): string {
-  return JSON.stringify(actions.length ? actions : ['read'])
 }
 
 function RulesTable(props: {
   rows: AclEntry[]
   showRoleColumn?: boolean
   roleLabel?: (row: AclEntry) => string
-  priorityMin: number
-  priorityMax: number
   sortKey: SortKey
   sortDir: SortDir
   saving: boolean
@@ -170,91 +188,104 @@ function RulesTable(props: {
   onDelete: (row: AclEntry) => void
 }): JSX.Element {
   const header = (key: SortKey, label: string) => (
-    <th class="px-4 py-3 text-left">
+    <th class="px-3 py-2.5 text-left">
       <button
         type="button"
-        class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-sm font-semibold text-[var(--kg-text)] hover:text-[var(--kg-primary)]"
+        class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-xs font-semibold uppercase tracking-wide text-[var(--kg-text-secondary)] hover:text-[var(--kg-primary)]"
         aria-sort={props.sortKey === key ? (props.sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
         onClick={() => props.onSort(key)}
       >
         {label}
-        <span class="text-xs opacity-60">{sortIndicator(props.sortKey === key, props.sortDir)}</span>
+        <span class="text-[0.65rem] opacity-60">{sortIndicator(props.sortKey === key, props.sortDir)}</span>
       </button>
     </th>
   )
 
   return (
-    <div class="overflow-x-auto border-y border-[var(--kg-border)] bg-[var(--kg-surface)]">
+    <div class="overflow-x-auto border border-[var(--kg-border)] bg-[var(--kg-surface)]">
       <table class="kg-table w-full border-collapse text-sm">
         <thead>
           <tr class="border-b border-[var(--kg-border)] bg-[var(--kg-surface-muted,var(--kg-field-hover))]">
             {header('name', t('permissions.col.name'))}
             <Show when={props.showRoleColumn}>
-              <th class="px-4 py-3 text-left font-semibold text-[var(--kg-text)]">{t('permissions.col.role')}</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--kg-text-secondary)]">
+                {t('permissions.col.role')}
+              </th>
             </Show>
+            {header('kind', t('permissions.col.kind'))}
             {header('resource', t('permissions.col.resource'))}
             {header('effect', t('permissions.col.effect'))}
             {header('priority', t('permissions.col.priority'))}
-            <th class="px-4 py-3 text-left font-semibold text-[var(--kg-text)]">{t('permissions.col.actions')}</th>
-            <th class="px-4 py-3 text-left font-semibold text-[var(--kg-text)]">{t('permissions.col.fields')}</th>
-            <th class="px-4 py-3 text-left font-semibold text-[var(--kg-text)]">{t('permissions.col.domain')}</th>
+            <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--kg-text-secondary)]">
+              {t('permissions.col.scope')}
+            </th>
             {header('source', t('permissions.filter.source'))}
             {header('active', t('permissions.filter.status'))}
-            <th class="kg-table-actions-col px-4 py-3 text-left font-semibold text-[var(--kg-text)]"> </th>
+            <th class="kg-table-actions-col px-3 py-2.5 text-left"> </th>
           </tr>
         </thead>
         <tbody>
           <For each={props.rows}>
-            {(row) => (
-              <tr
-                class="border-b border-[var(--kg-border)]"
-                classList={{
-                  'bg-amber-50/80': !isSeedEntry(row),
-                  'opacity-60': row.active === false,
-                }}
-              >
-                <td class="px-4 py-3 font-medium text-[var(--kg-text)]">{String(row.name ?? '')}</td>
-                <Show when={props.showRoleColumn}>
-                  <td class="px-4 py-3 text-sm">{props.roleLabel?.(row) ?? ''}</td>
-                </Show>
-                <td class="px-4 py-3 font-mono text-xs">{String(row.resource ?? '')}</td>
-                <td class="px-4 py-3">{effectBadge(row)}</td>
-                <td
-                  class="px-4 py-3 text-center font-mono text-xs font-semibold"
-                  style={priorityCellStyle(Number(row.priority ?? 0), props.priorityMin, props.priorityMax)}
+            {(row) => {
+              const kind = () => entryKind(row)
+              const call = () => isCallStyleKind(kind())
+              return (
+                <tr
+                  class="border-b border-[var(--kg-border)] align-top"
+                  classList={{
+                    'bg-[var(--kg-surface-muted)]/40': !isSeedEntry(row),
+                    'opacity-55': row.active === false,
+                  }}
                 >
-                  {String(row.priority ?? 0)}
-                </td>
-                <td class="px-4 py-3 font-mono text-xs">{formatJSON(row.actions)}</td>
-                <td class="px-4 py-3 font-mono text-xs">{formatJSON(row.fields)}</td>
-                <td class="px-4 py-3 font-mono text-xs">{formatJSON(row.domain)}</td>
-                <td class="px-4 py-3">{sourceBadge(row)}</td>
-                <td class="px-4 py-3">
-                  <Badge variant={row.active === false ? 'muted' : 'success'}>
-                    {row.active === false ? t('permissions.filter.status_inactive') : t('permissions.filter.status_active')}
-                  </Badge>
-                </td>
-                <td class="kg-table-actions px-4 py-3">
-                  <div class="flex flex-wrap gap-[var(--kg-space-02)]">
-                    <Show when={row.active !== false}>
-                      <Button size="sm" variant="ghost" loading={props.saving} onClick={() => props.onDeactivate(row)}>
-                        {t('permissions.deactivate')}
-                      </Button>
+                  <td class="px-3 py-2.5 font-medium text-[var(--kg-text)]">{String(row.name ?? '')}</td>
+                  <Show when={props.showRoleColumn}>
+                    <td class="px-3 py-2.5 text-sm text-[var(--kg-text-secondary)]">{props.roleLabel?.(row) ?? ''}</td>
+                  </Show>
+                  <td class="px-3 py-2.5">{kindBadge(kind())}</td>
+                  <td class="max-w-[18rem] px-3 py-2.5 font-mono text-xs break-all text-[var(--kg-text)]">
+                    {String(row.resource ?? '')}
+                  </td>
+                  <td class="px-3 py-2.5">{effectBadge(row)}</td>
+                  <td class="px-3 py-2.5 text-center font-mono text-xs tabular-nums">{String(row.priority ?? 0)}</td>
+                  <td class="px-3 py-2.5 font-mono text-xs text-[var(--kg-text-secondary)]">
+                    <Show when={call()} fallback={
+                      <div class="flex flex-col gap-0.5">
+                        <span>{t('permissions.scope.actions')}: {formatJSON(row.actions)}</span>
+                        <span>{t('permissions.scope.fields')}: {formatJSON(row.fields)}</span>
+                        <span>{t('permissions.scope.domain')}: {formatJSON(row.domain)}</span>
+                      </div>
+                    }>
+                      <span class="text-[var(--kg-text-muted)]">{t('permissions.scope.call')}</span>
                     </Show>
-                    <Show when={row.active === false}>
-                      <Button size="sm" variant="ghost" loading={props.saving} onClick={() => props.onActivate(row)}>
-                        {t('permissions.activate')}
-                      </Button>
-                    </Show>
-                    <Show when={!isSeedEntry(row)}>
-                      <Button size="sm" variant="ghost" loading={props.saving} onClick={() => props.onDelete(row)}>
-                        {t('permissions.delete')}
-                      </Button>
-                    </Show>
-                  </div>
-                </td>
-              </tr>
-            )}
+                  </td>
+                  <td class="px-3 py-2.5">{sourceBadge(row)}</td>
+                  <td class="px-3 py-2.5">
+                    <Badge variant={row.active === false ? 'muted' : 'success'}>
+                      {row.active === false ? t('permissions.filter.status_inactive') : t('permissions.filter.status_active')}
+                    </Badge>
+                  </td>
+                  <td class="kg-table-actions px-3 py-2.5">
+                    <div class="flex flex-wrap gap-1">
+                      <Show when={row.active !== false}>
+                        <Button size="sm" variant="ghost" loading={props.saving} onClick={() => props.onDeactivate(row)}>
+                          {t('permissions.deactivate')}
+                        </Button>
+                      </Show>
+                      <Show when={row.active === false}>
+                        <Button size="sm" variant="ghost" loading={props.saving} onClick={() => props.onActivate(row)}>
+                          {t('permissions.activate')}
+                        </Button>
+                      </Show>
+                      <Show when={!isSeedEntry(row)}>
+                        <Button size="sm" variant="ghost" loading={props.saving} onClick={() => props.onDelete(row)}>
+                          {t('permissions.delete')}
+                        </Button>
+                      </Show>
+                    </div>
+                  </td>
+                </tr>
+              )
+            }}
           </For>
         </tbody>
       </table>
@@ -267,67 +298,94 @@ export default function Access(): JSX.Element {
   const [saving, setSaving] = createSignal(false)
   const [error, setError] = createSignal('')
   const [saved, setSaved] = createSignal(false)
+  const [modalOpen, setModalOpen] = createSignal(false)
 
   const [roles, setRoles] = createSignal<Role[]>([])
   const [selectedRoleId, setSelectedRoleId] = createSignal('')
   const [entries, setEntries] = createSignal<AclEntry[]>([])
   const [resourceOptions, setResourceOptions] = createSignal<ResourceOption[]>([])
-  const [aclActions, setAclActions] = createSignal<string[]>([])
 
   const [searchQuery, setSearchQuery] = createSignal('')
+  const [kindFilter, setKindFilter] = createSignal('')
   const [sourceFilter, setSourceFilter] = createSignal<SourceFilter>('all')
   const [statusFilter, setStatusFilter] = createSignal<StatusFilter>('active')
   const [effectFilter, setEffectFilter] = createSignal<EffectFilter>('all')
   const [resourcePrefix, setResourcePrefix] = createSignal('')
   const [minPriority, setMinPriority] = createSignal('')
-  const [sortKey, setSortKey] = createSignal<SortKey>('resource')
-  const [sortDir, setSortDir] = createSignal<SortDir>('asc')
+  const [sortKey, setSortKey] = createSignal<SortKey>('priority')
+  const [sortDir, setSortDir] = createSignal<SortDir>('desc')
 
   const [formName, setFormName] = createSignal('')
+  const [formNameTouched, setFormNameTouched] = createSignal(false)
   const [formRoleId, setFormRoleId] = createSignal('')
   const [formEffect, setFormEffect] = createSignal('deny')
   const [formResource, setFormResource] = createSignal('')
-  const [formActions, setFormActions] = createSignal<string[]>(['read'])
-  const [formFieldsMode, setFormFieldsMode] = createSignal<'all' | 'custom'>('all')
-  const [formFieldsCustom, setFormFieldsCustom] = createSignal('["message"]')
+  const [formPriority, setFormPriority] = createSignal('1000')
+  const [formFieldsMode, setFormFieldsMode] = createSignal<'all' | 'selected'>('all')
+  const [formSelectedFields, setFormSelectedFields] = createSignal<string[]>([])
   const [formDomainMode, setFormDomainMode] = createSignal<'all' | 'custom'>('all')
   const [formDomainCustom, setFormDomainCustom] = createSignal('[["authorId","=","$user.id"]]')
-  const [formPriority, setFormPriority] = createSignal('1000')
 
   const selectedRole = createMemo(() => roles().find((r) => r.id === selectedRoleId()) ?? null)
-
-  const roleFilterOptions = createMemo(() => [
-    { value: '', label: t('permissions.filter.role_all') },
-    ...roles().map((r) => ({
-      value: r.id,
-      label: `${r.label || r.name} (${r.name})`,
-    })),
-  ])
-
-  const roleOptions = createMemo(() =>
-    roles().map((r) => ({
-      value: r.id,
-      label: `${r.label || r.name} (${r.name})`,
-    })),
+  const formRole = createMemo(() => roles().find((r) => r.id === formRoleId()) ?? null)
+  const formKind = createMemo(() => inferResourceKind(formResource()))
+  const formIsCallStyle = createMemo(() => isCallStyleKind(formKind()))
+  const formSupportsFieldsDomain = createMemo(() => formKind() === 'query' || formKind() === 'command')
+  const formResourceMeta = createMemo(
+    () => resourceOptions().find((o) => o.value === formResource().trim()) ?? null,
   )
+  const formAvailableFields = createMemo(() => formResourceMeta()?.fields ?? [])
+
+  const suggestedName = createMemo(() =>
+    suggestRuleName(String(formRole()?.name ?? ''), formEffect(), formKind(), formResource()),
+  )
+
+  createEffect(() => {
+    if (formNameTouched()) return
+    const next = suggestedName()
+    if (next) setFormName(next)
+  })
 
   const rolesById = createMemo(() => {
     const map: Record<string, Role> = {}
-    for (const role of roles()) {
-      map[role.id] = role
-    }
+    for (const role of roles()) map[role.id] = role
     return map
   })
 
-  function selectRoleFilter(roleId: string) {
-    setSelectedRoleId(roleId)
-    if (roleId) setFormRoleId(roleId)
-    setSaved(false)
-    setError('')
-  }
+  const roleRuleCounts = createMemo(() => {
+    const counts = new Map<string, number>()
+    for (const e of entries()) {
+      if (e.active === false) continue
+      const rid = String(e.roleId ?? '')
+      if (!rid) continue
+      counts.set(rid, (counts.get(rid) ?? 0) + 1)
+    }
+    return counts
+  })
 
-  const filteredRoleEntries = createMemo(() => {
+  const summary = createMemo(() => {
+    const rows = entries().filter((e) => !selectedRoleId() || String(e.roleId) === selectedRoleId())
+    const active = rows.filter((e) => e.active !== false)
+    return {
+      total: rows.length,
+      active: active.length,
+      overrides: active.filter((e) => !isSeedEntry(e)).length,
+      denies: active.filter((e) => String(e.effect) === 'deny').length,
+      call: active.filter((e) => isCallStyleKind(entryKind(e))).length,
+      app: active.filter((e) => {
+        const k = entryKind(e)
+        return k === 'app' || k === 'api'
+      }).length,
+    }
+  })
+
+  const filteredEntries = createMemo(() => {
     const rid = selectedRoleId()
+    const kind = kindFilter()
+    const prefix = resourcePrefix().trim().toLowerCase()
+    const floorRaw = minPriority().trim()
+    const floor = floorRaw ? parseInt(floorRaw, 10) : NaN
+
     return entries()
       .filter((e) => !rid || String(e.roleId) === rid)
       .filter((e) => {
@@ -340,26 +398,25 @@ export default function Access(): JSX.Element {
         if (statusFilter() === 'inactive') return e.active === false
         return true
       })
-      .filter((e) => {
-        if (effectFilter() === 'all') return true
-        return String(e.effect ?? '') === effectFilter()
-      })
-      .filter((e) => matchesResourcePrefix(e, resourcePrefix()))
-      .filter((e) => matchesMinPriority(e, minPriority()))
+      .filter((e) => effectFilter() === 'all' || String(e.effect ?? '') === effectFilter())
+      .filter((e) => !kind || entryKind(e) === kind)
+      .filter((e) => !prefix || String(e.resource ?? '').toLowerCase().startsWith(prefix))
+      .filter((e) => Number.isNaN(floor) || Number(e.priority ?? 0) >= floor)
       .filter((e) => matchesSearch(e, searchQuery()))
   })
 
-  const sortedRoleEntries = createMemo(() => {
-    const rows = filteredRoleEntries().slice()
+  const sortedEntries = createMemo(() => {
+    const rows = filteredEntries().slice()
     const key = sortKey()
-    const dir = sortDir()
-    const mul = dir === 'asc' ? 1 : -1
+    const mul = sortDir() === 'asc' ? 1 : -1
     rows.sort((a, b) => {
       switch (key) {
         case 'resource':
           return mul * String(a.resource ?? '').localeCompare(String(b.resource ?? ''))
         case 'name':
           return mul * String(a.name ?? '').localeCompare(String(b.name ?? ''))
+        case 'kind':
+          return mul * entryKind(a).localeCompare(entryKind(b))
         case 'effect':
           return mul * String(a.effect ?? '').localeCompare(String(b.effect ?? ''))
         case 'priority':
@@ -375,17 +432,40 @@ export default function Access(): JSX.Element {
     return rows
   })
 
-  const priorityRange = createMemo(() => {
-    let min = Infinity
-    let max = -Infinity
-    for (const row of sortedRoleEntries()) {
-      const p = Number(row.priority ?? 0)
-      min = Math.min(min, p)
-      max = Math.max(max, p)
-    }
-    if (!Number.isFinite(min)) return { min: 0, max: 0 }
-    return { min, max }
-  })
+  const hasActiveFilters = createMemo(
+    () =>
+      !!searchQuery().trim() ||
+      !!kindFilter() ||
+      sourceFilter() !== 'all' ||
+      statusFilter() !== 'active' ||
+      effectFilter() !== 'all' ||
+      !!resourcePrefix().trim() ||
+      !!minPriority().trim(),
+  )
+
+  const roleOptions = createMemo(() =>
+    roles().map((r) => ({
+      value: r.id,
+      label: `${r.label || r.name} (${r.name})`,
+    })),
+  )
+
+  function selectRole(roleId: string) {
+    setSelectedRoleId(roleId)
+    if (roleId) setFormRoleId(roleId)
+    setSaved(false)
+    setError('')
+  }
+
+  function clearFilters() {
+    setSearchQuery('')
+    setKindFilter('')
+    setSourceFilter('all')
+    setStatusFilter('active')
+    setEffectFilter('all')
+    setResourcePrefix('')
+    setMinPriority('')
+  }
 
   function toggleSort(key: SortKey) {
     if (sortKey() === key) {
@@ -393,12 +473,48 @@ export default function Access(): JSX.Element {
       return
     }
     setSortKey(key)
-    setSortDir('asc')
+    setSortDir(key === 'priority' ? 'desc' : 'asc')
+  }
+
+  function openCreateModal() {
+    resetForm()
+    setError('')
+    setSaved(false)
+    setModalOpen(true)
+  }
+
+  function resetForm() {
+    setFormNameTouched(false)
+    setFormResource('')
+    setFormPriority('1000')
+    setFormEffect('deny')
+    setFormFieldsMode('all')
+    setFormSelectedFields([])
+    setFormDomainMode('all')
+    setFormDomainCustom('[["authorId","=","$user.id"]]')
+    setFormRoleId(selectedRoleId() || roles()[0]?.id || '')
+    setFormName(
+      suggestRuleName(
+        String((roles().find((r) => r.id === (selectedRoleId() || roles()[0]?.id)) ?? {}).name ?? ''),
+        'deny',
+        '',
+        '',
+      ),
+    )
+  }
+
+  function selectFormResource(v: string) {
+    setFormResource(v)
+    setFormNameTouched(false)
+    const meta = resourceOptions().find((o) => o.value === v.trim())
+    const fields = meta?.fields ?? []
+    setFormFieldsMode('all')
+    setFormSelectedFields(fields.slice())
+    setFormDomainMode('all')
   }
 
   onMount(() => {
     void loadAll()
-    void fetchACLActions().then(setAclActions).catch(() => setAclActions(['read', 'create', 'update', 'delete', 'execute', '*']))
   })
 
   let loadingAll = false
@@ -416,6 +532,7 @@ export default function Access(): JSX.Element {
           'roleId',
           'authorId',
           'effect',
+          'kind',
           'resource',
           'actions',
           'fields',
@@ -431,9 +548,7 @@ export default function Access(): JSX.Element {
       setEntries(entryRows as AclEntry[])
       void loadResourceOptions(entryRows as AclEntry[]).then(setResourceOptions)
       const current = selectedRoleId()
-      if (current && !nextRoles.some((r) => r.id === current)) {
-        setSelectedRoleId('')
-      }
+      if (current && !nextRoles.some((r) => r.id === current)) setSelectedRoleId('')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -474,6 +589,7 @@ export default function Access(): JSX.Element {
 
   async function deleteEntry(row: AclEntry) {
     if (isSeedEntry(row)) return
+    if (!window.confirm(t('permissions.confirm_delete'))) return
     setSaving(true)
     setError('')
     setSaved(false)
@@ -488,35 +604,12 @@ export default function Access(): JSX.Element {
     }
   }
 
-  function toggleAction(action: string, checked: boolean) {
-    const current = new Set(formActions())
-    if (action === '*') {
-      setFormActions(checked ? ['*'] : ['read'])
-      return
-    }
-    current.delete('*')
-    if (checked) current.add(action)
-    else current.delete(action)
-    const next = [...current]
-    setFormActions(next.length ? next : ['read'])
-  }
-
-  function resetForm() {
-    setFormName('')
-    setFormResource('')
-    setFormActions(['read'])
-    setFormFieldsMode('all')
-    setFormFieldsCustom('["message"]')
-    setFormDomainMode('all')
-    setFormDomainCustom('[["authorId","=","$user.id"]]')
-    setFormPriority('1000')
-    setFormEffect('deny')
-    setFormRoleId(selectedRoleId())
-  }
-
   async function createOverride() {
     const rid = formRoleId().trim() || selectedRoleId()
-    if (!rid) return
+    if (!rid) {
+      setError(t('permissions.error.role_required'))
+      return
+    }
     setSaving(true)
     setError('')
     setSaved(false)
@@ -525,10 +618,20 @@ export default function Access(): JSX.Element {
       if (!name) throw new Error(t('permissions.error.name_required'))
       const resource = formResource().trim()
       if (!resource) throw new Error(t('permissions.error.resource_required'))
-      const actions = serializeActions(formActions())
-      const fields =
-        formFieldsMode() === 'all' ? '"*"' : parseJSONString(formFieldsCustom(), '"*"')
-      const domain = formDomainMode() === 'all' ? '[]' : parseJSONString(formDomainCustom(), '[]')
+      const kind = inferResourceKind(resource)
+      const actions = isCallStyleKind(kind) ? '[]' : '["*"]'
+      let fields = '"*"'
+      let domain = '[]'
+      if (kind === 'query' || kind === 'command') {
+        if (formFieldsMode() === 'selected') {
+          const selected = formSelectedFields()
+          if (selected.length === 0) throw new Error(t('permissions.error.fields_required'))
+          fields = JSON.stringify(selected)
+        }
+        if (formDomainMode() === 'custom') {
+          domain = parseJSONString(formDomainCustom(), '[]')
+        }
+      }
       const priority = parseInt(formPriority(), 10)
       if (Number.isNaN(priority)) throw new Error(t('permissions.error.priority_invalid'))
 
@@ -536,6 +639,7 @@ export default function Access(): JSX.Element {
         name,
         roleId: rid,
         effect: formEffect(),
+        kind,
         resource,
         actions,
         fields,
@@ -544,6 +648,7 @@ export default function Access(): JSX.Element {
         active: true,
       })
       resetForm()
+      setModalOpen(false)
       setSaved(true)
       await loadAll()
     } catch (e) {
@@ -564,201 +669,326 @@ export default function Access(): JSX.Element {
           </div>
         }
       >
-        <Show when={error()}>
-          <Alert variant="danger">{error()}</Alert>
-        </Show>
-        <Show when={saved()}>
-          <Alert variant="success">{t('permissions.saved')}</Alert>
-        </Show>
+        <div class="flex min-w-0 flex-col gap-[var(--kg-space-06)]">
+          <Toolbar
+            start={
+              <div class="flex min-w-0 flex-col gap-1">
+                <h1 class="m-0 text-2xl font-light tracking-tight text-[var(--kg-text)]">{t('permissions.access_title')}</h1>
+                <p class="m-0 text-sm text-[var(--kg-text-muted)]">{t('permissions.access_subtitle')}</p>
+              </div>
+            }
+            end={
+              <>
+                <Button size="sm" variant="ghost" onClick={() => void loadAll()}>
+                  {t('permissions.refresh')}
+                </Button>
+                <Button size="sm" onClick={openCreateModal} disabled={roles().length === 0}>
+                  {t('permissions.override_new')}
+                </Button>
+              </>
+            }
+          />
 
-        <div class="flex min-w-0 flex-col gap-[var(--kg-space-07)]">
-          <Show when={roles().length > 0} fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.roles_empty')}</p>}>
-            <header class="flex flex-wrap items-end gap-[var(--kg-space-05)]">
-              <FormField label={t('permissions.field.role')} class="mb-0 min-w-[16rem]">
-                <Select value={selectedRoleId()} options={roleFilterOptions()} onChange={selectRoleFilter} />
-              </FormField>
-              <Show when={selectedRole()}>
-                {(role) => (
-                  <div class="flex flex-wrap items-center gap-[var(--kg-space-03)] pb-1">
-                    <h2 class="m-0 text-xl">{role().label || role().name}</h2>
-                    <Badge variant="muted">{String(role().name)}</Badge>
-                  </div>
-                )}
-              </Show>
-              <Button size="sm" variant="ghost" class="ms-auto" onClick={() => void loadAll()}>
-                {t('permissions.refresh')}
-              </Button>
-            </header>
+          <Show when={error()}>
+            <Alert variant="danger" dismissible onDismiss={() => setError('')}>
+              {error()}
+            </Alert>
+          </Show>
+          <Show when={saved()}>
+            <Alert variant="success" dismissible onDismiss={() => setSaved(false)}>
+              {t('permissions.saved')}
+            </Alert>
+          </Show>
 
-            <Card title={t('permissions.rules_title')}>
-                    <p class="mb-[var(--kg-space-05)] mt-0 text-sm text-[var(--kg-text-muted)]">{t('permissions.rules_hint')}</p>
-                    <div class="mb-[var(--kg-space-05)] grid grid-cols-1 gap-[var(--kg-space-04)] md:grid-cols-2 lg:grid-cols-3">
-                      <FormField label={t('permissions.filter.search')}>
-                        <Input value={searchQuery()} onChange={setSearchQuery} placeholder={t('permissions.filter.search_placeholder')} />
-                      </FormField>
-                      <FormField label={t('permissions.filter.resource_prefix')}>
-                        <Input value={resourcePrefix()} onChange={setResourcePrefix} placeholder="identity." />
-                      </FormField>
-                      <FormField label={t('permissions.filter.min_priority')}>
-                        <Input type="number" value={minPriority()} onChange={setMinPriority} placeholder="1000" />
-                      </FormField>
-                      <FormField label={t('permissions.filter.source')}>
-                        <Select
-                          value={sourceFilter()}
-                          options={[
-                            { value: 'all', label: t('permissions.filter.source_all') },
-                            { value: 'seed', label: t('permissions.source.seed') },
-                            { value: 'override', label: t('permissions.source.override') },
-                          ]}
-                          onChange={(v) => setSourceFilter(v as SourceFilter)}
-                        />
-                      </FormField>
-                      <FormField label={t('permissions.filter.effect')}>
-                        <Select
-                          value={effectFilter()}
-                          options={[
-                            { value: 'all', label: t('permissions.filter.effect_all') },
-                            { value: 'allow', label: t('permissions.effect.allow') },
-                            { value: 'deny', label: t('permissions.effect.deny') },
-                          ]}
-                          onChange={(v) => setEffectFilter(v as EffectFilter)}
-                        />
-                      </FormField>
-                      <FormField label={t('permissions.filter.status')}>
-                        <Select
-                          value={statusFilter()}
-                          options={[
-                            { value: 'all', label: t('permissions.filter.status_all') },
-                            { value: 'active', label: t('permissions.filter.status_active') },
-                            { value: 'inactive', label: t('permissions.filter.status_inactive') },
-                          ]}
-                          onChange={(v) => setStatusFilter(v as StatusFilter)}
-                        />
-                      </FormField>
-                    </div>
+          <Show when={roles().length > 0} fallback={<Alert variant="warning">{t('permissions.roles_empty')}</Alert>}>
+            <div class="grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
+              <StatCard label={t('permissions.stat.total')} value={summary().total} hint={t('permissions.stat.total_hint')} />
+              <StatCard label={t('permissions.stat.active')} value={summary().active} />
+              <StatCard label={t('permissions.stat.overrides')} value={summary().overrides} hint={t('permissions.stat.overrides_hint')} />
+              <StatCard label={t('permissions.stat.denies')} value={summary().denies} />
+              <StatCard label={t('permissions.stat.call')} value={summary().call} hint={t('permissions.stat.call_hint')} />
+              <StatCard label={t('permissions.stat.app')} value={summary().app} hint={t('permissions.stat.app_hint')} />
+            </div>
 
-                    <p class="mb-[var(--kg-space-04)] mt-0 text-xs text-[var(--kg-text-muted)]">
-                      {t('permissions.rules_count', sortedRoleEntries().length)}
-                    </p>
-
-                    <Show
-                      when={sortedRoleEntries().length > 0}
-                      fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.rules_empty')}</p>}
-                    >
-                      <RulesTable
-                        rows={sortedRoleEntries()}
-                        showRoleColumn={!selectedRoleId()}
-                        roleLabel={(row) => {
-                          const role = rolesById()[String(row.roleId ?? '')]
-                          return role ? String(role.label || role.name) : String(row.roleId ?? '')
+            <div class="grid min-w-0 grid-cols-1 gap-[var(--kg-space-05)] xl:grid-cols-[16rem_minmax(0,1fr)]">
+              <aside class="border border-[var(--kg-border)] bg-[var(--kg-surface)]">
+                <div class="border-b border-[var(--kg-border)] px-4 py-3">
+                  <h2 class="m-0 text-sm font-semibold uppercase tracking-wide text-[var(--kg-text-secondary)]">
+                    {t('permissions.roles_title')}
+                  </h2>
+                </div>
+                <nav class="flex max-h-[32rem] flex-col overflow-y-auto" aria-label={t('permissions.roles_title')}>
+                  <button
+                    type="button"
+                    class="flex cursor-pointer items-center justify-between gap-2 border-0 border-b border-[var(--kg-border)] bg-transparent px-4 py-3 text-left text-sm hover:bg-[var(--kg-field-hover)]"
+                    classList={{
+                      'bg-[var(--kg-field-hover)] font-medium text-[var(--kg-text)]': !selectedRoleId(),
+                      'text-[var(--kg-text-secondary)]': !!selectedRoleId(),
+                    }}
+                    onClick={() => selectRole('')}
+                  >
+                    <span>{t('permissions.filter.role_all')}</span>
+                    <Badge variant="muted">{String(entries().filter((e) => e.active !== false).length)}</Badge>
+                  </button>
+                  <For each={roles()}>
+                    {(role) => (
+                      <button
+                        type="button"
+                        class="flex cursor-pointer items-center justify-between gap-2 border-0 border-b border-[var(--kg-border)] bg-transparent px-4 py-3 text-left text-sm hover:bg-[var(--kg-field-hover)]"
+                        classList={{
+                          'bg-[var(--kg-field-hover)] font-medium text-[var(--kg-text)]': selectedRoleId() === role.id,
+                          'text-[var(--kg-text-secondary)]': selectedRoleId() !== role.id,
                         }}
-                        priorityMin={priorityRange().min}
-                        priorityMax={priorityRange().max}
-                        sortKey={sortKey()}
-                        sortDir={sortDir()}
-                        saving={saving()}
-                        onSort={toggleSort}
-                        onDeactivate={(row) => void deactivateEntry(row)}
-                        onActivate={(row) => void activateEntry(row)}
-                        onDelete={(row) => void deleteEntry(row)}
-                      />
-                    </Show>
-                  </Card>
+                        onClick={() => selectRole(role.id)}
+                      >
+                        <span class="min-w-0 truncate">
+                          <span class="block truncate">{role.label || role.name}</span>
+                          <span class="block font-mono text-xs text-[var(--kg-text-muted)]">{String(role.name)}</span>
+                        </span>
+                        <Badge variant="muted">{String(roleRuleCounts().get(role.id) ?? 0)}</Badge>
+                      </button>
+                    )}
+                  </For>
+                </nav>
+              </aside>
 
-                  <Card title={t('permissions.override_title')}>
-                    <p class="mb-[var(--kg-space-05)] mt-0 text-sm text-[var(--kg-text-muted)]">{t('permissions.override_hint')}</p>
-                    <div class="grid grid-cols-1 gap-[var(--kg-space-05)] md:grid-cols-2">
-                      <FormField label={t('permissions.field.role')} required>
-                        <Select value={formRoleId()} options={roleOptions()} onChange={setFormRoleId} />
-                      </FormField>
-                      <FormField label={t('permissions.field.name')} required>
-                        <Input value={formName()} onChange={setFormName} placeholder="role-resource-action" />
-                      </FormField>
-                      <FormField label={t('permissions.field.effect')} required>
-                        <Select
-                          value={formEffect()}
-                          options={[
-                            { value: 'allow', label: t('permissions.effect.allow') },
-                            { value: 'deny', label: t('permissions.effect.deny') },
-                          ]}
-                          onChange={setFormEffect}
-                        />
-                      </FormField>
-                      <FormField label={t('permissions.field.priority')} hint={t('permissions.field.priority_hint')} required>
-                        <Select
-                          value={formPriority()}
-                          options={[
-                            { value: '0', label: '0' },
-                            { value: '100', label: '100' },
-                            { value: '1000', label: '1000 (override)' },
-                            { value: '2000', label: '2000 (strong override)' },
-                          ]}
-                          onChange={setFormPriority}
-                        />
-                      </FormField>
-                      <FormField label={t('permissions.field.resource')} required class="md:col-span-2">
-                        <SearchableCombobox
-                          value={formResource()}
-                          options={resourceOptions()}
-                          placeholder="identity.menu.users"
-                          onChange={setFormResource}
-                        />
-                      </FormField>
-                      <FormField label={t('permissions.field.actions')} hint={t('permissions.field.actions_hint')} required class="md:col-span-2">
-                        <div class="flex flex-wrap gap-[var(--kg-space-04)]">
-                          <For each={aclActions()}>
-                            {(action) => (
-                              <Checkbox
-                                label={action}
-                                checked={formActions().includes(action)}
-                                onChange={(checked) => toggleAction(action, checked)}
-                              />
-                            )}
-                          </For>
-                        </div>
-                      </FormField>
-                      <FormField label={t('permissions.field.fields')} hint={t('permissions.field.fields_hint')} required>
-                        <Select
-                          value={formFieldsMode()}
-                          options={[
-                            { value: 'all', label: t('permissions.fields.all') },
-                            { value: 'custom', label: t('permissions.fields.custom') },
-                          ]}
-                          onChange={(v) => setFormFieldsMode(v as 'all' | 'custom')}
-                        />
-                      </FormField>
-                      <Show when={formFieldsMode() === 'custom'}>
-                        <FormField label={t('permissions.field.fields')} required>
-                          <Input value={formFieldsCustom()} onChange={setFormFieldsCustom} placeholder={'["message"]'} />
-                        </FormField>
-                      </Show>
-                      <FormField label={t('permissions.field.domain')} hint={t('permissions.field.domain_hint')} required>
-                        <Select
-                          value={formDomainMode()}
-                          options={[
-                            { value: 'all', label: t('permissions.domain.all') },
-                            { value: 'custom', label: t('permissions.domain.custom') },
-                          ]}
-                          onChange={(v) => setFormDomainMode(v as 'all' | 'custom')}
-                        />
-                      </FormField>
-                      <Show when={formDomainMode() === 'custom'}>
-                        <FormField label={t('permissions.field.domain')} required>
-                          <Input value={formDomainCustom()} onChange={setFormDomainCustom} placeholder={'[["authorId","=","$user.id"]]'} />
-                        </FormField>
-                      </Show>
-                      <div class="md:col-span-2">
-                        <FormActions>
-                          <Button loading={saving()} onClick={() => void createOverride()}>
-                            {t('permissions.override_submit')}
-                          </Button>
-                        </FormActions>
-                      </div>
-                    </div>
-                  </Card>
+              <div class="flex min-w-0 flex-col gap-[var(--kg-space-05)]">
+                <Card title={t('permissions.rules_title')}>
+                  <Show when={selectedRole()}>
+                    {(role) => (
+                      <p class="mb-4 mt-0 text-sm text-[var(--kg-text-muted)]">
+                        {t('permissions.rules_for_role')}{' '}
+                        <span class="font-medium text-[var(--kg-text)]">{role().label || role().name}</span>
+                        <Badge variant="muted" class="ms-2">
+                          {String(role().name)}
+                        </Badge>
+                      </p>
+                    )}
+                  </Show>
+                  <p class="mb-4 mt-0 text-sm text-[var(--kg-text-muted)]">{t('permissions.rules_hint')}</p>
+
+                  <div class="mb-4 flex flex-wrap gap-2">
+                    <For each={[...KIND_FILTERS]}>
+                      {(kind) => (
+                        <button
+                          type="button"
+                          class="cursor-pointer rounded-sm border px-2.5 py-1 text-xs font-medium"
+                          classList={{
+                            'border-[var(--kg-text)] bg-[var(--kg-text)] text-[var(--kg-surface)]': kindFilter() === kind,
+                            'border-[var(--kg-border)] bg-transparent text-[var(--kg-text-secondary)] hover:border-[var(--kg-text-muted)]':
+                              kindFilter() !== kind,
+                          }}
+                          onClick={() => setKindFilter(kind)}
+                        >
+                          {kind ? kind : t('permissions.filter.kind_all')}
+                        </button>
+                      )}
+                    </For>
+                  </div>
+
+                  <div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <FormField label={t('permissions.filter.search')} class="mb-0">
+                      <Input value={searchQuery()} onChange={setSearchQuery} placeholder={t('permissions.filter.search_placeholder')} />
+                    </FormField>
+                    <FormField label={t('permissions.filter.resource_prefix')} class="mb-0">
+                      <Input value={resourcePrefix()} onChange={setResourcePrefix} placeholder="hellospec." />
+                    </FormField>
+                    <FormField label={t('permissions.filter.min_priority')} class="mb-0">
+                      <Input value={minPriority()} onChange={setMinPriority} placeholder="0" />
+                    </FormField>
+                    <FormField label={t('permissions.filter.source')} class="mb-0">
+                      <Select
+                        value={sourceFilter()}
+                        options={[
+                          { value: 'all', label: t('permissions.filter.source_all') },
+                          { value: 'seed', label: t('permissions.source.seed') },
+                          { value: 'override', label: t('permissions.source.override') },
+                        ]}
+                        onChange={(v) => setSourceFilter(v as SourceFilter)}
+                      />
+                    </FormField>
+                    <FormField label={t('permissions.filter.status')} class="mb-0">
+                      <Select
+                        value={statusFilter()}
+                        options={[
+                          { value: 'all', label: t('permissions.filter.status_all') },
+                          { value: 'active', label: t('permissions.filter.status_active') },
+                          { value: 'inactive', label: t('permissions.filter.status_inactive') },
+                        ]}
+                        onChange={(v) => setStatusFilter(v as StatusFilter)}
+                      />
+                    </FormField>
+                    <FormField label={t('permissions.filter.effect')} class="mb-0">
+                      <Select
+                        value={effectFilter()}
+                        options={[
+                          { value: 'all', label: t('permissions.filter.effect_all') },
+                          { value: 'allow', label: t('permissions.effect.allow') },
+                          { value: 'deny', label: t('permissions.effect.deny') },
+                        ]}
+                        onChange={(v) => setEffectFilter(v as EffectFilter)}
+                      />
+                    </FormField>
+                  </div>
+
+                  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p class="m-0 text-sm text-[var(--kg-text-muted)]">
+                      {t('permissions.rules_count').replace('%d', String(sortedEntries().length))}
+                    </p>
+                    <Show when={hasActiveFilters()}>
+                      <Button size="sm" variant="ghost" onClick={clearFilters}>
+                        {t('permissions.filter.clear')}
+                      </Button>
+                    </Show>
+                  </div>
+
+                  <Show
+                    when={sortedEntries().length > 0}
+                    fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.rules_empty')}</p>}
+                  >
+                    <RulesTable
+                      rows={sortedEntries()}
+                      showRoleColumn={!selectedRoleId()}
+                      roleLabel={(row) => {
+                        const role = rolesById()[String(row.roleId ?? '')]
+                        return role ? String(role.label || role.name) : String(row.roleId ?? '')
+                      }}
+                      sortKey={sortKey()}
+                      sortDir={sortDir()}
+                      saving={saving()}
+                      onSort={toggleSort}
+                      onDeactivate={(row) => void deactivateEntry(row)}
+                      onActivate={(row) => void activateEntry(row)}
+                      onDelete={(row) => void deleteEntry(row)}
+                    />
+                  </Show>
+                </Card>
+              </div>
+            </div>
           </Show>
         </div>
       </Show>
+
+      <Modal
+        open={modalOpen()}
+        title={t('permissions.override_title')}
+        size="lg"
+        onClose={() => setModalOpen(false)}
+        footer={
+          <FormActions>
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>
+              {t('permissions.cancel')}
+            </Button>
+            <Button loading={saving()} onClick={() => void createOverride()}>
+              {t('permissions.override_submit')}
+            </Button>
+          </FormActions>
+        }
+      >
+        <p class="mb-5 mt-0 text-sm text-[var(--kg-text-muted)]">{t('permissions.override_hint')}</p>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <FormField label={t('permissions.field.role')} required>
+            <Select
+              value={formRoleId()}
+              options={roleOptions()}
+              onChange={(v) => {
+                setFormRoleId(v)
+                setFormNameTouched(false)
+              }}
+            />
+          </FormField>
+          <FormField label={t('permissions.field.effect')} required>
+            <Select
+              value={formEffect()}
+              options={[
+                { value: 'allow', label: t('permissions.effect.allow') },
+                { value: 'deny', label: t('permissions.effect.deny') },
+              ]}
+              onChange={(v) => {
+                setFormEffect(v)
+                setFormNameTouched(false)
+              }}
+            />
+          </FormField>
+          <FormField label={t('permissions.field.resource')} required class="md:col-span-2">
+            <SearchableCombobox
+              value={formResource()}
+              options={resourceOptions()}
+              placeholder="hellospec.command.hellospecPostGreeting"
+              onChange={selectFormResource}
+            />
+          </FormField>
+          <Show when={formResource().trim()}>
+            <FormField label={t('permissions.field.kind')} hint={t('permissions.field.kind_hint')} class="md:col-span-2">
+              <div class="flex items-center gap-2">
+                {kindBadge(formKind())}
+                <Show when={formIsCallStyle() && !formSupportsFieldsDomain()}>
+                  <span class="text-sm text-[var(--kg-text-muted)]">{t('permissions.field.call_style_hint')}</span>
+                </Show>
+              </div>
+            </FormField>
+          </Show>
+          <Show when={formSupportsFieldsDomain()}>
+            <FormField label={t('permissions.field.fields')} hint={t('permissions.field.fields_hint')} class="md:col-span-2">
+              <Select
+                value={formFieldsMode()}
+                options={[
+                  { value: 'all', label: t('permissions.fields.all') },
+                  { value: 'selected', label: t('permissions.fields.selected') },
+                ]}
+                onChange={(v) => {
+                  const mode = v as 'all' | 'selected'
+                  setFormFieldsMode(mode)
+                  if (mode === 'all') setFormSelectedFields(formAvailableFields().slice())
+                }}
+              />
+            </FormField>
+            <Show when={formFieldsMode() === 'selected'}>
+              <FormField label={t('permissions.field.fields_pick')} hint={t('permissions.field.fields_pick_hint')} class="md:col-span-2">
+                <SearchableMultiSelect
+                  value={formSelectedFields()}
+                  options={formAvailableFields().map((field) => ({ value: field, label: field }))}
+                  placeholder={t('permissions.field.fields_pick_placeholder')}
+                  allowCustomValue={formAvailableFields().length === 0}
+                  emptyMessage={t('permissions.field.fields_pick_empty')}
+                  onChange={(next) => {
+                    setFormSelectedFields(next)
+                    setFormFieldsMode('selected')
+                  }}
+                />
+              </FormField>
+            </Show>
+            <FormField label={t('permissions.field.domain')} hint={t('permissions.field.domain_hint')} class="md:col-span-2">
+              <Select
+                value={formDomainMode()}
+                options={[
+                  { value: 'all', label: t('permissions.domain.all') },
+                  { value: 'custom', label: t('permissions.domain.custom') },
+                ]}
+                onChange={(v) => setFormDomainMode(v as 'all' | 'custom')}
+              />
+            </FormField>
+            <Show when={formDomainMode() === 'custom'}>
+              <FormField label={t('permissions.field.domain')} class="md:col-span-2">
+                <Input value={formDomainCustom()} onChange={setFormDomainCustom} placeholder='[["authorId","=","$user.id"]]' />
+              </FormField>
+            </Show>
+          </Show>
+          <FormField label={t('permissions.field.priority')} hint={t('permissions.field.priority_hint')} required class="md:col-span-2">
+            <Input value={formPriority()} onChange={setFormPriority} placeholder="1000" />
+          </FormField>
+          <FormField label={t('permissions.field.name')} hint={t('permissions.field.name_hint')} required class="md:col-span-2">
+            <Input
+              value={formName()}
+              onChange={(v) => {
+                setFormNameTouched(true)
+                setFormName(v)
+              }}
+              placeholder={suggestedName() || 'member-deny-view-Users'}
+            />
+          </FormField>
+        </div>
+      </Modal>
 
       <KAppStatus />
     </>

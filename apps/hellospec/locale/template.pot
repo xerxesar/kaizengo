@@ -35,6 +35,10 @@ msgid "hellospec.enum.greeting.mood.neutral"
 msgstr ""
 
 #: app.yaml
+msgid "hellospec.error.greeting.internal"
+msgstr ""
+
+#: app.yaml
 msgid "hellospec.field.internalNote"
 msgstr ""
 

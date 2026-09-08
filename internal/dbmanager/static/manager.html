@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KaizenGo — Database Manager</title>
+  <style>
+    :root {
+      --bg: #fdf7f5;
+      --panel: #fff8f7;
+      --border: #ffc55a;
+      --text: #474747;
+      --muted: #6b6b6b;
+      --accent: #e78b00;
+      --accent-hover: #ffc55a;
+      --danger: #e35d6a;
+      --ok: #3ecf8e;
+      --input: #fffcf7;
+      --radius: 8px;
+      --font: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      --tag-active: #3d8bfd;
+      --tag-client: #8b9aab;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, #fffcf9 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, #fff8f7 0%, transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+    header { margin-bottom: 1.5rem; }
+    header h1 { margin: 0 0 0.35rem; font-size: 1.65rem; font-weight: 600; letter-spacing: -0.02em; }
+    header p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    a.back { color: var(--muted); font-size: 0.85rem; text-decoration: none; }
+    a.back:hover { color: var(--text); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.35rem;
+      margin-bottom: 1.1rem;
+    }
+    .panel h2 { margin: 0 0 0.75rem; font-size: 1rem; font-weight: 600; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; }
+    .toolbar h2 { margin: 0; }
+    .toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.3rem; }
+    input, select {
+      width: 100%;
+      padding: 0.55rem 0.7rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--input);
+      color: var(--text);
+      font: inherit;
+      margin-bottom: 0.75rem;
+    }
+    input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); border-color: var(--accent); }
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #ffe5e5;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.875rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { background: rgb(255, 231, 187); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.primary:hover { background: var(--accent-hover); }
+    button.ghost { background: transparent; }
+    .db-list { list-style: none; margin: 0; padding: 0; }
+    .db-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .db-item:hover { background: #fdf8ef; }
+    .db-item.focus-client { border-color: color-mix(in srgb, var(--tag-client) 70%, var(--border)); }
+    .db-item.focus-active { border-color: color-mix(in srgb, var(--tag-active) 70%, var(--border)); background: color-mix(in srgb, var(--tag-active) 8%, transparent); }
+    .db-item .name { font-weight: 600; flex: 1; }
+    .db-item .meta { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .badge.active {
+      border-color: color-mix(in srgb, var(--tag-active) 55%, var(--border));
+      color: var(--tag-active);
+      background: color-mix(in srgb, var(--tag-active) 12%, transparent);
+    }
+    .badge.client {
+      border-color: color-mix(in srgb, var(--tag-client) 55%, var(--border));
+      color: var(--tag-client);
+      background: color-mix(in srgb, var(--tag-client) 10%, transparent);
+    }
+    .badge.imported { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); color: var(--accent-hover); }
+    .menu-wrap { position: relative; }
+    .menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 0.25rem;
+      min-width: 160px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.35rem;
+      z-index: 20;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+    .menu.open { display: block; }
+    .menu button {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      padding: 0.5rem 0.65rem;
+      border-radius: 6px;
+    }
+    .menu button:hover { background: #d8d8d8; }
+    .alert {
+      padding: 0.7rem 0.9rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .alert.error {
+      background: color-mix(in srgb, var(--danger) 18%, transparent);
+      border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+      color: #86474e;
+    }
+    .alert.ok {
+      background: color-mix(in srgb, var(--ok) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent);
+      color: #3c7c5c;
+    }
+    .hint { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 0.75rem; }
+    .hidden { display: none !important; }
+    .pg-line { color: var(--muted); font-size: 0.8rem; margin: 0.35rem 0 0; }
+    dialog {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 0;
+      max-width: 420px;
+      width: calc(100% - 2rem);
+    }
+    dialog::backdrop { background: rgba(0,0,0,0.55); }
+    .dialog-body { padding: 1.25rem 1.35rem; }
+    .dialog-body h3 { margin: 0 0 0.75rem; font-size: 1.05rem; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+    #debug-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 50;
+      background: #0b1016ee;
+      border-top: 1px solid var(--border);
+      padding: 0.65rem 1rem;
+      font-size: 0.8rem;
+      backdrop-filter: blur(8px);
+    }
+    #debug-bar .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.45rem; }
+    #debug-bar .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid;
+      font-weight: 600;
+    }
+    #debug-bar .tag.active {
+      color: #fff;
+      background: var(--tag-active);
+      border-color: var(--tag-active);
+    }
+    #debug-bar .tag.client {
+      color: #d7dee8;
+      background: #2a3340;
+      border-color: var(--tag-client);
+    }
+    #debug-log {
+      max-height: 140px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #b8c4d4;
+      white-space: pre-wrap;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="back" href="/app/">← Back to app</a>
+      <h1>Database Manager</h1>
+      <p>Click a database to select it for this browser (stored in localStorage and activated on the server).</p>
+    </header>
+
+    <div id="flash" class="hidden"></div>
+
+    <section id="setup-panel" class="panel hidden">
+      <h2>Set master password</h2>
+      <p class="hint">Required once. This password unlocks the database manager.</p>
+      <label for="setup-pw">Master password</label>
+      <input id="setup-pw" type="password" autocomplete="new-password" />
+      <label for="setup-pw2">Confirm</label>
+      <input id="setup-pw2" type="password" autocomplete="new-password" />
+      <div class="dialog-actions">
+        <button type="button" class="primary" id="setup-btn">Save &amp; unlock</button>
+      </div>
+    </section>
+
+    <section id="unlock-panel" class="panel hidden">
+      <h2>Unlock database manager</h2>
+      <p class="hint">Enter the master password to continue.</p>
+      <label for="unlock-pw">Master password</label>
+      <input id="unlock-pw" type="password" autocomplete="current-password" />
+      <div class="dialog-actions">
+        <button type="button" class="primary" id="unlock-btn">Unlock</button>
+      </div>
+    </section>
+
+    <div id="main-panels" class="hidden">
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Databases</h2>
+            <p id="pg-info" class="pg-line"></p>
+          </div>
+          <div class="toolbar-actions">
+            <button type="button" id="btn-create">Create</button>
+            <button type="button" id="btn-import">Import</button>
+            <button type="button" id="btn-restore">Restore</button>
+            <button type="button" class="ghost" id="btn-master">Change password</button>
+            <button type="button" class="ghost" id="btn-lock">Lock</button>
+          </div>
+        </div>
+        <div id="db-empty" class="hint hidden">No databases registered yet.</div>
+        <ul id="db-list" class="db-list"></ul>
+      </section>
+    </div>
+  </div>
+
+  <div id="debug-bar" class="hidden">
+    <div class="tags" id="debug-tags"></div>
+    <div id="debug-log"></div>
+  </div>
+
+  <dialog id="dlg">
+    <form method="dialog" class="dialog-body" id="dlg-form">
+      <h3 id="dlg-title">Action</h3>
+      <div id="dlg-fields"></div>
+      <div class="dialog-actions">
+        <button type="submit" value="cancel">Cancel</button>
+        <button type="submit" class="primary" id="dlg-ok" value="ok">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const DB_KEY = 'kaizengo.db';
+    const DEBUG_KEY = 'kaizengo.debug';
+    const DB_COOKIE = 'kg_db';
+    let status = null;
+    let openMenu = null;
+    const logs = [];
+
+    function params() { return new URLSearchParams(window.location.search); }
+
+    function getStoredDB() {
+      try { return (localStorage.getItem(DB_KEY) || '').trim(); } catch { return ''; }
+    }
+    function getStoredDebug() {
+      try { return localStorage.getItem(DEBUG_KEY) === '1'; } catch { return false; }
+    }
+    function writeCookie(name, value) {
+      if (!value) {
+        document.cookie = name + '=; Path=/; Max-Age=0; SameSite=Lax';
+        return;
+      }
+      document.cookie = name + '=' + encodeURIComponent(value) + '; Path=/; Max-Age=' + (365 * 24 * 60 * 60) + '; SameSite=Lax';
+    }
+    function setStoredDB(name) {
+      const next = (name || '').trim();
+      try {
+        if (next) localStorage.setItem(DB_KEY, next);
+        else localStorage.removeItem(DB_KEY);
+      } catch { /* ignore */ }
+      writeCookie(DB_COOKIE, next);
+    }
+    function setStoredDebug(on) {
+      try {
+        if (on) localStorage.setItem(DEBUG_KEY, '1');
+        else localStorage.removeItem(DEBUG_KEY);
+      } catch { /* ignore */ }
+    }
+
+    function syncPrefsFromURL() {
+      const p = params();
+      if (p.has('db')) setStoredDB((p.get('db') || '').trim());
+      if (p.has('debug')) setStoredDebug(p.get('debug') === '1');
+    }
+    function syncURLFromPrefs() {
+      const p = params();
+      const db = getStoredDB();
+      const debug = getStoredDebug();
+      if (db) p.set('db', db); else p.delete('db');
+      if (debug) p.set('debug', '1'); else p.delete('debug');
+      const q = p.toString();
+      history.replaceState(null, '', window.location.pathname + (q ? '?' + q : '') + window.location.hash);
+    }
+
+    function debugOn() { return getStoredDebug(); }
+    function clientDB() { return getStoredDB(); }
+
+    function log(msg) {
+      const line = '[' + new Date().toISOString().slice(11, 19) + '] ' + msg;
+      logs.push(line);
+      if (logs.length > 200) logs.shift();
+      renderDebug();
+      if (debugOn()) console.log('[dbmanager]', msg);
+    }
+
+    function flash(msg, ok) {
+      const el = $('flash');
+      el.className = 'alert ' + (ok ? 'ok' : 'error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      log((ok ? 'ok: ' : 'err: ') + msg);
+    }
+    function clearFlash() { $('flash').classList.add('hidden'); }
+
+    async function api(path, opts = {}) {
+      const res = await fetch('/web/database' + path, {
+        credentials: 'same-origin',
+        ...opts,
+        headers: {
+          ...(opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+          ...(opts.headers || {}),
+        },
+      });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { error: text }; }
+      if (!res.ok) throw new Error((data && data.error) || text || res.statusText);
+      return data;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[c]);
+    }
+
+    function closeMenus() {
+      if (openMenu) { openMenu.classList.remove('open'); openMenu = null; }
+    }
+    document.addEventListener('click', closeMenus);
+
+    function openDialog(title, fieldsHtml, okLabel) {
+      return new Promise((resolve) => {
+        $('dlg-title').textContent = title;
+        $('dlg-fields').innerHTML = fieldsHtml;
+        $('dlg-ok').textContent = okLabel || 'OK';
+        const dlg = $('dlg');
+        const form = $('dlg-form');
+        function onClose() {
+          dlg.removeEventListener('close', onClose);
+          resolve(dlg.returnValue === 'ok' ? Object.fromEntries(new FormData(form)) : null);
+        }
+        dlg.addEventListener('close', onClose);
+        dlg.showModal();
+      });
+    }
+
+    function showOnly(id) {
+      ['setup-panel', 'unlock-panel', 'main-panels'].forEach((x) => $(x).classList.add('hidden'));
+      $(id).classList.remove('hidden');
+    }
+
+    function renderDebug() {
+      const bar = $('debug-bar');
+      if (!debugOn()) {
+        bar.classList.add('hidden');
+        return;
+      }
+      bar.classList.remove('hidden');
+      const active = (status && status.active) || '';
+      const client = clientDB();
+      const tags = [];
+      tags.push(`<span class="tag active" title="Active platform database">active: ${escapeHtml(active || '(none)')}</span>`);
+      tags.push(`<span class="tag client" title="Client selection (localStorage)">client: ${escapeHtml(client || '(none)')}</span>`);
+      $('debug-tags').innerHTML = tags.join('');
+      $('debug-log').textContent = logs.slice().reverse().join('\n');
+    }
+
+    async function useDB(name, { silent } = {}) {
+      const next = (name || '').trim();
+      setStoredDB(next);
+      syncURLFromPrefs();
+      if (!next) {
+        log('cleared client selection');
+        renderDBs();
+        return;
+      }
+      log('client select → ' + next);
+      try {
+        await api('/use', { method: 'POST', body: JSON.stringify({ name: next }) });
+        if (!silent) flash('Using database “' + next + '”.', true);
+        await refresh();
+      } catch (e) {
+        flash(e.message, false);
+        renderDBs();
+      }
+    }
+
+    function renderDBs() {
+      const dbs = (status && status.databases) || [];
+      const active = (status && status.active) || '';
+      const client = clientDB();
+      const empty = $('db-empty');
+      const list = $('db-list');
+      list.innerHTML = '';
+      if (!dbs.length) {
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      for (const db of dbs) {
+        const li = document.createElement('li');
+        let cls = 'db-item';
+        if (db.name === active) cls += ' focus-active';
+        else if (db.name === client) cls += ' focus-client';
+        li.className = cls;
+        const badges = [];
+        if (db.name === active) badges.push('<span class="badge active">active</span>');
+        if (db.name === client && db.name !== active) badges.push('<span class="badge client">client</span>');
+        if (db.imported) badges.push('<span class="badge imported">imported</span>');
+        li.innerHTML = `
+          <div class="name">${escapeHtml(db.name)}</div>
+          <div class="meta">${badges.join('')}</div>
+          <div class="menu-wrap">
+            <button type="button" class="ghost menu-btn" aria-label="Actions">⋯</button>
+            <div class="menu">
+              <button type="button" data-act="duplicate">Duplicate</button>
+              <button type="button" data-act="backup">Backup</button>
+              ${db.name !== active ? '<button type="button" data-act="drop">Drop</button>' : ''}
+            </div>
+          </div>`;
+        li.addEventListener('click', (e) => {
+          if (e.target.closest('.menu-wrap')) return;
+          void useDB(db.name);
+        });
+        const menuBtn = li.querySelector('.menu-btn');
+        const menu = li.querySelector('.menu');
+        menuBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const opening = !menu.classList.contains('open');
+          closeMenus();
+          if (opening) { menu.classList.add('open'); openMenu = menu; }
+        });
+        menu.addEventListener('click', (e) => e.stopPropagation());
+        menu.querySelectorAll('button[data-act]').forEach((b) => {
+          b.addEventListener('click', () => {
+            closeMenus();
+            const act = b.getAttribute('data-act');
+            if (act === 'duplicate') void duplicateDB(db.name);
+            if (act === 'backup') void backupDB(db.name);
+            if (act === 'drop') void dropDB(db.name);
+          });
+        });
+        list.appendChild(li);
+      }
+      renderDebug();
+    }
+
+    async function refresh() {
+      status = await api('/status');
+      log('status unlocked=' + !!status.unlocked + ' active=' + (status.active || '(none)') + ' client=' + (clientDB() || '(none)'));
+      if (status.needs_setup) {
+        showOnly('setup-panel');
+        renderDebug();
+        return;
+      }
+      if (!status.unlocked) {
+        showOnly('unlock-panel');
+        $('unlock-pw').focus();
+        renderDebug();
+        return;
+      }
+      showOnly('main-panels');
+      const pg = status.postgres;
+      $('pg-info').textContent = pg
+        ? `Server ${pg.user}@${pg.host}${pg.port ? ':' + pg.port : ''} via KaizenGo_POSTGRES_DSN`
+        : 'Set KaizenGo_POSTGRES_DSN in the environment';
+      const client = clientDB();
+      if (client && !(status.databases || []).some((d) => d.name === client)) {
+        log('clearing unknown client db=' + client);
+        setStoredDB('');
+        syncURLFromPrefs();
+      }
+      renderDBs();
+    }
+
+    const useCheckbox =
+      '<label><input name="select" type="checkbox" value="1" style="width:auto;margin-right:0.4rem" /> Also use this database</label>';
+
+    async function duplicateDB(source) {
+      clearFlash();
+      const result = await openDialog(
+        'Duplicate “' + source + '”',
+        `<label>New name</label><input name="name" required pattern="[a-z][a-z0-9_]*" placeholder="my_copy" />
+         ${useCheckbox}`,
+        'Duplicate'
+      );
+      if (!result || !result.name) return;
+      try {
+        await api('/duplicate', {
+          method: 'POST',
+          body: JSON.stringify({ source, name: result.name, select: !!result.select }),
+        });
+        flash('Duplicated to “' + result.name + '”.', true);
+        if (result.select) {
+          setStoredDB(result.name);
+          syncURLFromPrefs();
+        }
+        await refresh();
+      } catch (e) { flash(e.message, false); }
+    }
+
+    async function backupDB(name) {
+      clearFlash();
+      log('backup ' + name);
+      try {
+        const res = await fetch('/web/database/backup?name=' + encodeURIComponent(name), {
+          credentials: 'same-origin',
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          let msg = t;
+          try { msg = JSON.parse(t).error || t; } catch {}
+          throw new Error(msg);
+        }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name + '.sql';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        flash('Backup downloaded.', true);
+      } catch (e) { flash(e.message, false); }
+    }
+
+    async function dropDB(name) {
+      clearFlash();
+      const result = await openDialog(
+        'Drop “' + name + '”',
+        `<p class="hint">Removes the database from the server and catalog. This cannot be undone.</p>
+         <label><input name="confirm" type="checkbox" value="1" required style="width:auto;margin-right:0.4rem" /> I understand</label>`,
+        'Drop'
+      );
+      if (!result || !result.confirm) return;
+      try {
+        await api('/drop', { method: 'POST', body: JSON.stringify({ name }) });
+        flash('Dropped “' + name + '”.', true);
+        if (clientDB() === name) {
+          setStoredDB('');
+          syncURLFromPrefs();
+        }
+        await refresh();
+      } catch (e) { flash(e.message, false); }
+    }
+
+    $('setup-btn').addEventListener('click', async () => {
+      clearFlash();
+      const a = $('setup-pw').value;
+      const b = $('setup-pw2').value;
+      if (!a || a !== b) { flash('Passwords must match.', false); return; }
+      try {
+        await api('/setup', { method: 'POST', body: JSON.stringify({ password: a }) });
+        flash('Master password saved.', true);
+        await refresh();
+      } catch (e) { flash(e.message, false); }
+    });
+
+    async function doUnlock() {
+      clearFlash();
+      const password = $('unlock-pw').value;
+      if (!password) { flash('Enter the master password.', false); return; }
+      try {
+        await api('/login', { method: 'POST', body: JSON.stringify({ password }) });
+        $('unlock-pw').value = '';
+        log('unlocked');
+        await refresh();
+      } catch (e) { flash(e.message, false); }
+    }
+    $('unlock-btn').addEventListener('click', () => void doUnlock());
+    $('unlock-pw').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); void doUnlock(); }
+    });
+
+    $('btn-lock').addEventListener('click', async () => {
+      clearFlash();
+      try {
+        await api('/logout', { method: 'POST', body: '{}' });
+        log('locked');
+        await refresh();
+      } catch (e) { flash(e.message, false); }
+    });
+
+    $('btn-create').addEventListener('click', async () => {
+      clearFlash();
+      const result = await openDialog(
+        'Create database',
+        `<label>Name</label><input name="name" required pattern="[a-z][a-z0-9_]*" placeholder="my_company" />
+         ${useCheckbox}`,
+        'Create'
+      );
+      if (!result || !result.name) return;
+      try {
+        await api('/create', {
+          method: 'POST',
+          body: JSON.stringify({ name: result.name, select: !!result.select }),
+        });
+        flash('Created “' + result.name + '”.', true);
+        if (result.select) {
+          setStoredDB(result.name);
+          syncURLFromPrefs();
+        }
+        await refresh();
+      } catch (e) { flash(e.message, false); }
+    });
+
+    $('btn-import').addEventListener('click', async () => {
+      clearFlash();
+      const result = await openDialog(
+        'Import existing database',
+        `<p class="hint">Register a database already on the server.</p>
+         <label>Database name</label><input name="name" required pattern="[a-z][a-z0-9_]*" />
+         ${useCheckbox}`,
+        'Import'
+      );
+      if (!result || !result.name) return;
+      try {
+        await api('/import', {
+          method: 'POST',
+          body: JSON.stringify({ name: result.name, select: !!result.select }),
+        });
+        flash('Imported “' + result.name + '”.', true);
+        if (result.select) {
+          setStoredDB(result.name);
+          syncURLFromPrefs();
+        }
+        await refresh();
+      } catch (e) { flash(e.message, false); }
+    });
+
+    $('btn-restore').addEventListener('click', async () => {
+      clearFlash();
+      $('dlg-title').textContent = 'Restore from SQL backup';
+      $('dlg-fields').innerHTML = `
+        <p class="hint">Creates a new database and loads a KaizenGo SQL backup.</p>
+        <label>New database name</label><input name="name" required pattern="[a-z][a-z0-9_]*" />
+        <label>SQL file</label><input name="dump" type="file" accept=".sql,text/plain" required />
+        ${useCheckbox}`;
+      $('dlg-ok').textContent = 'Restore';
+      const dlg = $('dlg');
+      const form = $('dlg-form');
+      function onSubmit(e) {
+        if (e.submitter && e.submitter.value === 'cancel') return;
+        e.preventDefault();
+        const fd = new FormData(form);
+        const name = String(fd.get('name') || '').trim();
+        const fileEl = form.querySelector('input[name="dump"]');
+        const file = fileEl && fileEl.files && fileEl.files[0];
+        const select = !!fd.get('select');
+        if (!name || !file) return;
+        dlg.close('ok');
+        void (async () => {
+          const body = new FormData();
+          body.set('name', name);
+          body.set('select', select ? 'true' : 'false');
+          body.set('dump', file);
+          try {
+            await api('/restore', { method: 'POST', body });
+            flash('Restored into “' + name + '”.', true);
+            if (select) {
+              setStoredDB(name);
+              syncURLFromPrefs();
+            }
+            await refresh();
+          } catch (err) { flash(err.message, false); }
+        })();
+      }
+      form.addEventListener('submit', onSubmit, { once: true });
+      dlg.showModal();
+    });
+
+    $('btn-master').addEventListener('click', async () => {
+      clearFlash();
+      const result = await openDialog(
+        'Change master password',
+        `<label>Current password</label><input name="old_password" type="password" required />
+         <label>New password</label><input name="new_password" type="password" required />`,
+        'Update'
+      );
+      if (!result) return;
+      try {
+        await api('/change_password', {
+          method: 'POST',
+          body: JSON.stringify({
+            old_password: result.old_password,
+            new_password: result.new_password,
+          }),
+        });
+        flash('Master password updated.', true);
+      } catch (e) { flash(e.message, false); }
+    });
+
+    syncPrefsFromURL();
+    syncURLFromPrefs();
+    if (debugOn()) log('debug mode on');
+    if (clientDB()) log('stored db=' + clientDB());
+    void (async () => {
+      try {
+        if (clientDB()) {
+          await api('/use', { method: 'POST', body: JSON.stringify({ name: clientDB() }) });
+        }
+      } catch (e) {
+        flash(e.message, false);
+      }
+      await refresh().catch((e) => flash(e.message, false));
+    })();
+  </script>
+</body>
+</html>

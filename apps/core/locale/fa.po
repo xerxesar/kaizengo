@@ -24,6 +24,9 @@ msgstr "ورود"
 msgid "login.hint"
 msgstr "مدیر پیش‌فرض: %s / %s"
 
+msgid "login.manage_databases"
+msgstr "مدیریت پایگاه‌های داده"
+
 msgid "shell.loading"
 msgstr "در حال بارگذاری…"
 

@@ -207,6 +207,9 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 			}
 		}
 	}
+	if err := validateQueriesCommands(s, models); err != nil {
+		return err
+	}
 	for _, v := range s.Views {
 		switch v.Type {
 		case "", "page":
@@ -243,6 +246,84 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 	}
 	if err := s.Keymap.validate(s.Name); err != nil {
 		return err
+	}
+	return nil
+}
+
+func validateQueriesCommands(s AppSpec, models map[string]struct{}) error {
+	seen := map[string]struct{}{}
+	checkName := func(kind, name string) error {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return fmt.Errorf("%s: name is required", kind)
+		}
+		if !fieldNameRe.MatchString(name) {
+			return fmt.Errorf("%s %q: invalid name", kind, name)
+		}
+		key := strings.ToLower(name)
+		if _, ok := seen[key]; ok {
+			return fmt.Errorf("duplicate query/command name %q", name)
+		}
+		seen[key] = struct{}{}
+		return nil
+	}
+	for _, q := range s.Queries {
+		if err := checkName("query", q.Name); err != nil {
+			return err
+		}
+		shorthands := 0
+		if strings.TrimSpace(q.List) != "" {
+			shorthands++
+			if _, ok := models[q.List]; !ok {
+				return fmt.Errorf("query %q list: unknown model %q", q.Name, q.List)
+			}
+		}
+		if strings.TrimSpace(q.Get) != "" {
+			shorthands++
+			if _, ok := models[q.Get]; !ok {
+				return fmt.Errorf("query %q get: unknown model %q", q.Name, q.Get)
+			}
+		}
+		if shorthands > 1 {
+			return fmt.Errorf("query %q: set only one of list/get", q.Name)
+		}
+		for _, f := range q.Args {
+			if !fieldNameRe.MatchString(f.Name) {
+				return fmt.Errorf("query %q has invalid arg %q", q.Name, f.Name)
+			}
+		}
+	}
+	for _, c := range s.Commands {
+		if err := checkName("command", c.Name); err != nil {
+			return err
+		}
+		shorthands := 0
+		if strings.TrimSpace(c.Create) != "" {
+			shorthands++
+			if _, ok := models[c.Create]; !ok {
+				return fmt.Errorf("command %q create: unknown model %q", c.Name, c.Create)
+			}
+		}
+		if strings.TrimSpace(c.Update) != "" {
+			shorthands++
+			if _, ok := models[c.Update]; !ok {
+				return fmt.Errorf("command %q update: unknown model %q", c.Name, c.Update)
+			}
+		}
+		if strings.TrimSpace(c.Delete) != "" {
+			shorthands++
+			if _, ok := models[c.Delete]; !ok {
+				return fmt.Errorf("command %q delete: unknown model %q", c.Name, c.Delete)
+			}
+		}
+		if shorthands > 1 {
+			return fmt.Errorf("command %q: set only one of create/update/delete", c.Name)
+		}
+		for _, f := range c.Args {
+			if !fieldNameRe.MatchString(f.Name) {
+				return fmt.Errorf("command %q has invalid arg %q", c.Name, f.Name)
+			}
+		}
 	}
 	return nil
 }
@@ -316,6 +397,26 @@ func (s *AppSpec) ApplyDefaults() {
 			}
 			if f.Type == TypeEnum && f.Default == nil && len(f.Values) > 0 && !f.Required {
 				f.Default = f.Values[0]
+			}
+		}
+	}
+	for i := range s.Queries {
+		for j := range s.Queries[i].Args {
+			f := &s.Queries[i].Args[j]
+			if f.Type == "" {
+				f.Type = TypeString
+			} else {
+				f.Type = CanonicalFieldType(f.Type)
+			}
+		}
+	}
+	for i := range s.Commands {
+		for j := range s.Commands[i].Args {
+			f := &s.Commands[i].Args[j]
+			if f.Type == "" {
+				f.Type = TypeString
+			} else {
+				f.Type = CanonicalFieldType(f.Type)
 			}
 		}
 	}

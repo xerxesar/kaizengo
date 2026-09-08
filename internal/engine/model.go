@@ -140,7 +140,7 @@ func (s *modelService) Get(ctx context.Context, orgID, id string) (Record, error
 }
 
 func (s *modelService) rejectExternalWrite(ctx context.Context) error {
-	if !s.model.Internal || IsInternal(ctx) {
+	if !s.model.Internal || AllowsInternalWrite(ctx) {
 		return nil
 	}
 	return i18n.Error(s.spec.Name + ".error." + s.model.Name + ".internal")
@@ -492,7 +492,7 @@ func (s *modelService) selectList() string {
 }
 
 func (s *modelService) qtable() string {
-	return quoteIdent(s.schema) + "." + quoteIdent(readTable(s.model))
+	return quoteIdent(s.schema) + "." + quoteIdent(modelTable(s.model))
 }
 
 func quoteIdent(s string) string {

@@ -6,6 +6,8 @@ GraphQL is a **runtime registry** on `host.GQL`. Apps register fields in `Setup`
 
 This is the **north–south** API (browser / Solid SDK). Cross-app or out-of-process capability calls are a separate lane — planned as gRPC via go-plugin; see [grpc-plugins.md](grpc-plugins.md). Do not use GraphQL as the east–west protocol between services.
 
+**CQRS apps** (`queries:` / `commands:` in `app.yaml`) expose only named fields (e.g. `hellospecGreetings`, `hellospecPostGreeting`). Generic `createX` / `listX` model CRUD is omitted. See [Go SDK → CQRS](internals/go-sdk.md).
+
 ```go
 // in your app Setup — do not edit apps/core for this
 host.GQL.RegisterQuery("myField", &graphql.Field{
@@ -73,6 +75,16 @@ query { identityMemberships { id userId orgUnitId role } }
 query { counter }
 mutation { addCounter(by: 1) }
 mutation { resetCounter }
+```
+
+**HelloSpec** (`apps/hellospec` — CQRS public API)
+
+```graphql
+query { hellospecGreetings { id message mood } }
+query { hellospecGreeting(id: "…") { id message } }
+mutation { hellospecPostGreeting(message: "Hi", mood: "happy") { id message } }
+mutation { hellospecReviseGreeting(id: "…", message: "Hello") { id } }
+mutation { hellospecDiscardGreeting(id: "…") }
 ```
 
 **Settings**

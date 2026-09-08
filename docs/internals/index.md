@@ -205,7 +205,7 @@ There is **one** shell SPA (`apps/core/spa`). Pages under `apps/<name>/views/*.p
 | `apps/hellospec/module.go` | `engine.New` + `module.Register` |
 | `apps/hellospec/hooks.go` | App Before*/After* on the mutation path |
 | `apps/hellospec/views/*.page.tsx` | Shell registry → UI |
-| `apps/hellospec/migrations/` | `greetings_read` model table |
+| `apps/hellospec/migrations/` | `greetings` model table |
 
 ## Related reference
 

@@ -6,7 +6,9 @@ import {
   Card,
   KAppStatus,
   Spinner,
+  StatCard,
   Table,
+  Toolbar,
   listModelRecords,
   t,
   type Column,
@@ -36,6 +38,17 @@ export default function Roles(): JSX.Element {
   })
 
   const selectedRole = createMemo(() => roles().find((r) => r.id === selectedRoleId()) ?? null)
+
+  const summary = createMemo(() => {
+    const activeRoles = roles().filter((r) => r.active !== false).length
+    const assigned = new Set(userRoles().map((ur) => String(ur.userId ?? '')).filter(Boolean)).size
+    return {
+      roles: roles().length,
+      active: activeRoles,
+      assignments: userRoles().length,
+      users: assigned,
+    }
+  })
 
   const roleUsers = createMemo(() => {
     const rid = selectedRoleId()
@@ -90,18 +103,16 @@ export default function Roles(): JSX.Element {
     setLoading(true)
     setError('')
     try {
-      const [roleRows, urRows, userRows] = await Promise.all([
+      const [roleRowsRaw, urRows, userRows] = await Promise.all([
         listModelRecords('permissions', 'role', ['name', 'label', 'description', 'active']),
         listModelRecords('permissions', 'user_role', ['userId', 'roleId']),
         listModelRecords('identity', 'user', ['name', 'email']),
       ])
-      const nextRoles = (roleRows as Role[]).sort((a, b) => String(a.name).localeCompare(String(b.name)))
+      const nextRoles = (roleRowsRaw as Role[]).sort((a, b) => String(a.name).localeCompare(String(b.name)))
       setRoles(nextRoles)
       setUserRoles(urRows as UserRole[])
       const map: Record<string, User> = {}
-      for (const u of userRows as User[]) {
-        map[u.id] = u
-      }
+      for (const u of userRows as User[]) map[u.id] = u
       setUsersById(map)
       const current = selectedRoleId()
       if (!current && nextRoles.length > 0) {
@@ -124,53 +135,76 @@ export default function Roles(): JSX.Element {
         fallback={
           <div class="flex items-center gap-[var(--kg-space-05)]">
             <Spinner />
-            <p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.loading')}</p>
+            <p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.loading_roles')}</p>
           </div>
         }
       >
-        <Show when={error()}>
-          <Alert variant="danger">{error()}</Alert>
-        </Show>
+        <div class="flex flex-col gap-[var(--kg-space-06)]">
+          <Toolbar
+            start={
+              <div class="flex min-w-0 flex-col gap-1">
+                <h1 class="m-0 text-2xl font-light tracking-tight text-[var(--kg-text)]">{t('permissions.roles_title')}</h1>
+                <p class="m-0 text-sm text-[var(--kg-text-muted)]">{t('permissions.roles_subtitle')}</p>
+              </div>
+            }
+            end={
+              <Button size="sm" variant="ghost" onClick={() => void loadAll()}>
+                {t('permissions.refresh')}
+              </Button>
+            }
+          />
 
-        <div class="flex flex-col gap-[var(--kg-space-07)]">
-          <header class="flex flex-wrap items-center gap-[var(--kg-space-04)]">
-            <h2 class="m-0 text-xl">{t('permissions.roles_title')}</h2>
-            <Button size="sm" variant="ghost" onClick={() => void loadAll()}>
-              {t('permissions.refresh')}
-            </Button>
-          </header>
-
-          <Card title={t('permissions.roles_title')}>
-            <Show
-              when={roleRows().length > 0}
-              fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.roles_empty')}</p>}
-            >
-              <Table
-                columns={roleColumns()}
-                rows={roleRows()}
-                onRowClick={(row) => setSelectedRoleId(row.id)}
-              />
-            </Show>
-          </Card>
-
-          <Show when={selectedRole()} fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.select_role')}</p>}>
-            {(role) => (
-              <Card title={t('permissions.users_title')}>
-                <p class="mb-[var(--kg-space-04)] mt-0 text-sm text-[var(--kg-text-muted)]">
-                  {role().label || role().name}
-                  <Badge variant="muted" class="ms-2">
-                    {String(role().name)}
-                  </Badge>
-                </p>
-                <Show
-                  when={roleUsers().length > 0}
-                  fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.users_empty')}</p>}
-                >
-                  <Table columns={userColumns()} rows={roleUsers()} />
-                </Show>
-              </Card>
-            )}
+          <Show when={error()}>
+            <Alert variant="danger" dismissible onDismiss={() => setError('')}>
+              {error()}
+            </Alert>
           </Show>
+
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
+            <StatCard label={t('permissions.stat.roles')} value={summary().roles} />
+            <StatCard label={t('permissions.stat.active_roles')} value={summary().active} />
+            <StatCard label={t('permissions.stat.assignments')} value={summary().assignments} />
+            <StatCard label={t('permissions.stat.assigned_users')} value={summary().users} />
+          </div>
+
+          <div class="grid min-w-0 grid-cols-1 gap-[var(--kg-space-05)] xl:grid-cols-2">
+            <Card title={t('permissions.roles_title')}>
+              <Show
+                when={roleRows().length > 0}
+                fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.roles_empty')}</p>}
+              >
+                <Table
+                  columns={roleColumns()}
+                  rows={roleRows()}
+                  onRowClick={(row) => setSelectedRoleId(row.id)}
+                />
+              </Show>
+            </Card>
+
+            <Card title={t('permissions.users_title')}>
+              <Show when={selectedRole()} fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.select_role')}</p>}>
+                {(role) => (
+                  <>
+                    <p class="mb-4 mt-0 text-sm text-[var(--kg-text-muted)]">
+                      <span class="font-medium text-[var(--kg-text)]">{role().label || role().name}</span>
+                      <Badge variant="muted" class="ms-2">
+                        {String(role().name)}
+                      </Badge>
+                      <span class="ms-2 tabular-nums">
+                        {roleUsers().length} {t('permissions.col.members').toLowerCase()}
+                      </span>
+                    </p>
+                    <Show
+                      when={roleUsers().length > 0}
+                      fallback={<p class="m-0 text-[var(--kg-text-muted)]">{t('permissions.users_empty')}</p>}
+                    >
+                      <Table columns={userColumns()} rows={roleUsers()} />
+                    </Show>
+                  </>
+                )}
+              </Show>
+            </Card>
+          </div>
         </div>
       </Show>
 

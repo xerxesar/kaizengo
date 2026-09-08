@@ -138,3 +138,33 @@ func TestViewCatalogSkipsFormForInternalModels(t *testing.T) {
 		t.Fatalf("unexpected view: %+v", catalog[0])
 	}
 }
+
+func TestViewCatalogCQRSIncludesFormAndBindings(t *testing.T) {
+	spec := appspec.AppSpec{
+		Name: "hellospec",
+		Models: []appspec.ModelSpec{{
+			Name:     "greeting",
+			Internal: true,
+			Fields:   []appspec.FieldSpec{{Name: "message", Type: "string", Required: true}},
+		}},
+		Queries: []appspec.QuerySpec{
+			{Name: "greetings", List: "greeting"},
+			{Name: "greeting", Get: "greeting"},
+		},
+		Commands: []appspec.CommandSpec{
+			{Name: "postGreeting", Create: "greeting"},
+			{Name: "reviseGreeting", Update: "greeting"},
+			{Name: "discardGreeting", Delete: "greeting"},
+		},
+	}
+	catalog := viewCatalog(spec)
+	if len(catalog) != 2 {
+		t.Fatalf("expected list+form for CQRS internal model, got %d", len(catalog))
+	}
+	if catalog[0].ListQuery != "hellospecGreetings" || catalog[0].DeleteCommand != "hellospecDiscardGreeting" {
+		t.Fatalf("unexpected list bindings: %+v", catalog[0])
+	}
+	if catalog[1].CreateCommand != "hellospecPostGreeting" || catalog[1].GetQuery != "hellospecGreeting" {
+		t.Fatalf("unexpected form bindings: %+v", catalog[1])
+	}
+}

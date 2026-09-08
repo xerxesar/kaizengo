@@ -1,11 +1,9 @@
-import { createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { createSignal, onCleanup, onMount, Show, For } from 'solid-js'
 import { Menu } from '@ark-ui/solid/menu'
+import { Eye, EyeOff } from 'lucide-solid'
 import {
   Alert,
-  Button,
   Card,
-  FormField,
-  Input,
   KeymapProvider,
   Layout,
   LayoutMain,
@@ -21,16 +19,96 @@ import {
   menuContentClass,
   menuItemClass,
   type ThemeId,
+  Button,
 } from '@kaizengo/sdk-solid/ui'
 import type { NavEntry } from './lib/nav'
 import { ViewHost } from './lib/ViewHost'
 import { fetchMe, logout, type AuthUser } from './lib/auth'
 import { Login } from './views/Login'
+import {
+  activateStoredDB,
+  getStoredDB,
+  getStoredDebug,
+  syncPrefsFromURL,
+  syncURLFromPrefs,
+} from './lib/db-prefs'
 
 function currentAppRoute(): string {
   const path = window.location.pathname.replace(/\/+$/, '')
   const m = path.match(/^\/app\/([^/]+)/)
   return m?.[1] ?? ''
+}
+
+function DebugBar() {
+  const [enabled, setEnabled] = createSignal(getStoredDebug())
+  const [clientDB, setClientDB] = createSignal(getStoredDB())
+  const [activeDB, setActiveDB] = createSignal('')
+  const [logs, setLogs] = createSignal<string[]>([])
+  const [showBar, setShowBar] = createSignal(false)
+  function pushLog(msg: string) {
+    const line = `[${new Date().toISOString().slice(11, 19)}] ${msg}`
+    setLogs((prev) => [line, ...prev].slice(0, 80))
+    console.log('[kaizengo:debug]', msg)
+  }
+
+  async function refreshActive() {
+    try {
+      const res = await fetch('/web/database/status', { credentials: 'include' })
+      if (!res.ok) {
+        pushLog(`status failed (${res.status})`)
+        return
+      }
+      const data = await res.json()
+      const active = String(data.active ?? '')
+      setActiveDB(active)
+      pushLog(`active=${active || '(none)'} client=${getStoredDB() || '(none)'}`)
+    } catch (e) {
+      pushLog(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  function sync() {
+    syncPrefsFromURL()
+    syncURLFromPrefs()
+    setEnabled(getStoredDebug())
+    setClientDB(getStoredDB())
+    if (getStoredDebug()) {
+      pushLog(`prefs db=${getStoredDB() || '(none)'} debug=1`)
+      void refreshActive()
+    }
+  }
+
+  onMount(() => {
+    sync()
+    const onPop = () => sync()
+    window.addEventListener('popstate', onPop)
+    window.addEventListener('kaizengo:db', onPop)
+    onCleanup(() => {
+      window.removeEventListener('popstate', onPop)
+      window.removeEventListener('kaizengo:db', onPop)
+    })
+  })
+
+  return (
+    <Show when={enabled()}>
+      <Show when={showBar()}>
+      <div class="debug-bar" aria-live="polite">
+        <div class="debug-tags">
+          <span class="debug-tag active" title="Active platform database">
+            active: {activeDB() || '(none)'}
+          </span>
+          <span class="debug-tag client" title="Client selection (localStorage)">
+            client: {clientDB() || '(none)'}
+          </span>
+        </div>
+        <div class="debug-log">
+          <For each={logs()}>{(line) => <div>{line}</div>}</For>
+        </div>
+      </div>
+      </Show>
+      <Button onClick={() => setShowBar(!showBar())} class='absolute bottom-0 right-0 z-[20000]'>Debug Bar {showBar() ? <EyeOff size={16} /> : <Eye size={16} />}</Button>
+    </Show>
+  )
 }
 
 export default function App() {
@@ -43,6 +121,7 @@ export default function App() {
   const [user, setUser] = createSignal<AuthUser | null>(null)
   const [authLoading, setAuthLoading] = createSignal(true)
   const [appsMenuOpen, setAppsMenuOpen] = createSignal(false)
+  const [dbReady, setDbReady] = createSignal(false)
 
   const brandIcon = () => themeIconHref(getThemeMode(theme()))
   const activeEntry = () => apps().find((a) => a.route === appRoute())
@@ -114,6 +193,18 @@ export default function App() {
     window.addEventListener('kaizengo:shell.signOut', onSignOut)
 
     void (async () => {
+      syncPrefsFromURL()
+      syncURLFromPrefs()
+      try {
+        if (getStoredDB()) {
+          await activateStoredDB()
+          window.dispatchEvent(new Event('kaizengo:db'))
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      } finally {
+        setDbReady(true)
+      }
       try {
         const { locale } = await syncDocumentLocale()
         setI18nLocale(locale)
@@ -134,125 +225,120 @@ export default function App() {
   })
 
   return (
-    <Show
-      when={i18nReady() && !authLoading()}
-      fallback={
-        <main class="auth-loading">
-          <p>{t('shell.loading')}</p>
-        </main>
-      }
-    >
-      <Show when={user()} fallback={<Login onlogin={() => void checkAuth()} />}>
-        {(currentUser) => (
-          <KeymapProvider>
-          <Page>
-            <header class="shell-bar">
-              <a
-                class="brand"
-                href="/app/"
-                data-keymap-id="go-home"
-                onClick={(e) => {
-                  e.preventDefault()
-                  navigate('')
-                }}
-              >
-                <img src={brandIcon()} alt="KaizenGo" class="brand-icon" />
-                <span class="brand-text">{shellTitle()}</span>
-              </a>
+    <>
+      <Show
+        when={i18nReady() && dbReady() && !authLoading()}
+        fallback={
+          <main class="auth-loading">
+            <p>{t('shell.loading')}</p>
+          </main>
+        }
+      >
+        <Show when={user()} fallback={<Login onlogin={() => void checkAuth()} />}>
+          {(currentUser) => (
+            <KeymapProvider>
+              <Page>
+                <header class="shell-bar">
+                  <a
+                    class="brand"
+                    href="/app/"
+                    data-keymap-id="go-home"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('')
+                    }}
+                  >
+                    <img src={brandIcon()} alt="KaizenGo" class="brand-icon" />
+                    <span class="brand-text">{shellTitle()}</span>
+                  </a>
 
-              <Menu.Root
-                open={appsMenuOpen()}
-                onOpenChange={(e) => setAppsMenuOpen(e.open)}
-                positioning={{ placement: 'bottom-start' }}
-              >
-                <Menu.Trigger
-                  class="inline-flex h-8 items-center gap-2 border-0 bg-transparent px-4 text-sm text-[var(--kg-shell-text)] hover:bg-[var(--kg-shell-hover)]"
-                  data-keymap-id="toggle-apps"
-                >
-                  {t('shell.apps')}
-                  <span class="text-xs opacity-85">▾</span>
-                </Menu.Trigger>
-                <Menu.Positioner>
-                  <Menu.Content class={menuContentClass}>
-                    <Menu.Item
-                      value="home"
-                      class={menuItemClass}
-                      onSelect={() => navigate('')}
+                  <Menu.Root
+                    open={appsMenuOpen()}
+                    onOpenChange={(e) => setAppsMenuOpen(e.open)}
+                    positioning={{ placement: 'bottom-start' }}
+                  >
+                    <Menu.Trigger
+                      class="inline-flex h-8 items-center gap-2 border-0 bg-transparent px-4 text-sm text-[var(--kg-shell-text)] hover:bg-[var(--kg-shell-hover)]"
+                      data-keymap-id="toggle-apps"
                     >
-                      {t('shell.home')}
-                    </Menu.Item>
-                    {apps().map((a) => (
-                      <Menu.Item
-                        value={a.route}
-                        class={menuItemClass}
-                        onSelect={() => navigate(a.route)}
-                      >
-                        {a.title}
-                      </Menu.Item>
-                    ))}
-                    <Show when={!apps().length}>
-                      <div class="px-4 py-3 text-sm text-[var(--kg-text-muted)]">{t('shell.no_apps')}</div>
+                      {t('shell.apps')}
+                      <span class="text-xs opacity-85">▾</span>
+                    </Menu.Trigger>
+                    <Menu.Positioner>
+                      <Menu.Content class={menuContentClass}>
+                        <Menu.Item value="home" class={menuItemClass} onSelect={() => navigate('')}>
+                          {t('shell.home')}
+                        </Menu.Item>
+                        {apps().map((a) => (
+                          <Menu.Item value={a.route} class={menuItemClass} onSelect={() => navigate(a.route)}>
+                            {a.title}
+                          </Menu.Item>
+                        ))}
+                        <Show when={!apps().length}>
+                          <div class="px-4 py-3 text-sm text-[var(--kg-text-muted)]">{t('shell.no_apps')}</div>
+                        </Show>
+                      </Menu.Content>
+                    </Menu.Positioner>
+                  </Menu.Root>
+
+                  <div class="user-menu">
+                    <span class="user-name">{currentUser().name}</span>
+                    <Show when={currentUser().roles.includes('admin')}>
+                      <span class="admin-badge">{t('shell.admin')}</span>
                     </Show>
-                  </Menu.Content>
-                </Menu.Positioner>
-              </Menu.Root>
+                    <button type="button" class="logout-btn" data-keymap-id="sign-out" onClick={() => void handleLogout()}>
+                      {t('shell.sign_out')}
+                    </button>
+                  </div>
+                </header>
 
-              <div class="user-menu">
-                <span class="user-name">{currentUser().name}</span>
-                <Show when={currentUser().roles.includes('admin')}>
-                  <span class="admin-badge">{t('shell.admin')}</span>
-                </Show>
-                <button type="button" class="logout-btn" data-keymap-id="sign-out" onClick={() => void handleLogout()}>
-                  {t('shell.sign_out')}
-                </button>
-              </div>
-            </header>
-
-            <div class="shell-body">
-              <Show
-                when={appRoute()}
-                fallback={
-                  <Layout title={t('shell.welcome', currentUser().name)} subtitle={t('shell.signed_in', currentUser().email)}>
-                    <LayoutMain>
-                      <Card title={t('shell.get_started')}>
-                        <p class="hint">{t('shell.get_started_hint')}</p>
-                      </Card>
-                    </LayoutMain>
-                  </Layout>
-                }
-              >
-                <Show
-                  when={activeEntry()}
-                  fallback={
-                    <Layout title={t('shell.apps')}>
-                      <LayoutMain>
-                        <Alert variant="danger">{t('shell.no_apps')}</Alert>
-                      </LayoutMain>
-                    </Layout>
-                  }
-                >
-                  {(entry) => (
-                    <Show when={appRoute()} keyed>
-                      {(route) => (
-                        <Layout title={entry().title}>
-                          <LayoutMenu app={route} />
+                <div class="shell-body">
+                  <Show
+                    when={appRoute()}
+                    fallback={
+                      <Layout title={t('shell.welcome', currentUser().name)} subtitle={t('shell.signed_in', currentUser().email)}>
+                        <LayoutMain>
+                          <Card title={t('shell.get_started')}>
+                            <p class="hint">{t('shell.get_started_hint')}</p>
+                          </Card>
+                        </LayoutMain>
+                      </Layout>
+                    }
+                  >
+                    <Show
+                      when={activeEntry()}
+                      fallback={
+                        <Layout title={t('shell.apps')}>
                           <LayoutMain>
-                            <Show when={error()}>
-                              <Alert variant="danger">{error()}</Alert>
-                            </Show>
-                            <ViewHost hostApp={route} onerror={(message) => setError(message)} />
+                            <Alert variant="danger">{t('shell.no_apps')}</Alert>
                           </LayoutMain>
                         </Layout>
+                      }
+                    >
+                      {(entry) => (
+                        <Show when={appRoute()} keyed>
+                          {(route) => (
+                            <Layout title={entry().title}>
+                              <LayoutMenu app={route} />
+                              <LayoutMain>
+                                <Show when={error()}>
+                                  <Alert variant="danger">{error()}</Alert>
+                                </Show>
+                                <ViewHost hostApp={route} onerror={(message) => setError(message)} />
+                              </LayoutMain>
+                            </Layout>
+                          )}
+                        </Show>
                       )}
                     </Show>
-                  )}
-                </Show>
-              </Show>
-            </div>
-          </Page>
-          </KeymapProvider>
-        )}
+                  </Show>
+                </div>
+              </Page>
+            </KeymapProvider>
+          )}
+        </Show>
       </Show>
-    </Show>
+      <DebugBar />
+    </>
   )
 }

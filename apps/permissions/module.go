@@ -149,6 +149,7 @@ func (s engineStore) ListEntriesForUser(ctx context.Context, userID, orgID strin
 			RoleID:   rid,
 			RoleName: roleName[rid],
 			Effect:   fmt.Sprint(rec["effect"]),
+			Kind:     acl.ResourceKind(strings.TrimSpace(fmt.Sprint(rec["kind"]))),
 			Resource: fmt.Sprint(rec["resource"]),
 			Actions:  actions,
 			Fields:   fields,
@@ -192,8 +193,11 @@ func (s engineStore) EnsureRole(ctx context.Context, orgID, authorID, name, labe
 	return fmt.Sprint(rec["id"]), nil
 }
 
-func (s engineStore) EnsureACL(ctx context.Context, orgID, authorID, roleID, name, effect, resource, actions, fields, domain string, priority int) error {
+func (s engineStore) EnsureACL(ctx context.Context, orgID, authorID, roleID, name, effect, kind, resource, actions, fields, domain string, priority int) error {
 	ictx := engine.WithInternal(ctx)
+	if strings.TrimSpace(kind) == "" {
+		kind = string(acl.InferKind(resource))
+	}
 	recs, err := s.models.List(ictx, orgID, "acl_entry")
 	if err != nil {
 		return err
@@ -202,6 +206,7 @@ func (s engineStore) EnsureACL(ctx context.Context, orgID, authorID, roleID, nam
 		if fmt.Sprint(r["name"]) == name && fmt.Sprint(r["roleId"]) == roleID {
 			_, err := s.models.Update(ictx, orgID, "acl_entry", fmt.Sprint(r["id"]), map[string]any{
 				"effect":   effect,
+				"kind":     kind,
 				"resource": resource,
 				"actions":  actions,
 				"fields":   fields,
@@ -216,6 +221,7 @@ func (s engineStore) EnsureACL(ctx context.Context, orgID, authorID, roleID, nam
 		"name":     name,
 		"roleId":   roleID,
 		"effect":   effect,
+		"kind":     kind,
 		"resource": resource,
 		"actions":  actions,
 		"fields":   fields,

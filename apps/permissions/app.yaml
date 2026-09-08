@@ -54,10 +54,14 @@ models:
       - name: resource
         type: string
         required: true
+      - name: kind
+        type: enum
+        values: [model, menu, view, query, command, mutation, event, nav, app, api]
+        required: true
       - name: actions
         type: json
         required: true
-        default: '["*"]'
+        default: '[]'
       - name: fields
         type: json
         required: true

@@ -24,6 +24,9 @@ msgstr "Sign in"
 msgid "login.hint"
 msgstr "Default admin: %s / %s"
 
+msgid "login.manage_databases"
+msgstr "Manage databases"
+
 msgid "shell.loading"
 msgstr "Loading…"
 

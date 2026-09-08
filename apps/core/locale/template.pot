@@ -47,6 +47,10 @@ msgid "login.hint"
 msgstr ""
 
 #: spa/src/views/Login.tsx
+msgid "login.manage_databases"
+msgstr ""
+
+#: spa/src/views/Login.tsx
 msgid "login.password"
 msgstr ""
 

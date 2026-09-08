@@ -29,12 +29,21 @@ type Entry struct {
 	RoleID   string
 	RoleName string // denormalized slug for $user.roles context
 	Effect   string // allow|deny
+	Kind     ResourceKind
 	Resource string
-	Actions  []string // empty or ["*"] = all actions
+	Actions  []string // model/app/api only; ignored for call-style kinds (empty or ["*"] = all)
 	Fields   []string // empty or ["*"] = all fields
 	Domain   Domain   // empty = all records
 	Priority int
 	Active   bool
+}
+
+// EffectiveKind returns the stored kind, or infers it from Resource when unset.
+func (e Entry) EffectiveKind() ResourceKind {
+	if e.Kind != "" {
+		return e.Kind
+	}
+	return InferKind(e.Resource)
 }
 
 // Check is an authorization request.

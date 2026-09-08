@@ -11,15 +11,19 @@ msgid "nav.permissions"
 msgstr ""
 
 #: views/Access.page.tsx
+msgid "permissions.access_subtitle"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.access_title"
+msgstr ""
+
+#: views/Access.page.tsx
 msgid "permissions.activate"
 msgstr ""
 
 #: views/Access.page.tsx
-msgid "permissions.col.actions"
-msgstr ""
-
-#: views/Access.page.tsx
-msgid "permissions.col.domain"
+msgid "permissions.cancel"
 msgstr ""
 
 #: views/Access.page.tsx
@@ -31,7 +35,7 @@ msgid "permissions.col.email"
 msgstr ""
 
 #: views/Access.page.tsx
-msgid "permissions.col.fields"
+msgid "permissions.col.kind"
 msgstr ""
 
 #: views/Roles.page.tsx
@@ -54,12 +58,20 @@ msgstr ""
 msgid "permissions.col.role"
 msgstr ""
 
+#: views/Access.page.tsx
+msgid "permissions.col.scope"
+msgstr ""
+
 #: views/Roles.page.tsx
 msgid "permissions.col.slug"
 msgstr ""
 
 #: views/Roles.page.tsx
 msgid "permissions.col.user"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.confirm_delete"
 msgstr ""
 
 #: app.yaml
@@ -106,6 +118,50 @@ msgstr ""
 msgid "permissions.enum.acl_entry.effect.deny"
 msgstr ""
 
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.api"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.app"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.command"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.event"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.menu"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.model"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.mutation"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.nav"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.query"
+msgstr ""
+
+#: app.yaml
+msgid "permissions.enum.acl_entry.kind.view"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.error.fields_required"
+msgstr ""
+
 #: views/Access.page.tsx
 msgid "permissions.error.name_required"
 msgstr ""
@@ -118,16 +174,20 @@ msgstr ""
 msgid "permissions.error.resource_required"
 msgstr ""
 
-#: app.yaml views/Access.page.tsx
-msgid "permissions.field.actions"
+#: views/Access.page.tsx
+msgid "permissions.error.role_required"
 msgstr ""
 
-#: views/Access.page.tsx
-msgid "permissions.field.actions_hint"
+#: app.yaml
+msgid "permissions.field.actions"
 msgstr ""
 
 #: app.yaml
 msgid "permissions.field.active"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.field.call_style_hint"
 msgstr ""
 
 #: app.yaml
@@ -154,12 +214,40 @@ msgstr ""
 msgid "permissions.field.fields_hint"
 msgstr ""
 
+#: views/Access.page.tsx
+msgid "permissions.field.fields_pick"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.field.fields_pick_empty"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.field.fields_pick_hint"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.field.fields_pick_placeholder"
+msgstr ""
+
+#: app.yaml views/Access.page.tsx
+msgid "permissions.field.kind"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.field.kind_hint"
+msgstr ""
+
 #: app.yaml
 msgid "permissions.field.label"
 msgstr ""
 
 #: app.yaml views/Access.page.tsx
 msgid "permissions.field.name"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.field.name_hint"
 msgstr ""
 
 #: app.yaml views/Access.page.tsx
@@ -191,7 +279,11 @@ msgid "permissions.fields.all"
 msgstr ""
 
 #: views/Access.page.tsx
-msgid "permissions.fields.custom"
+msgid "permissions.fields.selected"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.filter.clear"
 msgstr ""
 
 #: views/Access.page.tsx
@@ -200,6 +292,10 @@ msgstr ""
 
 #: views/Access.page.tsx
 msgid "permissions.filter.effect_all"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.filter.kind_all"
 msgstr ""
 
 #: views/Access.page.tsx
@@ -246,8 +342,12 @@ msgstr ""
 msgid "permissions.filter.status_inactive"
 msgstr ""
 
-#: views/Access.page.tsx views/Roles.page.tsx
+#: views/Access.page.tsx
 msgid "permissions.loading"
+msgstr ""
+
+#: views/Roles.page.tsx
+msgid "permissions.loading_roles"
 msgstr ""
 
 #: app.yaml
@@ -256,6 +356,10 @@ msgstr ""
 
 #: views/Access.page.tsx
 msgid "permissions.override_hint"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.override_new"
 msgstr ""
 
 #: views/Access.page.tsx
@@ -279,6 +383,10 @@ msgid "permissions.roles_empty"
 msgstr ""
 
 #: views/Roles.page.tsx
+msgid "permissions.roles_subtitle"
+msgstr ""
+
+#: views/Access.page.tsx views/Roles.page.tsx
 msgid "permissions.roles_title"
 msgstr ""
 
@@ -288,6 +396,10 @@ msgstr ""
 
 #: views/Access.page.tsx
 msgid "permissions.rules_empty"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.rules_for_role"
 msgstr ""
 
 #: views/Access.page.tsx
@@ -306,6 +418,22 @@ msgstr ""
 msgid "permissions.saved"
 msgstr ""
 
+#: views/Access.page.tsx
+msgid "permissions.scope.actions"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.scope.call"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.scope.domain"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.scope.fields"
+msgstr ""
+
 #: views/Roles.page.tsx
 msgid "permissions.select_role"
 msgstr ""
@@ -316,6 +444,62 @@ msgstr ""
 
 #: views/Access.page.tsx
 msgid "permissions.source.seed"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.active"
+msgstr ""
+
+#: views/Roles.page.tsx
+msgid "permissions.stat.active_roles"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.app"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.app_hint"
+msgstr ""
+
+#: views/Roles.page.tsx
+msgid "permissions.stat.assigned_users"
+msgstr ""
+
+#: views/Roles.page.tsx
+msgid "permissions.stat.assignments"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.call"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.call_hint"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.denies"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.overrides"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.overrides_hint"
+msgstr ""
+
+#: views/Roles.page.tsx
+msgid "permissions.stat.roles"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.total"
+msgstr ""
+
+#: views/Access.page.tsx
+msgid "permissions.stat.total_hint"
 msgstr ""
 
 #: app.yaml

@@ -176,3 +176,56 @@ main {
   color: var(--kg-text-muted);
   margin: 0;
 }
+
+.debug-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9000;
+  background: color-mix(in srgb, #0b1016 92%, transparent);
+  border-top: 1px solid var(--kg-border, #2a3542);
+  padding: 0.65rem 1rem;
+  font-size: 0.8rem;
+  backdrop-filter: blur(8px);
+}
+
+.debug-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+
+.debug-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid;
+  font-weight: 600;
+}
+
+.debug-tag.server,
+.debug-tag.active {
+  color: #fff;
+  background: #3d8bfd;
+  border-color: #3d8bfd;
+}
+
+.debug-tag.temp,
+.debug-tag.client {
+  color: #d7dee8;
+  background: #2a3340;
+  border-color: #8b9aab;
+}
+
+.debug-log {
+  max-height: 140px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #b8c4d4;
+  line-height: 1.35;
+}
+

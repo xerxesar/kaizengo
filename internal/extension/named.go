@@ -41,7 +41,7 @@ func ApplyExtends(spec appspec.AppSpec) error {
 		if priority == 0 {
 			priority = 100
 		}
-		Register(e.Point, priority, fn)
+		registerLoad(e.Point, priority, fn)
 	}
 	return nil
 }

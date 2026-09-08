@@ -29,19 +29,31 @@ type handler struct {
 }
 
 var (
-	mu       sync.RWMutex
-	handlers []handler
+	mu           sync.RWMutex
+	baseHandlers []handler // from init() Register calls — never cleared
+	loadHandlers []handler // from ApplyExtends — cleared on each module.Load
 )
 
 // Register adds a global extension handler for point pattern.
 // Patterns use dot segments; * matches one segment (e.g. model.*.*.afterCreate).
+// Handlers registered here survive platform rebuilds (database switches).
 func Register(pattern string, priority int, fn func(Context) error) {
 	if fn == nil {
 		return
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	handlers = append(handlers, handler{pattern: pattern, priority: priority, fn: fn})
+	baseHandlers = append(baseHandlers, handler{pattern: pattern, priority: priority, fn: fn})
+}
+
+// registerLoad adds a handler that is cleared by ResetLoadState (yaml extends).
+func registerLoad(pattern string, priority int, fn func(Context) error) {
+	if fn == nil {
+		return
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	loadHandlers = append(loadHandlers, handler{pattern: pattern, priority: priority, fn: fn})
 }
 
 // Run executes matching handlers in priority order.
@@ -62,15 +74,19 @@ func matching(point string, ctx Context) []handler {
 	mu.RLock()
 	defer mu.RUnlock()
 	out := make([]handler, 0)
-	for _, h := range handlers {
-		if !matchPattern(h.pattern, point) {
-			continue
+	appendMatching := func(list []handler) {
+		for _, h := range list {
+			if !matchPattern(h.pattern, point) {
+				continue
+			}
+			if !allowWildcard(h.pattern, ctx.App) {
+				continue
+			}
+			out = append(out, h)
 		}
-		if !allowWildcard(h.pattern, ctx.App) {
-			continue
-		}
-		out = append(out, h)
 	}
+	appendMatching(baseHandlers)
+	appendMatching(loadHandlers)
 	sortHandlers(out)
 	return out
 }
@@ -112,4 +128,10 @@ func sortHandlers(list []handler) {
 // ModelPoint builds a model lifecycle extension point name.
 func ModelPoint(app, model, phase string) string {
 	return "model." + app + "." + model + "." + phase
+}
+
+func clearLoadHandlers() {
+	mu.Lock()
+	loadHandlers = nil
+	mu.Unlock()
 }

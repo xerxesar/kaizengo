@@ -16,8 +16,14 @@ func ExecuteActions() []string {
 }
 
 // CatalogActions covers read-only metadata surfaces (menus, views, catalogs).
+// Prefer empty actions on call-style registry descriptors; kept for legacy callers.
 func CatalogActions() []string {
 	return []string{ActRead, ActExecute}
+}
+
+// CallActions is the empty action list for call-style resources (query/command/menu/view/nav).
+func CallActions() []string {
+	return nil
 }
 
 // AppActions covers app-level admin surfaces.

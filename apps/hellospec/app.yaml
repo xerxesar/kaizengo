@@ -21,6 +21,7 @@ nav:
 
 models:
   - name: greeting
+    internal: true
     search:
       collection: hellospec.greeting
       fields: [message, mood]
@@ -39,6 +40,20 @@ models:
       # Admin/staff only — member role is denied this field via security.yaml.
       - name: internalNote
         type: string
+
+queries:
+  - name: greetings
+    list: greeting
+  - name: greeting
+    get: greeting
+
+commands:
+  - name: postGreeting
+    create: greeting
+  - name: reviseGreeting
+    update: greeting
+  - name: discardGreeting
+    delete: greeting
 
 menus:
   - id: greetings

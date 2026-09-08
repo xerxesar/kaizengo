@@ -20,7 +20,7 @@ func ApplyMigrationsFromDir(ctx context.Context, store *SchemaStore, appName, sc
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("app %q requires migrations at %s", appName, dir)
+			return nil
 		}
 		return err
 	}
@@ -33,7 +33,8 @@ func ApplyMigrationsFromDir(ctx context.Context, store *SchemaStore, appName, sc
 	}
 	sort.Strings(names)
 	if len(names) == 0 {
-		return fmt.Errorf("app %q: no .sql files in %s", appName, dir)
+		// Schema-only apps: EnsureBootstrap already created the schema.
+		return nil
 	}
 	migrations := make(map[string]string, len(names))
 	for _, name := range names {

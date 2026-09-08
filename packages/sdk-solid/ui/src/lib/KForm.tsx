@@ -42,6 +42,8 @@ export function KForm(props: Props): JSX.Element {
   const [success, setSuccess] = createSignal('')
   const [fields, setFields] = createSignal<ModelField[]>([])
   const [draft, setDraft] = createSignal<Record<string, unknown>>({})
+  const [createCommand, setCreateCommand] = createSignal<string | undefined>()
+  const [updateCommand, setUpdateCommand] = createSignal<string | undefined>()
 
   const i18n = getI18n()
   const ns = () => parseNamespace(props.model)
@@ -167,6 +169,8 @@ export function KForm(props: Props): JSX.Element {
         throw new Error(`no form view found for model ${props.model}`)
       }
 
+      setCreateCommand(formView.createCommand?.trim() || undefined)
+      setUpdateCommand(formView.updateCommand?.trim() || undefined)
       setFields(formView.fields)
       await fetchViewSlots(app, formView.name)
 
@@ -176,6 +180,7 @@ export function KForm(props: Props): JSX.Element {
           name,
           props.id!.trim(),
           formView.fields.map((field) => field.key),
+          formView.getQuery?.trim() || undefined,
         )
         initDraft(formView.fields, record)
       } else {
@@ -198,8 +203,8 @@ export function KForm(props: Props): JSX.Element {
     try {
       const { app, name } = ns()
       const record = editing()
-        ? await updateModelRecord(app, name, props.id!.trim(), fields(), draft())
-        : await createModelRecord(app, name, fields(), draft())
+        ? await updateModelRecord(app, name, props.id!.trim(), fields(), draft(), updateCommand())
+        : await createModelRecord(app, name, fields(), draft(), createCommand())
       if (!editing()) {
         initDraft(fields())
       } else {

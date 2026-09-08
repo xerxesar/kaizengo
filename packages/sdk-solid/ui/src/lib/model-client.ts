@@ -20,6 +20,11 @@ export type ModelView = {
   model: string
   columns?: ModelColumn[]
   fields?: ModelField[]
+  listQuery?: string | null
+  getQuery?: string | null
+  createCommand?: string | null
+  updateCommand?: string | null
+  deleteCommand?: string | null
 }
 
 export type ModelRecord = Record<string, unknown> & { id: string }
@@ -100,12 +105,13 @@ export type SecuredResource = {
   label: string
   description?: string | null
   actions: string[]
+  fields: string[]
   surface?: string | null
 }
 
 export async function fetchResources(): Promise<SecuredResource[]> {
   const data = await gql<{ resources: SecuredResource[] }>(`query {
-    resources { app kind name resource label description actions surface }
+    resources { app kind name resource label description actions fields surface }
   }`)
   return data.resources ?? []
 }
@@ -122,6 +128,7 @@ export async function fetchModelViews(app: string): Promise<ModelView[]> {
       name kind model
       columns { key label width align }
       fields { key label type required relation inverse }
+      listQuery getQuery createCommand updateCommand deleteCommand
     }
   }`)
   return data[field] ?? []
@@ -147,18 +154,24 @@ export async function listModelRecords(
   app: string,
   model: string,
   fields: string[],
+  queryField?: string,
 ): Promise<ModelRecord[]> {
-  const queryField = listQueryName(app, model)
+  const field = queryField?.trim() || listQueryName(app, model)
   const unique = [...new Set(['id', ...fields])]
   const selection = unique.join(' ')
   const data = await gql<Record<string, ModelRecord[]>>(`query {
-    ${queryField} { ${selection} }
+    ${field} { ${selection} }
   }`)
-  return data[queryField] ?? []
+  return data[field] ?? []
 }
 
-export async function deleteModelRecord(app: string, model: string, id: string): Promise<void> {
-  const mutation = deleteMutationName(app, model)
+export async function deleteModelRecord(
+  app: string,
+  model: string,
+  id: string,
+  mutationField?: string,
+): Promise<void> {
+  const mutation = mutationField?.trim() || deleteMutationName(app, model)
   await gql(`mutation($id: ID!) { ${mutation}(id: $id) }`, { id })
 }
 
@@ -241,8 +254,11 @@ function buildWriteMutation(
   fields: ModelField[],
   values: Record<string, unknown>,
   id?: string,
-): { query: string; variables: Record<string, unknown> } {
-  const mutation = kind === 'create' ? createMutationName(app, model) : updateMutationName(app, model)
+  mutationField?: string,
+): { query: string; variables: Record<string, unknown>; mutation: string } {
+  const mutation =
+    mutationField?.trim() ||
+    (kind === 'create' ? createMutationName(app, model) : updateMutationName(app, model))
   const used = fields.filter((field) => {
     if (kind === 'create') {
       return field.required || fieldHasValue(field, values[field.key])
@@ -271,7 +287,7 @@ function buildWriteMutation(
   const query = `mutation(${varDefs.join(', ')}) {
     ${mutation}(${args.join(', ')}) { ${selection} }
   }`
-  return { query, variables }
+  return { query, variables, mutation }
 }
 
 export async function getModelRecord(
@@ -279,14 +295,15 @@ export async function getModelRecord(
   model: string,
   id: string,
   fields: string[],
+  queryField?: string,
 ): Promise<ModelRecord> {
-  const queryField = getQueryName(app, model)
+  const field = queryField?.trim() || getQueryName(app, model)
   const unique = [...new Set(['id', ...fields])]
   const selection = unique.join(' ')
   const data = await gql<Record<string, ModelRecord>>(`query($id: ID!) {
-    ${queryField}(id: $id) { ${selection} }
+    ${field}(id: $id) { ${selection} }
   }`, { id })
-  const record = data[queryField]
+  const record = data[field]
   if (!record) throw new Error(`record not found: ${model}/${id}`)
   return record
 }
@@ -296,9 +313,17 @@ export async function createModelRecord(
   model: string,
   fields: ModelField[],
   values: Record<string, unknown>,
+  mutationField?: string,
 ): Promise<ModelRecord> {
-  const { query, variables } = buildWriteMutation('create', app, model, fields, values)
-  const mutation = createMutationName(app, model)
+  const { query, variables, mutation } = buildWriteMutation(
+    'create',
+    app,
+    model,
+    fields,
+    values,
+    undefined,
+    mutationField,
+  )
   const data = await gql<Record<string, ModelRecord>>(query, variables)
   const record = data[mutation]
   if (!record) throw new Error(`create failed for ${model}`)
@@ -311,9 +336,17 @@ export async function updateModelRecord(
   id: string,
   fields: ModelField[],
   values: Record<string, unknown>,
+  mutationField?: string,
 ): Promise<ModelRecord> {
-  const { query, variables } = buildWriteMutation('update', app, model, fields, values, id)
-  const mutation = updateMutationName(app, model)
+  const { query, variables, mutation } = buildWriteMutation(
+    'update',
+    app,
+    model,
+    fields,
+    values,
+    id,
+    mutationField,
+  )
   const data = await gql<Record<string, ModelRecord>>(query, variables)
   const record = data[mutation]
   if (!record) throw new Error(`update failed for ${model}/${id}`)

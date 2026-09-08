@@ -12,36 +12,73 @@ import (
 
 	_ "kaizengo/apps"
 	authsvc "kaizengo/apps/auth"
+	"kaizengo/internal/app"
 	"kaizengo/internal/auth"
+	"kaizengo/internal/dbmanager"
+	"kaizengo/internal/engine"
 	"kaizengo/internal/module"
 	"kaizengo/internal/platform/config"
 	_ "kaizengo/internal/platform/drivers"
 	"kaizengo/internal/platform/postgres"
-	"kaizengo/internal/app"
-	"kaizengo/internal/engine"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
-	// HTTP router with request logging and panic recovery.
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	store, err := dbmanager.OpenStore(config.DatabasesConfigPath())
+	if err != nil {
+		log.Fatalf("db catalog: %v", err)
+	}
 
-	// Module host: shared registry for services, routes, and lifecycle.
+	root := chi.NewRouter()
+	root.Use(middleware.Logger)
+	root.Use(middleware.Recoverer)
+
+	swap := dbmanager.NewSwapHandler(dbmanager.BootstrapHandler())
+	rt := dbmanager.NewRuntime(store, swap, buildPlatform)
+	root.Use(rt.CookieMiddleware)
+
+	rt.Mount(root)
+	// Unmatched paths (/, /app, /auth, …) go to the active platform or bootstrap.
+	// Do not use Handle("/*") — it can shadow /web/database on some chi trees.
+	root.NotFound(swap.ServeHTTP)
+	root.MethodNotAllowed(swap.ServeHTTP)
+
+	// Selection is client-driven; start in bootstrap until a client activates a DB.
+	rt.EnterBootstrap()
+
+	addr := envOr("ADDR", ":8080")
+	log.Printf("listening on %s (database manager — client selects DB)", addr)
+
+	srv := &http.Server{Addr: addr, Handler: root}
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+		<-sig
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if host := rt.CurrentHost(); host != nil {
+			_ = module.Shutdown(shutdownCtx, host)
+		}
+		_ = srv.Shutdown(shutdownCtx)
+	}()
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
+}
+
+func buildPlatform(ctx context.Context, dsn string) (*dbmanager.Platform, error) {
+	r := chi.NewRouter()
 	host := module.NewHost(r, slog.Default())
 
-	// Postgres: connect, expose to modules, and inject into request context.
-	db, err := postgres.Connect(context.Background(), config.PostgresDSN())
+	db, err := postgres.Connect(ctx, dsn)
 	if err != nil {
-		log.Fatalf("postgres: %v", err)
+		return nil, err
 	}
 	postgres.Attach(host, db)
 	r.Use(postgres.Middleware(db))
 
-	// Session auth: resolve the auth app's service and validate cookies per request.
 	r.Use(auth.SessionMiddleware(func(sessionID string) (*auth.Principal, error) {
 		raw, ok := host.Lookup(authsvc.Name)
 		if !ok {
@@ -54,45 +91,32 @@ func main() {
 		return svc.ValidateSession(sessionID)
 	}))
 
-	// App engine: persistent store of installed apps + manager wired into the host.
-	store, err := app.OpenInstalledStore(context.Background(), db.Pool())
+	store, err := app.OpenInstalledStore(ctx, db.Pool())
 	if err != nil {
-		log.Fatalf("installed apps: %v", err)
+		db.Close()
+		return nil, err
 	}
 	mgr := engine.NewManager(host, module.Default, store)
 	host.Provide(engine.ManagerKey, mgr)
 
-	// Resolve KaizenGo_APPS, load those modules, then sync the installed-apps table.
-	wanted, err := mgr.Wanted(context.Background(), module.ParseAppList(os.Getenv("KaizenGo_APPS")))
+	wanted, err := mgr.Wanted(ctx, module.ParseAppList(os.Getenv("KaizenGo_APPS")))
 	if err != nil {
-		log.Fatalf("resolve apps: %v", err)
+		db.Close()
+		return nil, err
 	}
 	if err := module.Load(host, module.Default, wanted); err != nil {
-		log.Fatal(err)
+		_ = module.Shutdown(ctx, host)
+		return nil, err
 	}
-	if err := mgr.SyncLoaded(context.Background()); err != nil {
-		log.Fatalf("sync installed apps: %v", err)
+	if err := mgr.SyncLoaded(ctx); err != nil {
+		_ = module.Shutdown(ctx, host)
+		return nil, err
 	}
 
-	// Platform route listing loaded apps.
 	r.Get("/apps", module.AppsHandler(host))
 
-	// Serve HTTP and shut down cleanly on SIGINT/SIGTERM.
-	addr := envOr("ADDR", ":8080")
-	log.Printf("listening on %s (apps: %v)", addr, appNames(host))
-	srv := &http.Server{Addr: addr, Handler: r}
-	go func() {
-		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-		<-sig
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = module.Shutdown(ctx, host)
-		_ = srv.Shutdown(ctx)
-	}()
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
-	}
+	host.Log.Info("platform ready", "apps", appNames(host))
+	return &dbmanager.Platform{Handler: r, Host: host}, nil
 }
 
 func appNames(host *module.Host) []string {

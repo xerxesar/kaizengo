@@ -90,7 +90,6 @@ func RegisterModel(host *module.Host, spec appspec.AppSpec, m RegisteredModel) e
 	registry.mu.Unlock()
 
 	registerModelSearch(spec.Name, m)
-	registerRegisteredModelResource(spec.Name, m)
 	registerRegisteredModelGQL(host, spec, m)
 	return nil
 }

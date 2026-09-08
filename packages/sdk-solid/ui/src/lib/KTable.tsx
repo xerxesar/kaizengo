@@ -31,6 +31,7 @@ export function KTable(props: Props): JSX.Element {
   const [error, setError] = createSignal('')
   const [rows, setRows] = createSignal<ModelRecord[]>([])
   const [columns, setColumns] = createSignal<Column<ModelRecord>[]>([])
+  const [deleteCommand, setDeleteCommand] = createSignal<string | undefined>()
 
   const ns = () => parseNamespace(props.model)
 
@@ -71,9 +72,10 @@ export function KTable(props: Props): JSX.Element {
         throw new Error(`no list view found for model ${props.model}`)
       }
 
+      setDeleteCommand(view.deleteCommand?.trim() || undefined)
       setColumns(buildColumns(view.columns))
       const fieldKeys = view.columns.map((c) => c.key)
-      setRows(await listModelRecords(app, name, fieldKeys))
+      setRows(await listModelRecords(app, name, fieldKeys, view.listQuery?.trim() || undefined))
       await fetchViewSlots(app, view.name)
     } catch (e) {
       reportError(e instanceof Error ? e.message : String(e))
@@ -86,7 +88,7 @@ export function KTable(props: Props): JSX.Element {
     setError('')
     try {
       const { app, name } = ns()
-      await deleteModelRecord(app, name, id)
+      await deleteModelRecord(app, name, id, deleteCommand())
       setRows((prev) => prev.filter((row) => String(row.id) !== id))
     } catch (e) {
       reportError(e instanceof Error ? e.message : String(e))

@@ -18,8 +18,7 @@ apps/todo/
   locale/template.pot   # generated — msgid list; do not edit
   locale/en.po          # gettext strings
   migrations/
-    001_events.sql      # schema placeholder (legacy name)
-    002_tasks_read.sql  # read model for task
+    001_tasks.sql        # model table for task
   __types__/            # generated — do not edit
 ```
 
@@ -31,7 +30,8 @@ Compare with `apps/hellospec/` — same shape, different names.
 
 | Spec | Runtime |
 |------|---------|
-| `models` | Event-sourced CRUD, GraphQL, `{app}Views` list/form metadata (`internal: true` keeps writes in-process) |
+| `models` | Persistence + `{app}Views` list/form metadata (`internal: true` keeps writes in-process) |
+| `queries` / `commands` | Named GraphQL public API (CQRS). When present, generic model CRUD is **not** registered |
 | pages (`views/*.page.tsx`) | Solid screens menus mount |
 | `nav` | Entry in the shell Apps menu |
 | `menus` | In-app menu tree (`todoMenus`) |
@@ -39,7 +39,7 @@ Compare with `apps/hellospec/` — same shape, different names.
 | `depends` / `uses` | Load order and capability checks |
 | `security:` | Merged YAML files → roles, `acl_entry` policies, demo users on Setup |
 
-GraphQL names follow the spec. For app `todo` and model `task`:
+Without `queries`/`commands`, GraphQL still exposes generic model CRUD. For app `todo` and model `task`:
 
 | Operation | Field |
 |-----------|--------|
@@ -49,7 +49,7 @@ GraphQL names follow the spec. For app `todo` and model `task`:
 | Update | `updateTodoTask` |
 | Delete | `deleteTodoTask` |
 
-You rarely call these by hand. `KTable` and `KForm` take `model="todo.task"` and issue the queries for you.
+With CQRS (see `apps/hellospec`), declare intents instead — e.g. `hellospecGreetings`, `hellospecPostGreeting`. `KTable` / `KForm` pick those up from view metadata.
 
 ## Registration
 

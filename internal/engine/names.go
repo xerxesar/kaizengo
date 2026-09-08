@@ -49,8 +49,26 @@ func deleteName(spec appspec.AppSpec, model appspec.ModelSpec) string {
 	return "delete" + pascal(spec.Name) + pascal(model.Name)
 }
 
-func readTable(model appspec.ModelSpec) string {
-	return model.Name + "s_read"
+func modelTable(model appspec.ModelSpec) string {
+	return pluralize(model.Name)
+}
+
+// pluralize turns a model name into a SQL table name (greeting→greetings, acl_entry→acl_entries).
+func pluralize(s string) string {
+	if s == "" {
+		return s
+	}
+	if strings.HasSuffix(s, "y") && len(s) > 1 {
+		prev := s[len(s)-2]
+		if prev != 'a' && prev != 'e' && prev != 'i' && prev != 'o' && prev != 'u' {
+			return s[:len(s)-1] + "ies"
+		}
+	}
+	if strings.HasSuffix(s, "s") || strings.HasSuffix(s, "x") || strings.HasSuffix(s, "z") ||
+		strings.HasSuffix(s, "ch") || strings.HasSuffix(s, "sh") {
+		return s + "es"
+	}
+	return s + "s"
 }
 
 func colName(field string) string {

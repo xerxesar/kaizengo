@@ -20,7 +20,7 @@ const (
 // securityPerms is satisfied by apps/permissions/service.Service.
 type securityPerms interface {
 	EnsureRole(ctx context.Context, orgID, name, label string) (string, error)
-	EnsureACLEntry(ctx context.Context, orgID, roleName, name, effect, resource, actions, fields, domain string, priority int) error
+	EnsureACLEntry(ctx context.Context, orgID, roleName, name, effect, kind, resource, actions, fields, domain string, priority int) error
 	DisableEntry(ctx context.Context, orgID, name string) error
 	AssignRole(ctx context.Context, userID, orgID, roleName string) error
 }
@@ -95,7 +95,7 @@ func ApplySecurity(host *module.Host, sec appspec.SecuritySpec) error {
 		}
 	}
 	for _, e := range sec.Entries {
-		actions, fields, domain, err := encodeEntryColumns(e)
+		kind, actions, fields, domain, err := encodeEntryColumns(e)
 		if err != nil {
 			return fmt.Errorf("security entry %s: %w", e.Name, err)
 		}
@@ -103,7 +103,7 @@ func ApplySecurity(host *module.Host, sec appspec.SecuritySpec) error {
 		if effect == "" {
 			effect = acl.EffectAllow
 		}
-		if err := perm.EnsureACLEntry(ctx, orgID, e.Role, e.Name, effect, e.Resource, actions, fields, domain, e.Priority); err != nil {
+		if err := perm.EnsureACLEntry(ctx, orgID, e.Role, e.Name, effect, kind, e.Resource, actions, fields, domain, e.Priority); err != nil {
 			return fmt.Errorf("security entry %s: %w", e.Name, err)
 		}
 	}
@@ -147,13 +147,25 @@ func resolveSecurityOrg(ctx context.Context, users *ModelRegistry) (string, erro
 	return fmt.Sprint(orgs[0]["id"]), nil
 }
 
-func encodeEntryColumns(e appspec.SecurityEntrySpec) (actions, fields, domain string, err error) {
-	if len(e.Actions) == 0 {
+func encodeEntryColumns(e appspec.SecurityEntrySpec) (kind, actions, fields, domain string, err error) {
+	k, err := acl.ParseKind(e.Kind)
+	if err != nil {
+		return "", "", "", "", err
+	}
+	if k == "" {
+		k = acl.InferKind(e.Resource)
+	}
+	kind = string(k)
+
+	switch {
+	case acl.IsCallStyle(k):
+		actions = `[]`
+	case len(e.Actions) == 0:
 		actions = `["*"]`
-	} else {
+	default:
 		b, err := json.Marshal(e.Actions)
 		if err != nil {
-			return "", "", "", fmt.Errorf("actions: %w", err)
+			return "", "", "", "", fmt.Errorf("actions: %w", err)
 		}
 		actions = string(b)
 	}
@@ -165,7 +177,7 @@ func encodeEntryColumns(e appspec.SecurityEntrySpec) (actions, fields, domain st
 	default:
 		b, err := json.Marshal(e.Fields.Names)
 		if err != nil {
-			return "", "", "", fmt.Errorf("fields: %w", err)
+			return "", "", "", "", fmt.Errorf("fields: %w", err)
 		}
 		fields = string(b)
 	}
@@ -174,11 +186,11 @@ func encodeEntryColumns(e appspec.SecurityEntrySpec) (actions, fields, domain st
 	} else {
 		b, err := json.Marshal(e.Domain)
 		if err != nil {
-			return "", "", "", fmt.Errorf("domain: %w", err)
+			return "", "", "", "", fmt.Errorf("domain: %w", err)
 		}
 		domain = string(b)
 	}
-	return actions, fields, domain, nil
+	return kind, actions, fields, domain, nil
 }
 
 func seedSecurityUser(ctx context.Context, users *ModelRegistry, perm securityPerms, authSvc securityAuth, orgID string, u appspec.SecurityUserSpec) error {

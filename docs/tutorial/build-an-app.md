@@ -76,14 +76,12 @@ Hooks come in the [next page](hooks.md). For now this one-liner is enough: local
 
 Every app gets its own Postgres schema (default: the app name). The engine does **not** generate tables from YAML — you write SQL.
 
-`apps/todo/migrations/001_schema.sql` — placeholder is fine (schema is created by the platform migrator).
-
-`apps/todo/migrations/002_tasks_read.sql`:
+`apps/todo/migrations/001_tasks.sql` — create the model table (schema is created by the platform migrator).
 
 ```sql
--- Model table: todo.task  (table name = {model}s_read)
+-- todo.task  (table name = plural of model)
 
-CREATE TABLE IF NOT EXISTS tasks_read (
+CREATE TABLE IF NOT EXISTS tasks (
     id         TEXT PRIMARY KEY,
     org_id     TEXT NOT NULL,
     author_id  TEXT NOT NULL,
@@ -94,7 +92,7 @@ CREATE TABLE IF NOT EXISTS tasks_read (
     done       BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE INDEX IF NOT EXISTS idx_tasks_read_org ON tasks_read(org_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasks_org ON tasks(org_id, updated_at DESC);
 ```
 
 System columns (`id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_at`) are required. Add one column per model field, snake_case (`done` stays `done`).
@@ -216,4 +214,4 @@ make cli
 
 The scaffold uses an `item` model and `Items` / `NewItem` views. Rename in `app.yaml` and the view files if you want `task` instead.
 
-Next: [add a hook](hooks.md) so titles are trimmed before they hit the event store.
+Next: [add a hook](hooks.md) so titles are trimmed before they are stored.

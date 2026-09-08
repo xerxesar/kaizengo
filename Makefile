@@ -61,7 +61,7 @@ new-app: cli
 tidy:
 	go mod tidy
 
-# Local PostgreSQL for event-sourced apps (notes, hello, …).
+# Local PostgreSQL for model-backed apps.
 db-up:
 	docker compose up -d postgres
 	@if [ ! -f .env ]; then cp .env.example .env && echo "Created .env from .env.example"; fi

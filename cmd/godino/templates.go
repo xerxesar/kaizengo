@@ -147,14 +147,9 @@ export async function ping(): Promise<string> {
 }
 `
 
-const eventsMigrationSQLTmpl = `-- Schema is created by the platform migrator.
--- Model tables are the source of truth (no event store).
-SELECT 1;
-`
+const readModelMigrationSQLTmpl = `-- {{.Name}}.item
 
-const readModelMigrationSQLTmpl = `-- Table for {{.Name}}.item
-
-CREATE TABLE IF NOT EXISTS items_read (
+CREATE TABLE IF NOT EXISTS items (
     id         TEXT PRIMARY KEY,
     org_id     TEXT NOT NULL,
     author_id  TEXT NOT NULL,
@@ -164,7 +159,7 @@ CREATE TABLE IF NOT EXISTS items_read (
     title      TEXT NOT NULL DEFAULT ''
 );
 
-CREATE INDEX IF NOT EXISTS idx_items_read_org ON items_read(org_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_items_org ON items(org_id, updated_at DESC);
 `
 
 const appSpecYAMLTmpl = `name: {{.Name}}

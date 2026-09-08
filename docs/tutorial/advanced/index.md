@@ -21,7 +21,7 @@ Work through the pages in order. Keep `make dev` running; restart it when Go fil
 | Login, cookies, side tables | — | Service + `events.Pool` (`apps/auth`) |
 | Dashboard, tree, custom layout | — | Page view in `views/` |
 
-Do not open a private database pool. Do not `UPDATE` `*_read` tables by hand — that skips hooks, events, and search.
+Do not open a private database pool. Do not `UPDATE` model tables by hand — that skips hooks and search.
 
 ## Path
 

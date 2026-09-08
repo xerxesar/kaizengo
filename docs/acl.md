@@ -16,7 +16,7 @@ app.yaml + security.yaml
   permissions service  implements  acl.Authorizer
         |
         v
-  acl_entry rows  (role, effect, resource, actions, fields, domain, priority)
+  acl_entry rows  (role, effect, kind, resource, actions?, fields, domain, priority)
 ```
 
 | Piece | Location | Role |
@@ -32,44 +32,38 @@ GraphQL `resources` and `aclActions` (permissions app) list every registered sec
 
 ## Resource identifiers
 
-Every policy `resource` field uses a **single convention**: `{app}.{kind}.{name…}` where `kind` is a fixed segment and `name` is a short slug (never another dotted path).
+Every policy `resource` field uses a **single convention**: `{app}.{kind}.{name…}` where `kind` is a fixed segment and `name` is a short slug (never another dotted path). The same kind is stored on the `acl_entry.kind` column.
 
 | Kind | Pattern | Example | Declared in | Controls |
 |------|---------|---------|-------------|----------|
-| **Nav** | `{app}.nav` | `identity.nav` | `app.yaml` `nav:` | Shell **Apps** dropdown entry |
-| **Menu** | `{app}.menu.{id}` | `identity.menu.users` | `app.yaml` `menus:` | In-app menubar tab |
-| **Model** | `{app}.{model}` | `identity.user` | `app.yaml` `models:` | CRUD / field / record ACL |
-| **View** | `{app}.view.{name}` | `identity.view.Users` | views / auto catalog | Page surface (catalog) |
-| **Query** | `{app}.query.{name}` | `identity.query.identityPing` | Engine catalog GQL | GraphQL query |
-| **Mutation** | `{app}.mutation.{name}` | `appman.mutation.installApp` | Custom GQL | GraphQL mutation |
-| **Event** | `{app}.event.{model}` | `identity.event.membership` | Per model (implicit) | Event-stream ACL |
+| **View** | `{app}.view.{name}` | `identity.view.Users` | views / menus / auto catalog | Page surface; also drives menu + Apps nav |
+| **Query** | `{app}.query.{name}` | `hellospec.query.hellospecGreetings` | `queries:` / engine catalog | GraphQL query (call) |
+| **Command** | `{app}.command.{name}` | `hellospec.command.hellospecPostGreeting` | `commands:` | GraphQL mutation (call) |
+| **Mutation** | `{app}.mutation.{name}` | `appman.mutation.installApp` | Legacy custom GQL | GraphQL mutation |
 | **App** | `{app}` | `inventory` | App registration | Coarse app-wide surface |
+
+**Not cataloged**
+
+| Surface | Why |
+|---------|-----|
+| **Model** `{app}.{model}` | Persistence-only; internal field/domain ACL when commands write |
+| **Menu** / **Nav** | Not ACL targets — visibility is **implied from view access** |
 
 Wildcards: `*` (everything) or `{app}.*` (prefix match).
 
-### Two different “menus”
+### Menus and Apps nav (implied from views)
 
 ```text
-app.yaml nav:          →  identity.nav           →  core shell Apps dropdown
-app.yaml menus:        →  identity.menu.users    →  tabs inside /app/identity/
+app.yaml nav:     → Apps dropdown shows the app if any of its views is allowed
+app.yaml menus:   → menubar item shows if its linked view is allowed
+                   → folder items show if any child remains
 ```
 
-Hiding `identity.nav` removes Identity from the Apps menu. Hiding `identity.menu.users` removes only the Users tab inside Identity.
+Deny (or omit allow, when using default-deny policies) on `identity.view.Users` hides the Users tab. If every view in Identity is denied, Identity disappears from the Apps dropdown.
 
-### Event stream vs event resource
+### Model ACL (internal only)
 
-Models get an internal **event-store stream type** (defaults to `{app}.{model}`, e.g. `identity.membership`) used by Postgres event sourcing. That is **not** the ACL id.
-
-| Concept | Example | Purpose |
-|---------|---------|---------|
-| Stream type (internal) | `identity.membership` | `events` table `stream_type` column |
-| Event ACL resource | `identity.event.membership` | Policy target (`{app}.event.{model}`) |
-
-Previously the catalog incorrectly registered `identity.event.identity.membership` by reusing the stream type as the ACL name. ACL ids always use the **model name** as the final segment.
-
-### Model resource (no kind segment)
-
-Models are the exception: `{app}.{model}` with no `.model.` infix — historical convention, matches GraphQL `identityUsers` / search collections like `identity.user`.
+Models use `{app}.{model}` (no `.model.` infix) for **internal** field/domain checks when commands write through `ModelRegistry`. They are **not** registered in the `resources` catalog — grant `query` / `command` / `view` for client access.
 
 Standard GraphQL catalog queries per app:
 
@@ -88,22 +82,29 @@ Use **raw resource ids** in policies and in the Access UI combobox — not trans
 |-------|---------|
 | `roleId` | Role slug (`admin`, `member`, …) |
 | `effect` | `allow` or `deny` |
+| `kind` | Resource type: `query`, `command`, `view`, `app`, … |
 | `resource` | See table above; `*` matches everything |
-| `actions` | JSON array, e.g. `["read","update"]` or `["*"]` |
-| `fields` | `"*"` (all fields) or JSON array of field names |
+| `actions` | **Model / app / api only.** JSON array such as `["read","update"]` or `["*"]`. Ignored for call-style kinds |
+| `fields` | `"*"` (all fields) or JSON array of field names (models) |
 | `domain` | `[]` = all records; else ANDed triples, e.g. `[["authorId","=","$user.id"]]` |
 | `priority` | Higher wins; at equal priority **deny** beats **allow** |
 | `active` | Inactive rows are ignored |
 
-### Actions
+### Call-style vs model ACL
+
+**Call-style** kinds (`query`, `command`, `view`) are binary for invoke: omit `actions`. Queries and commands may still set `fields` / `domain` for record-level scoping. Views are invoke-only (menus/nav follow view access).
+
+**Model** (and coarse `app` / `api`) policies still use `actions` plus optional `fields` / `domain` for CRUD and field masking.
+
+### Actions (model / app surfaces)
 
 | Action | Typical use |
 |--------|-------------|
-| `read` | List, get, menu visibility, catalog queries |
+| `read` | List, get |
 | `create` | Insert |
 | `update` | Patch |
 | `delete` | Remove |
-| `execute` | Side-effect / operational APIs |
+| `execute` | Side-effect / operational APIs (legacy non-CQRS) |
 | `*` | All actions on the resource |
 
 ### Domain variables
@@ -121,60 +122,41 @@ Operators: `=`, `!=`, `in`, `not in`, `>`, `<`, `>=`, `<=`, `like`, `is set`, `i
 - Field rules apply per record on List/Get (domain on field allows/denies is respected per row)
 - `ListDomain` derives SQL filters from allow/deny domains for list queries
 
-`acl.EvaluateCatalog` is used for **navigation catalogs** (menus today):
+`acl.EvaluateCatalog` is used for **view visibility** (and thus menus / Apps nav):
 
-- No matching policy → **allowed** (menus visible by default)
+- No matching policy → **allowed** (visible by default)
 - Matching policies → same priority/deny rules as `Evaluate`
 
-This lets apps hide specific menu items with a deny rule without granting every other menu explicitly.
+Deny a view to hide its menu tab; if every view in an app is denied, the app drops out of the Apps dropdown.
 
 ## Where enforcement runs
 
 | Surface | Mechanism | Default when no policy |
 |---------|-----------|------------------------|
-| Shell Apps dropdown (`GET /api/apps`) | `FilterShellNav` per `{app}.nav` (`CanCatalog`) | Allow |
+| Shell Apps dropdown (`GET /api/apps`) | `FilterShellNav` — any allowed view in the app | Allow if any view allowed (or no tracked views) |
+| In-app menubar (`{app}Menus`) | `FilterMenuCatalog` — linked view allowed | Allow |
 | Model List/Get/Create/Update/Delete | `modelService` + `acl.Authorizer` | Deny |
-| `{app}Ping` | `gql.RequireAction` on query resolver | Deny |
-| `{app}Menus` | `FilterMenuCatalog` per `{app}.menu.{id}` (`CanCatalog`) | Allow per item |
-| `{app}Views`, `{app}ViewSlots` | Session required; view ACL not yet filtered in catalog | — |
+| `{app}Ping` / CQRS query·command | `gql.RequireAction` | Deny |
+| `{app}Views`, `{app}ViewSlots` | Session required; list not filtered yet | — |
 | Custom GraphQL (appman, permissions catalog) | `gql.RequireAction` in resolver | Deny |
 | Internal seed / migrations | `engine.WithInternal` | ACL skipped |
 
-Spec CRUD GraphQL resolvers only require a session; **the ORM enforces ACL**, not the resolver wrapper alone.
-
-### Hiding a shell app (Apps dropdown)
+### Hiding a page (and its menu / app nav)
 
 ```yaml
 # apps/identity/security.yaml
 entries:
-  - name: hide-identity-app
+  - name: hide-users-view
     role: member
     effect: deny
-    resource: identity.nav
-    actions: [read]
+    kind: view
+    resource: identity.view.Users
     priority: 2000
-    fields: "*"
 ```
 
-Members no longer see **Identity** in the core Apps menu. Admins still do.
+Members no longer see the **Users** tab. Deny every Identity view to hide Identity from the Apps dropdown.
 
-### Hiding an in-app menu tab
-
-```yaml
-# apps/identity/security.yaml
-entries:
-  - name: hide-users-tab
-    role: member
-    effect: deny
-    resource: identity.menu.users
-    actions: [read]
-    priority: 2000
-    fields: "*"
-```
-
-Restart the server after changing `security.yaml`. The **Users** tab disappears from the Identity menubar for members; other tabs stay visible.
-
-Direct URL navigation to a view may still load the page if the view route is not separately guarded — menu ACL controls catalog visibility.
+Direct URL navigation to a denied view may still load the page if the route is not separately guarded — catalog filtering controls menu/nav visibility.
 
 ### Blocking a query
 
@@ -183,10 +165,9 @@ entries:
   - name: deny-identity-ping
     role: member
     effect: deny
+    kind: query
     resource: identity.query.identityPing
-    actions: [read]
     priority: 2000
-    fields: "*"
 ```
 
 Members receive **permission denied** on `identityPing`. Admins still pass via the seeded `allow *` rule.
@@ -212,9 +193,16 @@ disable:
   - old-broad-grant          # deactivate acl_entry by name
 
 entries:
+  - name: myapp-member-query
+    role: member
+    effect: allow
+    kind: query
+    resource: myapp.query.myappItems
+
   - name: myapp-member-read
     role: member
     effect: allow
+    kind: model
     resource: myapp.item
     actions: [read]
     fields: [title]          # or "*" for all fields
@@ -245,11 +233,12 @@ App-specific rules belong in each app's `security.yaml`, not hand-written Go see
 
 ## HelloSpec example
 
-`apps/hellospec/security.yaml` demonstrates field ACL and own-record rules:
+`apps/hellospec/security.yaml` demonstrates CQRS call grants plus model field ACL:
 
 | Policy | Meaning |
 |--------|---------|
-| allow read `message`, `mood` | Field-limited read |
+| allow `kind: query/command` on greeting CQRS fields | Binary invoke grants |
+| allow read `message`, `mood` | Field-limited model read |
 | allow create `message`, `mood`, `internalNote` | Field-limited create |
 | allow update/delete with `authorId = $user.id` | Record rule |
 | deny `internalNote` @ priority 1000 | Field deny for others |

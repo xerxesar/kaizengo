@@ -147,8 +147,9 @@ func SetupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks 
 		svc.registry = reg
 		svc.host = host
 		reg.byName[model.Name] = svc
-		registerModelResource(spec.Name, model)
-		registerModelGQL(host, spec, svc)
+		if !spec.HasCQRS() {
+			registerModelGQL(host, spec, svc)
+		}
 		search.RegisterReindexer(spec.Name, model.Name, svc.reindexAll)
 	}
 

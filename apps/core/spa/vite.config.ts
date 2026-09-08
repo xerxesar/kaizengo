@@ -33,6 +33,7 @@ export default defineConfig({
       '/health': { target: 'http://localhost:8080', changeOrigin: true },
       '/playground': { target: 'http://localhost:8080', changeOrigin: true },
       '/apps': { target: 'http://localhost:8080', changeOrigin: true },
+      '/web': { target: 'http://localhost:8080', changeOrigin: true },
     },
   },
 })

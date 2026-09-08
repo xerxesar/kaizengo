@@ -21,6 +21,7 @@ func registerGQL(host *module.Host) {
 			"label":       &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
 			"description": &graphql.Field{Type: graphql.String},
 			"actions":     &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(graphql.String)))},
+			"fields":      &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(graphql.String)))},
 			"surface":     &graphql.Field{Type: graphql.String},
 		},
 	})
@@ -32,7 +33,7 @@ func registerGQL(host *module.Host) {
 		Resource:    catalogResource,
 		Label:       "Resource catalog",
 		Description: "List registered securable resources",
-		Actions:     acl.ReadActions(),
+		Actions:     acl.CallActions(),
 		Surface:     "graphql",
 	})
 
@@ -65,12 +66,21 @@ type resourceRow struct {
 	Label       string   `json:"label"`
 	Description string   `json:"description"`
 	Actions     []string `json:"actions"`
+	Fields      []string `json:"fields"`
 	Surface     string   `json:"surface"`
 }
 
 func mapResources(items []acl.ResourceDescriptor) []resourceRow {
 	out := make([]resourceRow, 0, len(items))
 	for _, item := range items {
+		fields := item.Fields
+		if fields == nil {
+			fields = []string{}
+		}
+		actions := item.Actions
+		if actions == nil {
+			actions = []string{}
+		}
 		out = append(out, resourceRow{
 			App:         item.App,
 			Kind:        string(item.Kind),
@@ -78,7 +88,8 @@ func mapResources(items []acl.ResourceDescriptor) []resourceRow {
 			Resource:    item.Resource,
 			Label:       item.Label,
 			Description: item.Description,
-			Actions:     item.Actions,
+			Actions:     actions,
+			Fields:      fields,
 			Surface:     item.Surface,
 		})
 	}

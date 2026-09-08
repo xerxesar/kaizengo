@@ -89,6 +89,57 @@ models:
 	}
 }
 
+func TestParseCQRS(t *testing.T) {
+	spec, err := appspec.Parse([]byte(`
+name: demo
+title: Demo
+summary: Demo
+models:
+  - name: task
+    fields:
+      - name: title
+        type: string
+        required: true
+queries:
+  - name: tasks
+    list: task
+  - name: task
+    get: task
+commands:
+  - name: postTask
+    create: task
+  - name: reviseTask
+    update: task
+  - name: discardTask
+    delete: task
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !spec.HasCQRS() || len(spec.Queries) != 2 || len(spec.Commands) != 3 {
+		t.Fatalf("cqrs parse: %+v", spec)
+	}
+}
+
+func TestParseCQRSRejectsUnknownModel(t *testing.T) {
+	_, err := appspec.Parse([]byte(`
+name: demo
+title: Demo
+summary: Demo
+models:
+  - name: task
+    fields:
+      - name: title
+        type: string
+queries:
+  - name: items
+    list: missing
+`))
+	if err == nil || !strings.Contains(err.Error(), "unknown model") {
+		t.Fatalf("expected unknown model error, got %v", err)
+	}
+}
+
 func TestParseRejectsRelationWithoutTarget(t *testing.T) {
 	_, err := appspec.Parse([]byte(`
 name: demo
@@ -104,3 +155,4 @@ models:
 		t.Fatalf("expected relation error, got %v", err)
 	}
 }
+

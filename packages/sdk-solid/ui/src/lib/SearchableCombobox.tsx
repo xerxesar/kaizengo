@@ -9,11 +9,16 @@ import {
 } from './ark/styles'
 import { cn } from './cn'
 
-type Option = { value: string; label: string }
+export type SearchableComboboxOption = {
+  value: string
+  label: string
+  /** Optional kind tag shown as a colored badge before the label. */
+  kind?: string
+}
 
 type Props = {
   value?: string
-  options: Option[]
+  options: SearchableComboboxOption[]
   placeholder?: string
   disabled?: boolean
   allowCustomValue?: boolean
@@ -22,10 +27,23 @@ type Props = {
   onChange?: (value: string) => void
 }
 
+function kindTagClass(kind: string): string {
+  switch (kind) {
+    case 'query':
+      return 'bg-sky-100 text-sky-800'
+    case 'command':
+      return 'bg-emerald-100 text-emerald-800'
+    case 'view':
+      return 'bg-zinc-200 text-zinc-700'
+    default:
+      return 'bg-zinc-100 text-zinc-600'
+  }
+}
+
 export function SearchableCombobox(props: Props): JSX.Element {
-  const list = useListCollection<Option>({
+  const list = useListCollection<SearchableComboboxOption>({
     initialItems: props.options,
-    itemToString: (item) => item.label,
+    itemToString: (item) => (item.kind ? `${item.kind} ${item.label}` : item.label),
     itemToValue: (item) => item.value,
     filter: (itemText, filterText) => itemText.toLowerCase().includes(filterText.toLowerCase()),
   })
@@ -92,7 +110,21 @@ export function SearchableCombobox(props: Props): JSX.Element {
             <For each={list.collection().items}>
               {(item) => (
                 <ArkCombobox.Item item={item} class={selectItemClass}>
-                  <ArkCombobox.ItemText>{item.label}</ArkCombobox.ItemText>
+                  <ArkCombobox.ItemText class="flex min-w-0 items-center gap-2">
+                    <Show when={item.kind}>
+                      {(kind) => (
+                        <span
+                          class={cn(
+                            'shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide',
+                            kindTagClass(kind()),
+                          )}
+                        >
+                          {kind()}
+                        </span>
+                      )}
+                    </Show>
+                    <span class="min-w-0 truncate font-mono text-xs">{item.label}</span>
+                  </ArkCombobox.ItemText>
                   <ArkCombobox.ItemIndicator>✓</ArkCombobox.ItemIndicator>
                 </ArkCombobox.Item>
               )}

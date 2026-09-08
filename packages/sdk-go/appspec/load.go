@@ -30,6 +30,8 @@ type fileSpec struct {
 	Nav         NavSpec      `yaml:"nav"`
 	Menus       []MenuSpec   `yaml:"menus"`
 	Models      yaml.Node    `yaml:"models"`
+	Queries     []fileCQRS   `yaml:"queries"`
+	Commands    []fileCQRS   `yaml:"commands"`
 	Views       yaml.Node    `yaml:"views"`
 	Locales     []fileLocale `yaml:"locales"`
 	Extends     []ExtendSpec `yaml:"extends"`
@@ -43,6 +45,17 @@ type fileModel struct {
 	Internal bool        `yaml:"internal"`
 	Fields   []FieldSpec `yaml:"fields"`
 	Search   *SearchSpec `yaml:"search"`
+}
+
+type fileCQRS struct {
+	Name    string      `yaml:"name"`
+	List    string      `yaml:"list"`
+	Get     string      `yaml:"get"`
+	Create  string      `yaml:"create"`
+	Update  string      `yaml:"update"`
+	Delete  string      `yaml:"delete"`
+	Args    []FieldSpec `yaml:"args"`
+	Returns string      `yaml:"returns"`
 }
 
 type fileLocale struct {
@@ -152,6 +165,17 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 			Internal: m.Internal,
 			Fields:   m.Fields,
 			Search:   m.Search,
+		})
+	}
+	for _, q := range raw.Queries {
+		spec.Queries = append(spec.Queries, QuerySpec{
+			Name: q.Name, List: q.List, Get: q.Get, Args: q.Args, Returns: q.Returns,
+		})
+	}
+	for _, c := range raw.Commands {
+		spec.Commands = append(spec.Commands, CommandSpec{
+			Name: c.Name, Create: c.Create, Update: c.Update, Delete: c.Delete,
+			Args: c.Args, Returns: c.Returns,
 		})
 	}
 	if appRoot != "" {

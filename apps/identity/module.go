@@ -3,8 +3,8 @@ package identity
 //go:generate go run ../../cmd/godino gen-types identity
 
 import (
-	"kaizengo/internal/module"
 	"kaizengo/internal/engine"
+	"kaizengo/internal/module"
 )
 
 func init() {

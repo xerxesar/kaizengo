@@ -91,7 +91,7 @@ If you set `KaizenGo_POSTGRES_DSN` manually in fish, use:
 set -x KaizenGo_POSTGRES_DSN 'postgres://kaizengo:kaizengo@localhost:6432/kaizengo?sslmode=disable'
 ```
 
-A bad or unreachable DSN prevents the server from starting. The process opens one shared pool (`internal/platform/postgres`) before loading apps; apps obtain it via `postgres.FromHost(host)` or `postgres.FromContext(ctx)`.
+A bad or unreachable selected database puts the server into **bootstrap mode**: only the [database manager](../tutorial/run-the-platform.md#database-manager) is served until you select a working DB. Selecting a database hot-rebuilds the platform in-process (no process restart).
 
 Data persists in the `kaizengo_pgdata` Docker volume. App schemas are created when an app is **installed** or **upgraded** (App Manager), and again on boot for already-installed apps (pending SQL only).
 
@@ -103,7 +103,8 @@ Docker maps Postgres to host port **6432** (not 5432) so it does not clash with 
 |----------|---------|
 | `ADDR` | Listen address (default `:8080`) |
 | `KaizenGo_APPS` | Comma-separated app names to load (overrides the install table; default: installed + `autoInstall`) |
-| `KaizenGo_POSTGRES_DSN` | Shared PostgreSQL DSN (connected once at server start; apps use `platform.postgres`) |
+| `KaizenGo_POSTGRES_DSN` | Postgres server connection; also seeds the initial DB name into `.kaizengo/databases.json` when the catalog is missing. Selected DB name replaces the DSN path at runtime. |
+| `KaizenGo_DATABASES_CONFIG` | Path to the DB catalog JSON (default `.kaizengo/databases.json`) |
 | `KaizenGo_IDENTITY_SCHEMA` | Identity schema (default `identity`) |
 | `KaizenGo_AUTH_SCHEMA` | Auth schema (default `auth`) |
 | `KaizenGo_PERMISSIONS_SCHEMA` | Permissions schema (default `permissions`) |

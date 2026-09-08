@@ -79,9 +79,8 @@ func registerBasics(host *module.Host, spec appspec.AppSpec) {
 
 func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService) {
 	obj := newRecordType(spec, svc)
-	res := svc.resourceName()
-	registerModelOperations(spec, svc.model, res)
-	// ACL is enforced inside modelService; GraphQL only requires a session.
+	// Models are not client ACL resources; enforcement stays inside modelService.
+	// GraphQL only requires a session.
 	crud := sdkgql.CRUDSpec{
 		ListName: listName(spec, svc.model),
 		ListField: &graphql.Field{
@@ -313,18 +312,21 @@ func viewCatalog(spec appspec.AppSpec) []views.View {
 	out := make([]views.View, 0, (len(spec.Models)+len(registeredModels(spec.Name)))*2)
 	seen := map[string]struct{}{}
 	for _, m := range spec.Models {
-		list := buildListView(m)
+		list := buildListView(spec, m)
 		if rm, ok := registeredModelByName(spec.Name, m.Name); ok {
 			if len(rm.ListColumns) > 0 {
 				list = buildListViewFromRegistered(rm)
+				applyCQRSBindings(&list, spec, m.Name)
 			}
 		}
 		out = append(out, list)
-		if !m.Internal {
-			form := buildFormView(m)
+		includeForm := !m.Internal || spec.HasCQRS()
+		if includeForm {
+			form := buildFormView(spec, m)
 			if rm, ok := registeredModelByName(spec.Name, m.Name); ok {
 				if len(rm.Fields) > 0 {
 					form = buildFormViewFromRegistered(rm)
+					applyCQRSBindings(&form, spec, m.Name)
 				}
 			}
 			out = append(out, form)
@@ -340,6 +342,15 @@ func viewCatalog(spec appspec.AppSpec) []views.View {
 	return out
 }
 
+func applyCQRSBindings(v *views.View, spec appspec.AppSpec, model string) {
+	if v == nil || !spec.HasCQRS() {
+		return
+	}
+	list, get, create, update, del := cqrsBindingsForModel(spec, model)
+	v.ListQuery, v.GetQuery = list, get
+	v.CreateCommand, v.UpdateCommand, v.DeleteCommand = create, update, del
+}
+
 func modelListViewName(model string) string {
 	return pascal(model) + "List"
 }
@@ -348,7 +359,7 @@ func modelFormViewName(model string) string {
 	return pascal(model) + "Form"
 }
 
-func buildListView(m appspec.ModelSpec) views.View {
+func buildListView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
 	item := views.View{
 		Name:  modelListViewName(m.Name),
 		Model: m.Name,
@@ -361,10 +372,11 @@ func buildListView(m appspec.ModelSpec) views.View {
 		item.Columns = append(item.Columns, views.Column{Key: f.Name, Label: pascal(f.Name)})
 	}
 	item.Columns = append(item.Columns, views.Column{Key: "updatedAt", Label: "Updated", Width: "12rem"})
+	applyCQRSBindings(&item, spec, m.Name)
 	return item
 }
 
-func buildFormView(m appspec.ModelSpec) views.View {
+func buildFormView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
 	item := views.View{
 		Name:  modelFormViewName(m.Name),
 		Model: m.Name,
@@ -379,6 +391,7 @@ func buildFormView(m appspec.ModelSpec) views.View {
 			Relation: f.Relation, Inverse: f.Inverse,
 		})
 	}
+	applyCQRSBindings(&item, spec, m.Name)
 	return item
 }
 
@@ -435,6 +448,36 @@ func newViewType(name string) *graphql.Object {
 				Type: graphql.NewList(graphql.NewNonNull(fieldType)),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					return p.Source.(views.View).Fields, nil
+				},
+			},
+			"listQuery": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).ListQuery, nil
+				},
+			},
+			"getQuery": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).GetQuery, nil
+				},
+			},
+			"createCommand": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).CreateCommand, nil
+				},
+			},
+			"updateCommand": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).UpdateCommand, nil
+				},
+			},
+			"deleteCommand": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).DeleteCommand, nil
 				},
 			},
 		},

@@ -129,9 +129,11 @@ func (s *Service) CompleteAll(ctx context.Context, orgID, authorID string) (int,
 
 `host.Provide(Name, svc)` puts the service on the host bag. Other apps look it up with `host.Lookup("todo")` and a type assertion, the same way auth looks up `permissions`.
 
-## Custom GraphQL
+## Custom GraphQL / CQRS commands
 
-Generated CRUD stays. Extra fields go on `host.GQL` during Setup.
+Prefer declaring `queries:` / `commands:` in `app.yaml` (shorthand or Go handlers) over ad-hoc resolvers. When an app uses CQRS, generic model CRUD is not registered.
+
+For one-off fields without a YAML entry, register on `host.GQL` during Setup:
 
 `apps/todo/gql.go`:
 
@@ -197,7 +199,7 @@ Load order matters: `depends:` in `app.yaml` must list `identity` so its Setup h
 
 Sessions and password hashes are not spec models. Auth keeps them as ordinary SQL on `events.Pool` + `events.Schema` (`apps/auth/store.go`). Quote schema-qualified names; do not create a second pool.
 
-Never `UPDATE todo.tasks_read` from a service. Use `Models.Update` so hooks and the event log stay consistent.
+Never `UPDATE todo.tasks` from a service. Use `Models.Update` so hooks and search stay consistent.
 
 ## Generated types
 

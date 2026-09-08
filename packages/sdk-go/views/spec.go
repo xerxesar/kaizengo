@@ -26,9 +26,14 @@ type Field struct {
 }
 
 type View struct {
-	Name    string
-	Model   string
-	Kind    Kind
-	Columns []Column
-	Fields  []Field
+	Name           string
+	Model          string
+	Kind           Kind
+	Columns        []Column
+	Fields         []Field
+	ListQuery      string
+	GetQuery       string
+	CreateCommand  string
+	UpdateCommand  string
+	DeleteCommand  string
 }

@@ -2,16 +2,18 @@ package engine
 
 import (
 	"context"
+	"strings"
 
 	"kaizengo/internal/auth"
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/acl"
 	sdkgql "kaizengo/internal/gql"
+	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/views"
 )
 
-// FilterMenuCatalog removes menu items the principal cannot read.
-// Catalog surfaces default to visible unless a matching policy denies (or allows) them.
+// FilterMenuCatalog keeps menu items whose linked view the principal can access.
+// Folders stay if any child remains. Component-only leaves stay visible (no view to check).
+// Menu ACL resources are not used — visibility is implied from view access.
 func FilterMenuCatalog(ctx context.Context, host *module.Host, app string, menus []views.Menu) ([]views.Menu, error) {
 	authz, err := sdkgql.LookupAuthorizer(host, acl.ServiceName)
 	if err != nil {
@@ -32,16 +34,22 @@ func FilterMenuCatalog(ctx context.Context, host *module.Host, app string, menus
 			}
 			item.Children = children
 
-			if item.View == "" && item.Component == "" {
+			view := strings.TrimSpace(item.View)
+			if view == "" && strings.TrimSpace(item.Component) == "" {
 				if len(children) > 0 {
 					out = append(out, item)
 				}
 				continue
 			}
+			if view == "" {
+				// Addon component without a view name — keep if parent path is otherwise open.
+				out = append(out, item)
+				continue
+			}
 
 			allowed, err := authz.CanCatalog(ctx, acl.Check{
 				OrgID:    pr.OrgID,
-				Resource: acl.MenuResource(app, item.ID),
+				Resource: acl.ViewResource(app, view),
 				Action:   acl.ActRead,
 			})
 			if err != nil {
@@ -57,7 +65,8 @@ func FilterMenuCatalog(ctx context.Context, host *module.Host, app string, menus
 	return filter(menus)
 }
 
-// FilterShellNav removes Apps dropdown entries the principal cannot read.
+// FilterShellNav keeps Apps dropdown entries when the principal can access any view in that app.
+// Nav ACL resources are not used — visibility is implied from view access.
 func FilterShellNav(ctx context.Context, host *module.Host, entries []module.NavEntry) ([]module.NavEntry, error) {
 	authz, err := sdkgql.LookupAuthorizer(host, acl.ServiceName)
 	if err != nil {
@@ -70,15 +79,28 @@ func FilterShellNav(ctx context.Context, host *module.Host, entries []module.Nav
 
 	out := make([]module.NavEntry, 0, len(entries))
 	for _, entry := range entries {
-		allowed, err := authz.CanCatalog(ctx, acl.Check{
-			OrgID:    pr.OrgID,
-			Resource: acl.NavResource(entry.ID),
-			Action:   acl.ActRead,
-		})
-		if err != nil {
-			return nil, err
+		views := acl.ViewsForApp(entry.ID)
+		if len(views) == 0 {
+			// No tracked views (custom SPA) — leave visible.
+			out = append(out, entry)
+			continue
 		}
-		if allowed {
+		any := false
+		for _, view := range views {
+			allowed, err := authz.CanCatalog(ctx, acl.Check{
+				OrgID:    pr.OrgID,
+				Resource: acl.ViewResource(entry.ID, view),
+				Action:   acl.ActRead,
+			})
+			if err != nil {
+				return nil, err
+			}
+			if allowed {
+				any = true
+				break
+			}
+		}
+		if any {
 			out = append(out, entry)
 		}
 	}

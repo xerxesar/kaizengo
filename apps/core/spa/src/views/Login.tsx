@@ -79,6 +79,9 @@ export function Login(props: Props) {
               </Button>
 
               <p class="login-hint">{t('login.hint', 'admin@kaizengo.local', 'changeme')}</p>
+              <p class="login-hint">
+                <a href="/web/database/manager">{t('login.manage_databases')}</a>
+              </p>
             </form>
           </div>
         </LayoutMain>

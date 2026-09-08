@@ -22,6 +22,8 @@ type Options struct {
 	Version string
 	// Hooks registers Go lifecycle callbacks per model.
 	Hooks *HookRegistry
+	// Handlers registers custom CQRS query/command implementations.
+	Handlers *handlerRegistry
 	// Setup runs after locales, nav, catalog queries, and model registration.
 	Setup func(host *module.Host, events *EventsSetup) error
 	// Mount registers HTTP routes after every app has completed Setup.
@@ -43,6 +45,7 @@ func New(opts Options) *App {
 	}
 	a := &App{opts: opts}
 	applyRegisteredHooks(a)
+	applyRegisteredHandlers(a)
 	return a
 }
 
@@ -93,6 +96,15 @@ func (a *App) Setup(host *module.Host) error {
 	events, err := SetupEvents(host, a.opts.AppName, spec, a.opts.Hooks)
 	if err != nil {
 		return err
+	}
+	if spec.HasCQRS() {
+		handlers := a.opts.Handlers
+		if handlers == nil {
+			handlers = newHandlerRegistry()
+		}
+		if err := registerCQRS(host, spec, events.Models, handlers); err != nil {
+			return fmt.Errorf("%s cqrs: %w", a.opts.AppName, err)
+		}
 	}
 	host.Provide(ModelsKey(a.opts.AppName), events.Models)
 	host.Provide(a.opts.AppName, a)
