@@ -526,20 +526,25 @@ export default function Access(): JSX.Element {
     setError('')
     try {
       const [roleRows, entryRows] = await Promise.all([
-        listModelRecords('permissions', 'role', ['name', 'label', 'active']),
-        listModelRecords('permissions', 'acl_entry', [
-          'name',
-          'roleId',
-          'authorId',
-          'effect',
-          'kind',
-          'resource',
-          'actions',
-          'fields',
-          'domain',
-          'priority',
-          'active',
-        ]),
+        listModelRecords('permissions', 'role', ['name', 'label', 'active'], 'permissionsRoles'),
+        listModelRecords(
+          'permissions',
+          'acl_entry',
+          [
+            'name',
+            'roleId',
+            'authorId',
+            'effect',
+            'kind',
+            'resource',
+            'actions',
+            'fields',
+            'domain',
+            'priority',
+            'active',
+          ],
+          'permissionsAclEntries',
+        ),
       ])
       const nextRoles = (roleRows as Role[])
         .filter((r) => r.active !== false)
@@ -562,7 +567,7 @@ export default function Access(): JSX.Element {
     setError('')
     setSaved(false)
     try {
-      await updateModelRecord('permissions', 'acl_entry', row.id, aclCreateFields, { active: true })
+      await updateModelRecord('permissions', 'acl_entry', row.id, aclCreateFields, { active: true }, 'permissionsReviseAclEntry')
       setSaved(true)
       await loadAll()
     } catch (e) {
@@ -577,7 +582,7 @@ export default function Access(): JSX.Element {
     setError('')
     setSaved(false)
     try {
-      await updateModelRecord('permissions', 'acl_entry', row.id, aclCreateFields, { active: false })
+      await updateModelRecord('permissions', 'acl_entry', row.id, aclCreateFields, { active: false }, 'permissionsReviseAclEntry')
       setSaved(true)
       await loadAll()
     } catch (e) {
@@ -594,7 +599,7 @@ export default function Access(): JSX.Element {
     setError('')
     setSaved(false)
     try {
-      await deleteModelRecord('permissions', 'acl_entry', row.id)
+      await deleteModelRecord('permissions', 'acl_entry', row.id, 'permissionsDiscardAclEntry')
       setSaved(true)
       await loadAll()
     } catch (e) {
@@ -635,18 +640,24 @@ export default function Access(): JSX.Element {
       const priority = parseInt(formPriority(), 10)
       if (Number.isNaN(priority)) throw new Error(t('permissions.error.priority_invalid'))
 
-      await createModelRecord('permissions', 'acl_entry', aclCreateFields, {
-        name,
-        roleId: rid,
-        effect: formEffect(),
-        kind,
-        resource,
-        actions,
-        fields,
-        domain,
-        priority,
-        active: true,
-      })
+      await createModelRecord(
+        'permissions',
+        'acl_entry',
+        aclCreateFields,
+        {
+          name,
+          roleId: rid,
+          effect: formEffect(),
+          kind,
+          resource,
+          actions,
+          fields,
+          domain,
+          priority,
+          active: true,
+        },
+        'permissionsPostAclEntry',
+      )
       resetForm()
       setModalOpen(false)
       setSaved(true)

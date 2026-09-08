@@ -27,8 +27,8 @@ export default function Overview() {
     setStatsLoading(true)
     try {
       const [users, units] = await Promise.all([
-        listModelRecords('identity', 'user', ['id']),
-        listModelRecords('identity', 'org_unit', ['id']),
+        listModelRecords('identity', 'user', ['id'], 'identityUsers'),
+        listModelRecords('identity', 'org_unit', ['id'], 'identityOrgUnits'),
       ])
       identity.onStats({ users: users.length, units: units.length })
     } catch {

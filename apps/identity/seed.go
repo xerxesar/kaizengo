@@ -19,7 +19,7 @@ const (
 )
 
 func seed(_ *module.Host, events *engine.EventsSetup) error {
-	ctx := context.Background()
+	ctx := engine.WithInternal(context.Background())
 	if err := seedDemo(ctx, events.Models); err != nil {
 		return err
 	}

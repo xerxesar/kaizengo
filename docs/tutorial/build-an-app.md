@@ -15,14 +15,17 @@ depends:
   - identity
   - auth
   - permissions
+extensions: true
 uses:
   - identity.users
   - permissions.rbac
 nav:
   labelKey: nav.todo
   route: todo
+  order: 50
 models:
   - name: task
+    internal: true
     fields:
       - name: title
         type: string
@@ -30,6 +33,18 @@ models:
       - name: done
         type: bool
         default: false
+queries:
+  - name: tasks
+    list: task
+  - name: task
+    get: task
+commands:
+  - name: postTask
+    create: task
+  - name: reviseTask
+    update: task
+  - name: discardTask
+    delete: task
 menus:
   - id: tasks
     labelKey: todo.menu.tasks
@@ -46,7 +61,7 @@ locales:
     dir: ltr
 ```
 
-Field types: `string`, `text`, `int`, `number`, `bool`, `enum`, `date`, `datetime`, `json`, plus relations `many2one`, `one2many`, `many2many` (`relation: app.model` or `model`; `one2many` also needs `inverse:`). Aliases like `float`, `integer`, and `fk` work. Enums need `values:`. Validation keys include `minLength`, `maxLength`, `pattern`, `min`, `max`.
+Field types: `string`, `text`, `int`, `number`, `bool`, `enum`, `date`, `datetime`, `json`, plus relations `many2one`, `one2many`, `many2many` (`relation: app.model` or `model`; `one2many` also needs `inverse:`). Aliases like `float`, `integer`, and `fk` work. Enums need `values:`. Validation keys include `minLength`, `maxLength`, `pattern`, `min`, `max`. Models that expose GraphQL should set `internal: true` and declare `queries` / `commands` (see [HelloSpec](../apps.md) / [Go SDK → CQRS](../internals/go-sdk.md)).
 
 ## 2. Module
 
@@ -70,7 +85,7 @@ func init() {
 }
 ```
 
-Hooks come in the [next page](hooks.md). For now this one-liner is enough: locales, nav, catalog queries, migrations, and GraphQL CRUD all come from the spec.
+Hooks come in the [next page](hooks.md). For now this one-liner is enough: locales, nav, catalog queries, migrations, and the CQRS GraphQL surface all come from the spec.
 
 ## 3. Migrations
 

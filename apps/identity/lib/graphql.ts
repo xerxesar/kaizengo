@@ -68,9 +68,9 @@ function nestUnits(
 }
 
 export function createOrgUnit(orgId: string, type: string, name: string, parentId?: string) {
-  return gql<{ createIdentityOrgUnit: { id: string; name: string; type: string } }>(
+  return gql<{ identityPostOrgUnit: { id: string; name: string; type: string } }>(
     `mutation ($name: String!, $type: String!, $parentId: String) {
-      createIdentityOrgUnit(name: $name, type: $type, parentId: $parentId) {
+      identityPostOrgUnit(name: $name, type: $type, parentId: $parentId) {
         id name type
       }
     }`,

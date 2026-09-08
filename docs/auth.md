@@ -98,7 +98,7 @@ curl -b cookies.txt -s http://localhost:8080/graphql \
 
 **Org unit types:** `business_unit`, `department`, `location`, `team`, `position`.
 
-**GraphQL** (engine CRUD, org-scoped): `identityUsers`, `identityOrganizations`, `identityOrgUnits`, `identityMemberships`, plus create/update/delete mutations. Nest org units in the client from `identityOrgUnits`.
+**GraphQL** (CQRS, org-scoped): queries `identityUsers`, `identityOrganizations`, `identityOrgUnits`, `identityMemberships` (plus singular gets); commands `identityPostUser` / `identityReviseUser` / `identityDiscardUser` (and the same post/revise/discard pattern for organization, orgUnit, membership). Nest org units in the client from `identityOrgUnits`.
 
 Demo seed includes **Acme Mining Corp** and a small org tree for UI exploration.
 

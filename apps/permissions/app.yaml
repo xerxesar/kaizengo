@@ -13,6 +13,7 @@ i18n: true
 autoInstall: true
 models:
   - name: role
+    internal: true
     fields:
       - name: name
         type: string
@@ -28,6 +29,7 @@ models:
         default: true
 
   - name: user_role
+    internal: true
     fields:
       - name: userId
         type: string
@@ -38,6 +40,7 @@ models:
         required: true
 
   - name: acl_entry
+    internal: true
     fields:
       - name: name
         type: string
@@ -78,6 +81,40 @@ models:
         type: bool
         required: true
         default: true
+
+queries:
+  - name: roles
+    list: role
+  - name: role
+    get: role
+  - name: userRoles
+    list: user_role
+  - name: userRole
+    get: user_role
+  - name: aclEntries
+    list: acl_entry
+  - name: aclEntry
+    get: acl_entry
+
+commands:
+  - name: postRole
+    create: role
+  - name: reviseRole
+    update: role
+  - name: discardRole
+    delete: role
+  - name: postUserRole
+    create: user_role
+  - name: reviseUserRole
+    update: user_role
+  - name: discardUserRole
+    delete: user_role
+  - name: postAclEntry
+    create: acl_entry
+  - name: reviseAclEntry
+    update: acl_entry
+  - name: discardAclEntry
+    delete: acl_entry
 
 exports:
   components:

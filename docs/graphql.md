@@ -60,13 +60,14 @@ query { search(q: "hello") { id title snippet } }
 query { me { id email name roles orgId } }
 ```
 
-**Identity** (`apps/identity`)
+**Identity** (`apps/identity` — CQRS public API)
 
 ```graphql
 query { identityOrganizations { id name slug } }
 query { identityOrgUnits { id name type parentId } }
 query { identityUsers { id email name status } }
 query { identityMemberships { id userId orgUnitId role } }
+mutation { identityPostOrgUnit(name: "…", type: "team") { id name type } }
 ```
 
 **Counter** (`apps/counter` — also requires permissions)

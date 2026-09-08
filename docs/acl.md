@@ -259,7 +259,7 @@ query {
 }
 ```
 
-Model rows: `permissionsAclEntrys`, `permissionsRoles`, `permissionsUserRoles`.
+Model rows (CQRS): `permissionsAclEntries`, `permissionsRoles`, `permissionsUserRoles`; writes via `permissionsPostAclEntry` / `permissionsReviseAclEntry` / `permissionsDiscardAclEntry` (and the role / userRole command counterparts).
 
 ## Custom apps
 

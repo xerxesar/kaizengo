@@ -104,9 +104,9 @@ export default function Roles(): JSX.Element {
     setError('')
     try {
       const [roleRowsRaw, urRows, userRows] = await Promise.all([
-        listModelRecords('permissions', 'role', ['name', 'label', 'description', 'active']),
-        listModelRecords('permissions', 'user_role', ['userId', 'roleId']),
-        listModelRecords('identity', 'user', ['name', 'email']),
+        listModelRecords('permissions', 'role', ['name', 'label', 'description', 'active'], 'permissionsRoles'),
+        listModelRecords('permissions', 'user_role', ['userId', 'roleId'], 'permissionsUserRoles'),
+        listModelRecords('identity', 'user', ['name', 'email'], 'identityUsers'),
       ])
       const nextRoles = (roleRowsRaw as Role[]).sort((a, b) => String(a.name).localeCompare(String(b.name)))
       setRoles(nextRoles)

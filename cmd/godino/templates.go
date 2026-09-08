@@ -170,15 +170,33 @@ depends:
   - identity
   - auth
   - permissions
+extensions: true
+uses:
+  - identity.users
+  - permissions.rbac
 nav:
   labelKey: nav.{{.Name}}
   route: {{.Route}}
+  order: 50
 models:
   - name: item
+    internal: true
     fields:
       - name: title
         type: string
         required: true
+queries:
+  - name: items
+    list: item
+  - name: item
+    get: item
+commands:
+  - name: postItem
+    create: item
+  - name: reviseItem
+    update: item
+  - name: discardItem
+    delete: item
 menus:
   - id: items
     labelKey: {{.Name}}.menu.items

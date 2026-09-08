@@ -5,11 +5,9 @@
 *_templ.go
 .DS_Store
 node_modules/
-packages/vscode-kaizengo/out/
+dist/
+out/
 *.vsix
-apps/core/spa/dist/
-apps/counter/spa/dist/
-apps/identity/spa/dist/
 data/
 *.db
 .env
