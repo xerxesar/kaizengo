@@ -1,6 +1,6 @@
 package audit
 
-//go:generate go run ../../cmd/godino gen-types audit
+//go:generate go run ../../cmd/kaizengo gen-types audit
 
 import (
 	"log/slog"

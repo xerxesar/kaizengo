@@ -40,8 +40,7 @@ apps/<name>         → app.yaml + module.go + views + migrations
 kaizengo/
   cmd/
     server/           # HTTP process: Host, Postgres, auth middleware, Load
-    godino/           # codegen (types, .pot)
-    kaizengo/         # CLI scaffold
+    kaizengo/         # CLI: new-app, gen-types (codegen + .pot)
   internal/
     module/           # Register, Host, Load, GQL registry, nav
     engine/           # Options/New, SetupEvents, modelService, Manager
@@ -58,7 +57,7 @@ kaizengo/
       acl/            # evaluate / match / Authorizer
       i18n/           # facade over platform catalogs
       views/          # menu/view DTOs
-      codegen/        # godino helpers
+      codegen/        # kaizengo helpers
     sdk-solid/
       ui/             # KTable, KForm, t(), model-client
       identity/       # UserPicker, fetchUsers

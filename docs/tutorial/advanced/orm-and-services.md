@@ -11,7 +11,7 @@ Replace `apps/todo/module.go` with:
 ```go
 package todo
 
-//go:generate go run ../../cmd/godino gen-types todo
+//go:generate go run ../../cmd/kaizengo gen-types todo
 
 import (
 	"kaizengo/internal/module"

@@ -1,6 +1,6 @@
 package permissions
 
-//go:generate go run ../../cmd/godino gen-types permissions
+//go:generate go run ../../cmd/kaizengo gen-types permissions
 
 import (
 	"context"

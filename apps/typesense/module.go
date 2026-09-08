@@ -1,6 +1,6 @@
 package typesense
 
-//go:generate go run ../../cmd/godino gen-types typesense
+//go:generate go run ../../cmd/kaizengo gen-types typesense
 
 import (
 	"os"

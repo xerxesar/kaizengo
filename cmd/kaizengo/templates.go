@@ -218,7 +218,7 @@ locales:
 
 const eventSourcedModuleGoTmpl = `package {{.Pkg}}
 
-//go:generate go run ../../cmd/godino gen-types {{.Name}}
+//go:generate go run ../../cmd/kaizengo gen-types {{.Name}}
 
 import (
 	"kaizengo/internal/module"

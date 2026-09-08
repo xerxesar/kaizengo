@@ -1,6 +1,6 @@
 package identity
 
-//go:generate go run ../../cmd/godino gen-types identity
+//go:generate go run ../../cmd/kaizengo gen-types identity
 
 import (
 	"kaizengo/internal/engine"

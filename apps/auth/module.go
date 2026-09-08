@@ -1,6 +1,6 @@
 package auth
 
-//go:generate go run ../../cmd/godino gen-types auth
+//go:generate go run ../../cmd/kaizengo gen-types auth
 
 import (
 	"context"

@@ -1,6 +1,6 @@
 package settings
 
-//go:generate go run ../../cmd/godino gen-types settings
+//go:generate go run ../../cmd/kaizengo gen-types settings
 
 import (
 	"fmt"

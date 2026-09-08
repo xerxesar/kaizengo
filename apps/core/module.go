@@ -1,6 +1,6 @@
 package core
 
-//go:generate go run ../../cmd/godino gen-types core
+//go:generate go run ../../cmd/kaizengo gen-types core
 
 import (
 	"fmt"

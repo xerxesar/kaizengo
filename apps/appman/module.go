@@ -1,6 +1,6 @@
 package appman
 
-//go:generate go run ../../cmd/godino gen-types appman
+//go:generate go run ../../cmd/kaizengo gen-types appman
 
 import (
 	"kaizengo/internal/module"

@@ -13,7 +13,7 @@ spa-build:
 
 # Generate apps/*/__types__ and locale/template.pot from app.yaml + sources.
 generate:
-	go run ./cmd/godino gen-types
+	go run ./cmd/kaizengo gen-types
 
 build: generate spa-build
 	go build -o bin/server ./cmd/server
@@ -52,7 +52,7 @@ dev: generate
 	wait
 
 cli:
-	go build -o bin/kaizengo ./cmd/godino
+	go build -o bin/kaizengo ./cmd/kaizengo
 
 # Usage: make new-app NAME=notes TYPE=solid EXTRA='--with-graphql'
 new-app: cli

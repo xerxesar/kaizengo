@@ -1,6 +1,6 @@
 package hellospec
 
-//go:generate go run ../../cmd/godino gen-types hellospec
+//go:generate go run ../../cmd/kaizengo gen-types hellospec
 
 import (
 	"kaizengo/internal/module"
