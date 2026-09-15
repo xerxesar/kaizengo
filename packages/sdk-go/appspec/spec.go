@@ -40,6 +40,7 @@ type AppSpec struct {
 type ModelSpec struct {
 	Name     string
 	Internal bool // create/update/delete only via engine.WithInternal
+	Virtual  bool // no Postgres table; list via RegisterModel (code-backed)
 	Fields   []FieldSpec
 	Search   *SearchSpec
 }
@@ -48,10 +49,10 @@ type ModelSpec struct {
 // Use list/get shorthand for ModelRegistry reads, or omit them and register a Go handler.
 type QuerySpec struct {
 	Name    string
-	List    string     // model name → List
-	Get     string     // model name → Get by id
+	List    string // model name → List
+	Get     string // model name → Get by id
 	Args    []FieldSpec
-	Returns string     // optional explicit return hint (model, model[], int, bool, string)
+	Returns string // optional explicit return hint (model, model[], int, bool, string)
 }
 
 // CommandSpec declares a named write/intent on the public GraphQL surface.
@@ -371,15 +372,15 @@ func (s *AppSpec) ApplyDefaults() {
 	if s.Resource == "" {
 		s.Resource = s.Name
 	}
-	if s.Nav.LabelKey == "" && s.Nav.Label == "" {
-		s.Nav.LabelKey = "nav." + s.Name
-	}
-	if s.Nav.Label == "" && s.Nav.LabelKey == "nav."+s.Name {
-		s.Nav.Label = s.Title
-	}
-	if s.Nav.Route == "" {
-		s.Nav.Route = s.Name
-	}
+	// if s.Nav.LabelKey == "" && s.Nav.Label == "" {
+	// 	s.Nav.LabelKey = "nav." + s.Name
+	// }
+	// if s.Nav.Label == "" && s.Nav.LabelKey == "nav."+s.Name {
+	// 	s.Nav.Label = s.Title
+	// }
+	// if s.Nav.Route == "" {
+	// 	s.Nav.Route = s.Name
+	// }
 	for i := range s.Models {
 		m := &s.Models[i]
 		for j := range m.Fields {

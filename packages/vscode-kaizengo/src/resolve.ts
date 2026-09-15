@@ -279,8 +279,11 @@ function findHandler(appDir: string, handler: string): NavTarget[] {
 
 function resolveModule(root: string, module: string): NavTarget | undefined {
   let file: string | undefined;
-  if (module.startsWith("@kaizengo/sdk-solid/")) {
-    file = existing(path.join(root, "packages/sdk-solid", module.slice("@kaizengo/sdk-solid/".length)));
+  if (module.startsWith("@/") || module.startsWith("@kaizengo/spa/")) {
+    const rest = module.startsWith("@/")
+      ? module.slice(2)
+      : module.slice("@kaizengo/spa/".length);
+    file = existing(path.join(root, "apps/core/spa/src", rest));
   } else if (module.startsWith("@apps/")) {
     file = existing(path.join(root, "apps", module.slice("@apps/".length)));
   } else {

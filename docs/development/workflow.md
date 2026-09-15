@@ -22,9 +22,8 @@ Open **http://localhost:5173/app/** → sign in → open any app from the Apps m
 
 | What you edit | What happens |
 |---------------|--------------|
-| `apps/core/spa/src/` (shell, login) | Vite HMR — instant |
+| `apps/core/spa/src/` (shell, login, K*) | Vite HMR — instant |
 | `apps/*/views/*.tsx` (app views) | Vite HMR — instant |
-| `packages/sdk-solid/ui/` | Vite HMR — instant |
 | Go code (`apps/*/module.go`, services) | Restart `make dev` (or run Go in a separate terminal) |
 
 ### Commands

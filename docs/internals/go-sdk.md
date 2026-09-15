@@ -139,6 +139,7 @@ The rejected-write message is `{app}.error.{model}.internal`. Inventory uses thi
 | `models` (no CQRS) | GraphQL CRUD + `{app}Views` list/form metadata |
 | `queries` / `commands` | Named GraphQL API; skips generic model CRUD; shorthand or Go handlers |
 | `models[].internal` | No public mutations unless via commands; Go/command writes use `WithInternal` / `WithInternalWrite` |
+| `models[].virtual` | No Postgres table; CQRS `list:` uses `RegisterModel` List (in-memory filter/page). Example: `appman` |
 | `models` + `RegisterModel` | YAML fields/search merged with Go handlers (legacy) |
 | `views/*.page.tsx` | Solid pages menus mount (`view: Name`) |
 | `nav` | Shell apps dropdown entry (label, route, order) |
@@ -184,7 +185,33 @@ module.Register(engine.New(engine.Options{
 }))
 ```
 
-GraphQL field names are `{app}{Name}` (e.g. `hellospecPostGreeting`). ACL resources: `{app}.query.{field}` and `{app}.command.{field}` — call-style allow/deny (no actions). View metadata exposes `listQuery` / `createCommand` / … so `KTable` / `KForm` bind automatically.
+GraphQL field names are `{app}{Name}` (e.g. `hellospecPostGreeting`). ACL resources: `{app}.query.{field}` and `{app}.command.{field}` — call-style allow/deny (no actions). View metadata exposes `listQuery` / `createCommand` / … so pages use `KTable query="hellospec.greetings"` / `KForm command="hellospec.postGreeting"`.
+
+### Virtual models (code-backed lists)
+
+For registries that are not Postgres tables (e.g. appman), declare a model with `virtual: true` and implement `engine.RegisterModel` in `Setup` (CQRS mounts after Setup):
+
+```yaml
+models:
+  - name: app
+    internal: true
+    virtual: true
+    fields: [...]
+queries:
+  - name: apps
+    list: app   # → appmanApps + Count + Groups (in-memory page/filter)
+```
+
+```go
+engine.RegisterModel(host, spec, engine.RegisteredModel{
+  Name: "app",
+  ObjectType: …,
+  List: func(ctx engine.RequestContext) ([]any, error) { /* return []engine.Record */ },
+})
+```
+
+`useKQuery` / `KCollection query="appman.apps"` then work like a normal model list.
+
 ### App checklist (current standard)
 
 Every app under `apps/<name>/` should have:

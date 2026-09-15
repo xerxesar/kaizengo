@@ -1,0 +1,23 @@
+---
+description: KaizenGo project philosophy, workflow, and consistency rules
+alwaysApply: true
+---
+
+# Project core
+
+- **EOP**, Odoo-like: apps are easy to add; prefer **spec-driven** (`app.yaml`) over bespoke stacks.
+- Apps live under `apps/`; platform SPA is React in `apps/core/spa` (not Solid).
+- Spec CQRS UI goes through `@/k` (`KTable`, `KForm`, `useKQuery`, …). Primitives: `@/components/ui`.
+
+## Workflow
+
+- Check `docs/` (especially `docs/internals/`) before low-level / package changes; **keep docs in sync**.
+- Match existing structure (`hellospec` for CQRS pages, `components/k` for list widgets).
+- Do not invent parallel fetch/search/pagination/hotkey layers when `useKQuery` / `K*` / keymap already cover it.
+- Prefer small, focused diffs; no drive-by refactors or unsolicited markdown unless asked.
+
+## Naming
+
+- GraphQL CQRS refs in UI: dotted namespaced — `query="hellospec.greetings"`, `command="hellospec.postGreeting"`.
+- Generated `__types__/`, `locale/template.pot`: do not hand-edit (run `kaizengo gen-types <app>`).
+- Keymap `labelKey`s: use underscores (`keymap.shell.page_next`), not hyphens.

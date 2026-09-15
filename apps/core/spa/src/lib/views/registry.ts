@@ -1,46 +1,68 @@
-import type { Component } from 'solid-js'
-import { SearchBar } from '@kaizengo/sdk-solid/search'
-import { registerViewComponent } from '@kaizengo/sdk-solid/ui'
+import type { ComponentType } from 'react'
+import { SearchBar } from '@/components/shell/SearchBar'
+import { registerViewComponent } from '@/lib/view-components'
 
-type ViewModule = { default: Component }
+type ViewModule = { default: ComponentType }
 
-/** App pages (`*.page.tsx`) under apps/<app>/views/. */
-const appViewModules = import.meta.glob<ViewModule>('../../../../../*/views/**/*.page.tsx', {
+const appViewModules = import.meta.glob<ViewModule>('@apps/*/views/**/*.page.tsx', {
   eager: true,
 })
 
-const viewByKey = new Map<string, Component>()
-const viewByComponent = new Map<string, Component>()
+const viewByKey = new Map<string, ComponentType>()
+const viewByComponent = new Map<string, ComponentType>()
 
-for (const [path, mod] of Object.entries(appViewModules)) {
-  const match =
-    path.match(/(?:^|\/)apps\/([^/]+)\/views\/(.+)\.page\.tsx$/) ??
-    path.match(/\/([^/]+)\/views\/(.+)\.page\.tsx$/)
-  if (!match) continue
-  const [, app, rest] = match
-  const name = rest.split('/').pop()
-  if (!name) continue
-  viewByKey.set(`${app}.${name}`, mod.default)
+const HOST_APP = 'core'
+
+function parseAppViewPath(path: string): { app: string; name: string } | null {
+  const p = path.replace(/\\/g, '/')
+
+  const fromApps = p.match(/(?:^|\/)apps\/([^/]+)\/views\/(.+)\.page\.tsx$/)
+  if (fromApps && fromApps[1] !== '..') {
+    const name = fromApps[2].split('/').pop()
+    if (name) return { app: fromApps[1], name }
+  }
+
+  const fromAlias = p.match(/(?:^|\/)@apps\/([^/]+)\/views\/(.+)\.page\.tsx$/)
+  if (fromAlias) {
+    const name = fromAlias[2].split('/').pop()
+    if (name) return { app: fromAlias[1], name }
+  }
+
+  const fromShort = p.match(/^(?:\.\.\/)+views\/(.+)\.page\.tsx$/)
+  if (fromShort) {
+    const name = fromShort[1].split('/').pop()
+    if (name) return { app: HOST_APP, name }
+  }
+
+  const fromNamed = p.match(/\/((?!\.\.)[^/]+)\/views\/(.+)\.page\.tsx$/)
+  if (fromNamed) {
+    const name = fromNamed[2].split('/').pop()
+    if (name) return { app: fromNamed[1], name }
+  }
+
+  return null
 }
 
-/** Cross-app component exports (from app.yaml exports.components). */
-const componentExports: Record<string, Component> = {}
+for (const [path, mod] of Object.entries(appViewModules)) {
+  if (!mod?.default) continue
+  const parsed = parseAppViewPath(path)
+  if (!parsed) continue
+  viewByKey.set(`${parsed.app}.${parsed.name}`, mod.default)
+}
 
-function registerComponentExport(id: string, component: Component) {
+const componentExports: Record<string, ComponentType> = {}
+
+function registerComponentExport(id: string, component: ComponentType) {
   componentExports[id] = component
   viewByComponent.set(id, component)
   registerViewComponent(id, component)
 }
 
 const permissionsAccess = viewByKey.get('permissions.Access')
-if (permissionsAccess) {
-  registerComponentExport('permissions.Access', permissionsAccess)
-}
+if (permissionsAccess) registerComponentExport('permissions.Access', permissionsAccess)
 
 const permissionsRoles = viewByKey.get('permissions.Roles')
-if (permissionsRoles) {
-  registerComponentExport('permissions.Roles', permissionsRoles)
-}
+if (permissionsRoles) registerComponentExport('permissions.Roles', permissionsRoles)
 
 const typesenseSearchSettings = viewByKey.get('typesense.SearchSettings')
 if (typesenseSearchSettings) {
@@ -55,8 +77,7 @@ export type ViewResolveContext = {
   component?: string
 }
 
-/** Resolve a menu leaf to a Solid component. */
-export function resolveView(ctx: ViewResolveContext): Component | null {
+export function resolveView(ctx: ViewResolveContext): ComponentType | null {
   const component = ctx.component?.trim()
   if (component) {
     const byExport = componentExports[component] ?? viewByComponent.get(component)
@@ -66,8 +87,7 @@ export function resolveView(ctx: ViewResolveContext): Component | null {
   const view = ctx.view?.trim()
   const app = ctx.app.trim()
   if (view && app) {
-    const key = `${app}.${view}`
-    const direct = viewByKey.get(key)
+    const direct = viewByKey.get(`${app}.${view}`)
     if (direct) return direct
   }
 
@@ -78,7 +98,7 @@ export function resolveView(ctx: ViewResolveContext): Component | null {
   return null
 }
 
-export function resolveComponent(componentId: string): Component | null {
+export function resolveComponent(componentId: string): ComponentType | null {
   const id = componentId.trim()
   return componentExports[id] ?? viewByComponent.get(id) ?? null
 }

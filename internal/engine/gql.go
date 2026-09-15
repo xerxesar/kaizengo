@@ -81,23 +81,25 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 	obj := newRecordType(spec, svc)
 	// Models are not client ACL resources; enforcement stays inside modelService.
 	// GraphQL only requires a session.
+	listFieldName := listName(spec, svc.model)
 	crud := sdkgql.CRUDSpec{
-		ListName: listName(spec, svc.model),
+		ListName: listFieldName,
 		ListField: &graphql.Field{
 			Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(obj))),
+			Args: listPageArgs(),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
 				pr, err := sdkgql.RequirePrincipal(p)
 				if err != nil {
 					return nil, err
 				}
-				list, err := svc.List(p.Context, pr.OrgID)
+				page, err := svc.ListPage(p.Context, pr.OrgID, parseListPageOpts(p.Args))
 				if err != nil {
 					return nil, err
 				}
-				if list == nil {
-					list = []Record{}
+				if page.Items == nil {
+					page.Items = []Record{}
 				}
-				return list, nil
+				return page.Items, nil
 			},
 		},
 		GetName: getName(spec, svc.model),
@@ -169,6 +171,28 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 		}
 	}
 	sdkgql.RegisterCRUD(host.GQL, crud)
+	host.GQL.RegisterQuery(listFieldName+"Count", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.Int),
+		Args: listFilterArgs(),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			pr, err := sdkgql.RequirePrincipal(p)
+			if err != nil {
+				return nil, err
+			}
+			return svc.CountOpts(p.Context, pr.OrgID, parseListPageOpts(p.Args))
+		},
+	})
+	host.GQL.RegisterQuery(listFieldName+"Groups", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(groupBucketType(spec.Name)))),
+		Args: listPageArgs(),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			pr, err := sdkgql.RequirePrincipal(p)
+			if err != nil {
+				return nil, err
+			}
+			return svc.Groups(p.Context, pr.OrgID, parseListPageOpts(p.Args))
+		},
+	})
 }
 
 func fieldArgs(model appspec.ModelSpec, requiredOnly bool) graphql.FieldConfigArgument {
@@ -320,7 +344,7 @@ func viewCatalog(spec appspec.AppSpec) []views.View {
 			}
 		}
 		out = append(out, list)
-		includeForm := !m.Internal || spec.HasCQRS()
+		includeForm := (!m.Internal || spec.HasCQRS()) && !m.Virtual
 		if includeForm {
 			form := buildFormView(spec, m)
 			if rm, ok := registeredModelByName(spec.Name, m.Name); ok {
@@ -370,8 +394,14 @@ func buildListView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
 			continue
 		}
 		item.Columns = append(item.Columns, views.Column{Key: f.Name, Label: pascal(f.Name)})
+		item.Fields = append(item.Fields, views.Field{
+			Key: f.Name, Label: pascal(f.Name), Type: f.CanonicalType(), Required: f.Required,
+			Relation: f.Relation, Inverse: f.Inverse, Values: append([]string{}, f.Values...),
+		})
 	}
-	item.Columns = append(item.Columns, views.Column{Key: "updatedAt", Label: "Updated", Width: "12rem"})
+	if !m.Virtual {
+		item.Columns = append(item.Columns, views.Column{Key: "updatedAt", Label: "Updated", Width: "12rem"})
+	}
 	applyCQRSBindings(&item, spec, m.Name)
 	return item
 }
@@ -388,7 +418,7 @@ func buildFormView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
 		}
 		item.Fields = append(item.Fields, views.Field{
 			Key: f.Name, Label: pascal(f.Name), Type: f.CanonicalType(), Required: f.Required,
-			Relation: f.Relation, Inverse: f.Inverse,
+			Relation: f.Relation, Inverse: f.Inverse, Values: append([]string{}, f.Values...),
 		})
 	}
 	applyCQRSBindings(&item, spec, m.Name)
@@ -415,6 +445,7 @@ func newViewType(name string) *graphql.Object {
 			"required": &graphql.Field{Type: graphql.Boolean},
 			"relation": &graphql.Field{Type: graphql.String},
 			"inverse":  &graphql.Field{Type: graphql.String},
+			"values":   &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
 		},
 	})
 	return graphql.NewObject(graphql.ObjectConfig{

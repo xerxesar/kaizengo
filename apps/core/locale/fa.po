@@ -21,9 +21,6 @@ msgstr "رمز عبور"
 msgid "login.submit"
 msgstr "ورود"
 
-msgid "login.hint"
-msgstr "مدیر پیش‌فرض: %s / %s"
-
 msgid "login.manage_databases"
 msgstr "مدیریت پایگاه‌های داده"
 
@@ -69,5 +66,26 @@ msgstr "رفتن به خانه"
 msgid "keymap.shell.form-save"
 msgstr "ذخیره فرم"
 
+msgid "keymap.shell.search_focus"
+msgstr "تمرکز روی جستجو"
+
+msgid "keymap.shell.search_filter"
+msgstr "افزودن فیلتر"
+
+msgid "keymap.shell.search_group"
+msgstr "گروه‌بندی"
+
+msgid "keymap.shell.page_prev"
+msgstr "صفحه قبل"
+
+msgid "keymap.shell.page_next"
+msgstr "صفحه بعد"
+
 msgid "keymap.shell.sign_out"
 msgstr "خروج"
+
+msgid "shell.app_not_found"
+msgstr "برنامه مورد نظر یافت نشد"
+
+msgid "shell.not_found"
+msgstr "یافت نشد"

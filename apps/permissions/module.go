@@ -16,18 +16,16 @@ import (
 )
 
 func init() {
-	module.Register(&App{})
+	module.Register(engine.New(engine.Options{
+		AppName: appName,
+		Version: appVersion,
+		Setup:   setup,
+	}))
 }
 
 const appName = "permissions"
 const appVersion = "0.2.0"
 const seedAuthor = "00000000-0000-0000-0000-000000000001"
-
-type App struct{}
-
-func (a *App) Manifest() module.Manifest {
-	return app.ManifestFromSpec(app.MustAppSpec(appName), appVersion)
-}
 
 type engineStore struct {
 	models *engine.ModelRegistry
@@ -277,29 +275,18 @@ func (s engineStore) UserHasRole(ctx context.Context, orgID, userID, roleID stri
 	return false, nil
 }
 
-func (a *App) Setup(host *module.Host) error {
-	spec := app.MustAppSpec(appName)
-	if spec.EnableI18n {
-		app.MustLoadLocales(appName)
-	}
-	events, err := engine.SetupEvents(host, appName, spec, nil)
-	if err != nil {
-		return err
-	}
-	host.Provide(engine.ModelsKey(appName), events.Models)
-
+func setup(host *module.Host, events *engine.EventsSetup) error {
 	svc := service.New(engineStore{models: events.Models})
 	host.Provide(service.Name, svc)
-	engine.RegisterAppResources(spec)
 	registerGQL(host)
 
-	if err := a.seed(host, svc); err != nil {
+	if err := seed(host, svc); err != nil {
 		log.Printf("permissions: seed: %v", err)
 	}
 	return nil
 }
 
-func (a *App) seed(host *module.Host, perm *service.Service) error {
+func seed(host *module.Host, perm *service.Service) error {
 	users, err := engine.ModelsFromHost(host, "identity")
 	if err != nil {
 		return err
@@ -313,8 +300,4 @@ func (a *App) seed(host *module.Host, perm *service.Service) error {
 	userID := fmt.Sprint(rec["id"])
 	orgID := fmt.Sprint(rec["orgId"])
 	return perm.SeedDefaults(ctx, orgID, userID)
-}
-
-func (a *App) Mount(host *module.Host) error {
-	return nil
 }

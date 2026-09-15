@@ -210,10 +210,6 @@ msgstr ""
 msgid "permissions.field.domain"
 msgstr ""
 
-#: views/Access.page.tsx
-msgid "permissions.field.domain_hint"
-msgstr ""
-
 #: app.yaml views/Access.page.tsx
 msgid "permissions.field.effect"
 msgstr ""
@@ -223,19 +219,7 @@ msgid "permissions.field.fields"
 msgstr ""
 
 #: views/Access.page.tsx
-msgid "permissions.field.fields_hint"
-msgstr ""
-
-#: views/Access.page.tsx
 msgid "permissions.field.fields_pick"
-msgstr ""
-
-#: views/Access.page.tsx
-msgid "permissions.field.fields_pick_empty"
-msgstr ""
-
-#: views/Access.page.tsx
-msgid "permissions.field.fields_pick_hint"
 msgstr ""
 
 #: views/Access.page.tsx
@@ -246,10 +230,6 @@ msgstr ""
 msgid "permissions.field.kind"
 msgstr ""
 
-#: views/Access.page.tsx
-msgid "permissions.field.kind_hint"
-msgstr ""
-
 #: app.yaml
 msgid "permissions.field.label"
 msgstr ""
@@ -258,16 +238,8 @@ msgstr ""
 msgid "permissions.field.name"
 msgstr ""
 
-#: views/Access.page.tsx
-msgid "permissions.field.name_hint"
-msgstr ""
-
 #: app.yaml views/Access.page.tsx
 msgid "permissions.field.priority"
-msgstr ""
-
-#: views/Access.page.tsx
-msgid "permissions.field.priority_hint"
 msgstr ""
 
 #: app.yaml views/Access.page.tsx

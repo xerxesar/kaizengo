@@ -73,7 +73,10 @@ export function syncURLFromPrefs() {
   else p.delete('debug')
   const q = p.toString()
   const url = window.location.pathname + (q ? `?${q}` : '') + window.location.hash
-  history.replaceState(null, '', url)
+  const current = window.location.pathname + window.location.search + window.location.hash
+  if (url === current) return
+  // Preserve history.state so React Router keeps working.
+  history.replaceState(history.state, '', url)
 }
 
 /** Activate the stored DB on the Go server (client-driven, no catalog write). */

@@ -5,30 +5,24 @@ package settings
 import (
 	"fmt"
 
+	"kaizengo/internal/engine"
 	"kaizengo/internal/module"
 	"kaizengo/internal/platform/config"
 	ptime "kaizengo/internal/platform/time"
-	"kaizengo/internal/app"
-	"kaizengo/internal/engine"
-	"kaizengo/internal/extension"
 	"kaizengo/packages/sdk-go/i18n"
-	"kaizengo/packages/sdk-go/views"
 
 	"github.com/graphql-go/graphql"
 )
 
-func init() {
-	module.Register(&App{})
-}
-
 const appName = "settings"
 const appVersion = "0.1.0"
 
-// App configures platform + core settings (locale, default calendar, shell title).
-type App struct{}
-
-func (a *App) Manifest() module.Manifest {
-	return app.ManifestFromSpec(app.MustAppSpec(appName), appVersion)
+func init() {
+	module.Register(engine.New(engine.Options{
+		AppName: appName,
+		Version: appVersion,
+		Setup:   setup,
+	}))
 }
 
 type snapshot struct {
@@ -39,15 +33,7 @@ type snapshot struct {
 	Calendars       []ptime.Calendar
 }
 
-func (a *App) Setup(host *module.Host) error {
-	spec := app.MustAppSpec(appName)
-	if spec.EnableI18n {
-		app.MustLoadLocales(appName)
-	}
-	if _, err := engine.SetupEvents(host, appName, spec, nil); err != nil {
-		return err
-	}
-
+func setup(host *module.Host, _ *engine.EventsSetup) error {
 	calType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "SettingsCalendar",
 		Fields: graphql.Fields{
@@ -200,123 +186,6 @@ func (a *App) Setup(host *module.Host) error {
 		},
 	})
 
-	app.RegisterNavFromSpec(host, appName, spec)
-	engine.RegisterPing(host, spec)
-
-	menuType := graphql.NewObject(graphql.ObjectConfig{Name: "SettingsMenu", Fields: graphql.Fields{}})
-	menuType.AddFieldConfig("id", &graphql.Field{
-		Type: graphql.NewNonNull(graphql.String),
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return p.Source.(views.Menu).ID, nil
-		},
-	})
-	menuType.AddFieldConfig("label", &graphql.Field{
-		Type: graphql.NewNonNull(graphql.String),
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return p.Source.(views.Menu).Label, nil
-		},
-	})
-	menuType.AddFieldConfig("labelKey", &graphql.Field{
-		Type: graphql.String,
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return p.Source.(views.Menu).LabelKey, nil
-		},
-	})
-	menuType.AddFieldConfig("view", &graphql.Field{
-		Type: graphql.String,
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return p.Source.(views.Menu).View, nil
-		},
-	})
-	menuType.AddFieldConfig("route", &graphql.Field{
-		Type: graphql.String,
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return p.Source.(views.Menu).Route, nil
-		},
-	})
-	menuType.AddFieldConfig("component", &graphql.Field{
-		Type: graphql.String,
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return p.Source.(views.Menu).Component, nil
-		},
-	})
-	menuType.AddFieldConfig("sourceApp", &graphql.Field{
-		Type: graphql.String,
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return p.Source.(views.Menu).SourceApp, nil
-		},
-	})
-	menuType.AddFieldConfig("children", &graphql.Field{
-		Type: graphql.NewList(graphql.NewNonNull(menuType)),
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return p.Source.(views.Menu).Children, nil
-		},
-	})
-	host.GQL.RegisterQuery("settingsMenus", &graphql.Field{
-		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(menuType))),
-		Resolve: func(graphql.ResolveParams) (any, error) {
-			return extension.BuildMenuCatalog(appName, spec.Menus), nil
-		},
-	})
-
-	slotType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "SettingsViewSlot",
-		Fields: graphql.Fields{
-			"slot": &graphql.Field{
-				Type: graphql.NewNonNull(graphql.String),
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					return p.Source.(extension.ViewSlot).Slot, nil
-				},
-			},
-			"component": &graphql.Field{
-				Type: graphql.NewNonNull(graphql.String),
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					return p.Source.(extension.ViewSlot).Component, nil
-				},
-			},
-			"module": &graphql.Field{
-				Type: graphql.String,
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					return p.Source.(extension.ViewSlot).Module, nil
-				},
-			},
-			"sourceApp": &graphql.Field{
-				Type: graphql.String,
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					return p.Source.(extension.ViewSlot).SourceApp, nil
-				},
-			},
-			"id": &graphql.Field{
-				Type: graphql.String,
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					return p.Source.(extension.ViewSlot).ID, nil
-				},
-			},
-			"labelKey": &graphql.Field{
-				Type: graphql.String,
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					return p.Source.(extension.ViewSlot).LabelKey, nil
-				},
-			},
-			"label": &graphql.Field{
-				Type: graphql.String,
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					return p.Source.(extension.ViewSlot).Label, nil
-				},
-			},
-		},
-	})
-	host.GQL.RegisterQuery("settingsViewSlots", &graphql.Field{
-		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(slotType))),
-		Args: graphql.FieldConfigArgument{
-			"view": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-		},
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			view, _ := p.Args["view"].(string)
-			return extension.ViewSlotsFor(appName, view), nil
-		},
-	})
-
 	return nil
 }
 
@@ -327,8 +196,4 @@ func labelField(key string) *graphql.Field {
 			return i18n.T(key), nil
 		},
 	}
-}
-
-func (a *App) Mount(host *module.Host) error {
-	return nil
 }

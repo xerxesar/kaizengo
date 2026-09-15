@@ -10,12 +10,84 @@ msgstr ""
 msgid "appman.available"
 msgstr ""
 
+#: app.yaml
+msgid "appman.create"
+msgstr ""
+
+#: app.yaml
+msgid "appman.created"
+msgstr ""
+
 #: views/Index.page.tsx
 msgid "appman.depends"
 msgstr ""
 
-#: views/Index.page.tsx
+#: app.yaml views/Index.page.tsx
 msgid "appman.empty"
+msgstr ""
+
+#: app.yaml
+msgid "appman.enum.app.status.available"
+msgstr ""
+
+#: app.yaml
+msgid "appman.enum.app.status.installed"
+msgstr ""
+
+#: app.yaml
+msgid "appman.enum.app.status.system"
+msgstr ""
+
+#: app.yaml
+msgid "appman.enum.app.status.upgrade"
+msgstr ""
+
+#: app.yaml
+msgid "appman.error.app.internal"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.autoInstall"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.depends"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.installed"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.installedVersion"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.loaded"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.name"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.status"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.summary"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.title"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.upgrade"
+msgstr ""
+
+#: app.yaml
+msgid "appman.field.version"
 msgstr ""
 
 #: views/Index.page.tsx
@@ -35,11 +107,19 @@ msgid "appman.menu.apps"
 msgstr ""
 
 #: app.yaml
+msgid "appman.new_placeholder"
+msgstr ""
+
+#: app.yaml
 msgid "appman.ping"
 msgstr ""
 
-#: views/Index.page.tsx
-msgid "appman.search"
+#: app.yaml
+msgid "appman.save"
+msgstr ""
+
+#: app.yaml
+msgid "appman.saved"
 msgstr ""
 
 #: app.yaml views/Index.page.tsx

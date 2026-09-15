@@ -5,10 +5,9 @@ package audit
 import (
 	"log/slog"
 
-	"kaizengo/internal/module"
-	"kaizengo/internal/app"
 	"kaizengo/internal/engine"
 	"kaizengo/internal/extension"
+	"kaizengo/internal/module"
 )
 
 const appName = "audit"
@@ -18,26 +17,10 @@ func init() {
 	extension.Register("model.*.*.afterCreate", 100, logMutation("create"))
 	extension.Register("model.*.*.afterUpdate", 100, logMutation("update"))
 	extension.Register("model.*.*.afterDelete", 100, logMutation("delete"))
-	module.Register(&App{})
-}
-
-type App struct{}
-
-func (a *App) Manifest() module.Manifest {
-	return app.ManifestFromSpec(app.MustAppSpec(appName), appVersion)
-}
-
-func (a *App) Setup(host *module.Host) error {
-	spec := app.MustAppSpec(appName)
-	if _, err := engine.SetupEvents(host, appName, spec, nil); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (a *App) Mount(host *module.Host) error {
-	_ = host
-	return nil
+	module.Register(engine.New(engine.Options{
+		AppName: appName,
+		Version: appVersion,
+	}))
 }
 
 func logMutation(action string) func(extension.Context) error {

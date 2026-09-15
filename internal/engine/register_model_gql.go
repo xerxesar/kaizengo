@@ -1,10 +1,13 @@
 package engine
 
 import (
+	"fmt"
+	"strings"
+
 	"kaizengo/internal/module"
+	sdkgql "kaizengo/internal/gql"
 	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/appspec"
-	sdkgql "kaizengo/internal/gql"
 	"kaizengo/packages/sdk-go/views"
 
 	"github.com/graphql-go/graphql"
@@ -18,16 +21,28 @@ func registerRegisteredModelGQL(host *module.Host, spec appspec.AppSpec, m Regis
 	}
 	obj := m.ObjectType
 
-	specCRUD := sdkgql.CRUDSpec{ListName: listName(spec, model)}
+	listFieldName := listName(spec, model)
+	specCRUD := sdkgql.CRUDSpec{ListName: listFieldName}
 
 	specCRUD.ListField = &graphql.Field{
 		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(obj))),
+		Args: listPageArgs(),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead)
 			if err != nil {
 				return nil, err
 			}
-			return m.List(RequestContext{Context: p.Context, OrgID: pr.OrgID, UserID: pr.UserID})
+			list, err := m.List(RequestContext{Context: p.Context, OrgID: pr.OrgID, UserID: pr.UserID})
+			if err != nil {
+				return nil, err
+			}
+			if list == nil {
+				list = []any{}
+			}
+			opts := parseListPageOpts(p.Args)
+			list = filterAnyRecords(list, opts)
+			items, _ := sliceAnyPage(list, opts)
+			return items, nil
 		},
 	}
 
@@ -123,6 +138,82 @@ func registerRegisteredModelGQL(host *module.Host, spec appspec.AppSpec, m Regis
 	}
 
 	sdkgql.RegisterCRUD(host.GQL, specCRUD)
+	host.GQL.RegisterQuery(listFieldName+"Count", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.Int),
+		Args: listFilterArgs(),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead)
+			if err != nil {
+				return nil, err
+			}
+			list, err := m.List(RequestContext{Context: p.Context, OrgID: pr.OrgID, UserID: pr.UserID})
+			if err != nil {
+				return nil, err
+			}
+			list = filterAnyRecords(list, parseListPageOpts(p.Args))
+			return len(list), nil
+		},
+	})
+}
+
+func filterAnyRecords(list []any, opts ListPageOpts) []any {
+	expr, err := acl.ParseDomainExpr(opts.Domain)
+	if err != nil || (expr == nil && strings.TrimSpace(opts.Q) == "") {
+		if err != nil {
+			return list
+		}
+		if strings.TrimSpace(opts.Q) == "" {
+			return list
+		}
+	}
+	q := strings.ToLower(strings.TrimSpace(opts.Q))
+	out := make([]any, 0, len(list))
+	for _, item := range list {
+		rec := anyToRecord(item)
+		if rec == nil {
+			out = append(out, item)
+			continue
+		}
+		if expr != nil && !expr.Match(rec, acl.PrincipalContext{}) {
+			continue
+		}
+		if q != "" {
+			ok := false
+			fields := opts.SearchIn
+			if len(fields) == 0 {
+				for k, v := range rec {
+					if strings.Contains(strings.ToLower(fmt.Sprint(v)), q) {
+						ok = true
+						_ = k
+						break
+					}
+				}
+			} else {
+				for _, f := range fields {
+					if strings.Contains(strings.ToLower(fmt.Sprint(rec[f])), q) {
+						ok = true
+						break
+					}
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func anyToRecord(item any) Record {
+	switch t := item.(type) {
+	case Record:
+		return t
+	case map[string]any:
+		return Record(t)
+	default:
+		return nil
+	}
 }
 
 func buildListViewFromRegistered(m RegisteredModel) views.View {
@@ -149,9 +240,9 @@ func buildFormViewFromRegistered(m RegisteredModel) views.View {
 		Kind:  views.FormView,
 	}
 	for _, f := range m.Fields {
-		item.Fields = append(item.Fields, views.Field{
+        item.Fields = append(item.Fields, views.Field{
 			Key: f.Name, Label: pascal(f.Name), Type: f.CanonicalType(), Required: f.Required,
-			Relation: f.Relation, Inverse: f.Inverse,
+			Relation: f.Relation, Inverse: f.Inverse, Values: append([]string{}, f.Values...),
 		})
 	}
 	return item

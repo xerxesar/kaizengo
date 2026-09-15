@@ -1,0 +1,50 @@
+---
+description: K* CQRS list/form UI — useKQuery, search, pagination, hotkeys
+globs: apps/core/spa/src/components/k/**/*.{ts,tsx},apps/*/views/**/*.tsx
+alwaysApply: false
+---
+
+# K components
+
+## Layers (do not collapse)
+
+```text
+useKQuery          → resolve list view + server fetch (page, q, domain, groupBy)
+KQueryShell        → KSearch + KPagination + loading/empty
+KTableView / KKanbanBoard  → presentational only
+KTable / KKanban / KCollection  → conveniences on top
+```
+
+- **Fetch** model/CQRS lists only via **`useKQuery`**. Do not call `listModelRecordsPage` from views unless building a custom adapter.
+- **Server-side** pagination/search when `paginated` / `searchable` are set — no client `sliceItems` in query mode.
+- Chrome flags: `paginated` / `searchable` as `true` or config (`url`, `pageSize`, field allowlists, …).
+
+## Prefer query props
+
+```tsx
+// ✅
+<KTable query="hellospec.greetings" paginated searchable />
+<KKanban query="…" paginated searchable groupByField="mood" card={…} />
+<KCollection query="…" paginated searchable groupByField="status" card={…} />
+
+// ❌ items + hand-rolled fetch for normal models
+// ❌ DataTable inside KCollection query mode (use KTableView)
+// ❌ Client search UI when searchable / KSearch applies
+```
+
+## Escape hatch
+
+`items` (+ optional client filter/page) only for **non-CQRS** data. Prefer virtual model + `RegisterModel` (see appman) so `query="app.list"` still works.
+
+## Forms
+
+- `KForm` + `KFormField` with `command` or `model` — same CQRS resolve pattern.
+- Refresh sibling tables via `refreshToken` after successful create.
+
+## Hotkeys
+
+`KSearch` / `KPagination` / `KForm` expose stable `data-keymap-id`s; bindings live in `apps/core/keymap.yaml`. Extend via keymap (see `.cursor/rules/keymap.mdc`) — do not add local `keydown` handlers for list chrome.
+
+## Imports
+
+Export/consume from `@/k`. Shared types: `KQueryPaginationConfig`, `KQuerySearchConfig`.

@@ -44,11 +44,11 @@ func createApp(opts AppOptions) error {
 	}
 
 	typ := strings.ToLower(strings.TrimSpace(opts.Type))
-	if typ == "" {
-		typ = "solid"
+	if typ == "" || typ == "solid" {
+		typ = "react"
 	}
-	if typ != "solid" {
-		return fmt.Errorf("type must be solid, got %q", typ)
+	if typ != "react" {
+		return fmt.Errorf("type must be react, got %q", typ)
 	}
 
 	root, err := findModuleRoot()
@@ -84,7 +84,7 @@ func createApp(opts AppOptions) error {
 		Summary:      summary,
 		Route:        strings.ReplaceAll(name, "_", "-"),
 		WithGraphQL:  opts.WithGraphQL,
-		IsSolid:      typ == "solid",
+		IsSolid:      typ == "react",
 		EventSourced: opts.EventSourced,
 	}
 
@@ -100,19 +100,19 @@ func createApp(opts AppOptions) error {
 		files["migrations/001_items.sql"] = render(readModelMigrationSQLTmpl, data)
 		files["locale/en.po"] = render(localeEnTmpl, data)
 		files["locale/fa.po"] = render(localeFaTmpl, data)
-		files["views/Items.page.tsx"] = render(solidListViewTmpl, data)
-		files["views/NewItem.page.tsx"] = render(solidFormViewTmpl, data)
+		files["views/Items.page.tsx"] = render(reactListViewTmpl, data)
+		files["views/NewItem.page.tsx"] = render(reactFormViewTmpl, data)
 	} else {
 		files["module.go"] = render(moduleGoTmpl, data)
 	}
 	if !opts.EventSourced {
-		files["views/Index.page.tsx"] = render(solidViewTmpl, data)
+		files["views/Index.page.tsx"] = render(reactViewTmpl, data)
 	}
 	if opts.WithGraphQL {
 		if err := os.MkdirAll(filepath.Join(appDir, "lib"), 0o755); err != nil {
 			return err
 		}
-		files["lib/graphql.ts"] = render(solidGraphQLTSTmpl, data)
+		files["lib/graphql.ts"] = render(reactGraphQLTSTmpl, data)
 	}
 
 	for rel, content := range files {
@@ -145,7 +145,7 @@ func createApp(opts AppOptions) error {
 	}
 
 	fmt.Printf("\nNext steps:\n")
-	if typ == "solid" {
+	if typ == "react" {
 		fmt.Printf("  make spa-build   # rebuild the central SPA (includes app views)\n")
 	}
 	fmt.Printf("  make generate     # refresh __types__ after app.yaml changes\n")

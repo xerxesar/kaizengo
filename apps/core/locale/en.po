@@ -21,9 +21,6 @@ msgstr "Password"
 msgid "login.submit"
 msgstr "Sign in"
 
-msgid "login.hint"
-msgstr "Default admin: %s / %s"
-
 msgid "login.manage_databases"
 msgstr "Manage databases"
 
@@ -69,5 +66,26 @@ msgstr "Go home"
 msgid "keymap.shell.form-save"
 msgstr "Save form"
 
+msgid "keymap.shell.search_focus"
+msgstr "Focus search"
+
+msgid "keymap.shell.search_filter"
+msgstr "Add filter"
+
+msgid "keymap.shell.search_group"
+msgstr "Group by"
+
+msgid "keymap.shell.page_prev"
+msgstr "Previous page"
+
+msgid "keymap.shell.page_next"
+msgstr "Next page"
+
 msgid "keymap.shell.sign_out"
 msgstr "Sign out"
+
+msgid "shell.app_not_found"
+msgstr "App not found"
+
+msgid "shell.not_found"
+msgstr "Not found"

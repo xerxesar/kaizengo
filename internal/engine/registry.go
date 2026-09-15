@@ -90,7 +90,11 @@ func RegisterModel(host *module.Host, spec appspec.AppSpec, m RegisteredModel) e
 	registry.mu.Unlock()
 
 	registerModelSearch(spec.Name, m)
-	registerRegisteredModelGQL(host, spec, m)
+	// When the app uses CQRS, list/get/mutations come from registerCQRS (list: / handlers).
+	// RegisterModel only supplies the in-memory List source for virtual models.
+	if !spec.HasCQRS() {
+		registerRegisteredModelGQL(host, spec, m)
+	}
 	return nil
 }
 

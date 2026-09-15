@@ -164,7 +164,7 @@ describe("resolveDefinition", () => {
     assert.ok(handler.some((f) => f.endsWith(path.join("apps", "typesense", "module.go"))));
 
     const mod = filesOf(ctx, "exports.components[0].module");
-    assert.ok(mod.some((f) => f.endsWith(path.join("packages", "sdk-solid", "search", "SearchBar.tsx"))));
+    assert.ok(mod.some((f) => f.endsWith(path.join("apps", "core", "spa", "src", "lib", "search", "SearchBar.tsx"))));
 
     const settings = filesOf(ctx, "exports.components[1].module");
     assert.ok(settings.some((f) => f.endsWith(path.join("apps", "typesense", "views", "SearchSettings.page.tsx"))));

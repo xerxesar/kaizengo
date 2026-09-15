@@ -1,146 +1,160 @@
-import { createMemo, createSignal, onMount, Show } from 'solid-js'
+import { useEffect, useMemo } from 'react'
+import { Alert } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
 import {
-  Alert,
-  Card,
-  FormField,
-  FormSection,
-  KAppStatus,
-  KForm,
-  KFormField,
   Select,
-  Spinner,
-  formatDateTime,
-  getTheme,
-  setTheme,
-  t,
-  THEMES,
-  type ThemeId,
-} from '@kaizengo/sdk-solid/ui'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { formatDateTime, getTheme, setTheme, t, THEMES, type ThemeId, Card, FormSection } from '@/lib'
+import { KAppStatus, KForm, KFormField } from '@/k'
 import { IdentityToolbar } from '../lib/IdentityToolbar'
-import { identityState, initIdentity, updateSelectedOrg } from '../lib/state'
+import { initIdentity, updateSelectedOrg, useIdentityState } from '../lib/state'
 
 export default function Settings() {
-  const identity = identityState()
-  const [theme, setThemeState] = createSignal<ThemeId>(getTheme())
-  const org = createMemo(() => identity.selectedOrg)
+  const identity = useIdentityState()
+  const org = identity.selectedOrg
+  const theme = getTheme()
+  const themeOptions = useMemo(
+    () => THEMES.map((th) => ({ value: th.id, label: th.label })),
+    [],
+  )
 
   function onThemeChange(value: string) {
-    const id = value as ThemeId
-    setThemeState(id)
-    setTheme(id)
+    setTheme(value as ThemeId)
   }
 
   function onOrgSaved(record: Record<string, unknown>) {
-    const current = org()
-    if (!current) return
+    if (!org) return
     updateSelectedOrg({
-      id: String(record.id ?? current.id),
-      name: String(record.name ?? current.name),
-      slug: String(record.slug ?? current.slug),
-      createdAt: String(record.createdAt ?? current.createdAt),
+      id: String(record.id ?? org.id),
+      name: String(record.name ?? org.name),
+      slug: String(record.slug ?? org.slug),
+      createdAt: String(record.createdAt ?? org.createdAt),
     })
   }
 
-  onMount(() => {
+  useEffect(() => {
     void initIdentity()
-  })
+  }, [])
+
+  if (identity.loading) {
+    return (
+      <div className="flex items-center justify-center py-8" role="status" aria-label="Loading">
+        <Progress indeterminate className="w-48 max-w-full" />
+      </div>
+    )
+  }
 
   return (
-    <Show when={!identity.loading} fallback={<Spinner />}>
+    <>
       <IdentityToolbar />
 
-      <Show when={identity.error} fallback={
-        <Show when={org()} fallback={<Alert variant="warning">{t('identity.no_org')}</Alert>}>
-          {(currentOrg) => (
-            <div class="flex w-full flex-col gap-5">
-              <Card title={t('identity.settings.profile')}>
-                <Show
-                  when={identity.isAdmin}
-                  fallback={
-                    <FormSection title={t('identity.settings.general')}>
-                      <dl class="settings-grid">
-                        <div>
-                          <dt>{t('identity.settings.name')}</dt>
-                          <dd>{currentOrg().name}</dd>
-                        </div>
-                        <div>
-                          <dt>{t('identity.settings.slug')}</dt>
-                          <dd>
-                            <code>{currentOrg().slug}</code>
-                          </dd>
-                        </div>
-                      </dl>
-                    </FormSection>
-                  }
+      {identity.error ? (
+        <Alert variant="danger">
+          <div className="min-w-0 flex-1">{identity.error}</div>
+        </Alert>
+      ) : !org ? (
+        <Alert variant="warning">
+          <div className="min-w-0 flex-1">{t('identity.no_org')}</div>
+        </Alert>
+      ) : (
+        <div className="flex w-full flex-col gap-5">
+          <Card title={t('identity.settings.profile')}>
+            {identity.isAdmin ? (
+              <FormSection
+                title={t('identity.settings.general')}
+                description={t('identity.settings.general_desc')}
+              >
+                <KForm
+                  command="identity.reviseOrganization"
+                  id={org.id}
+                  submitLabel={t('identity.settings.save')}
+                  successMessage={t('identity.settings.saved')}
+                  onsuccess={onOrgSaved}
                 >
-                  <FormSection
-                    title={t('identity.settings.general')}
-                    description={t('identity.settings.general_desc')}
-                  >
-                    <KForm
-                      model="identity.organization"
-                      id={currentOrg().id}
-                      submitLabel={t('identity.settings.save')}
-                      successMessage={t('identity.settings.saved')}
-                      onsuccess={onOrgSaved}
-                    >
-                      <KFormField field="name" label={t('identity.settings.name')} />
-                      <KFormField
-                        field="slug"
-                        label={t('identity.settings.slug')}
-                        hint={t('identity.settings.slug_hint')}
-                      />
-                    </KForm>
-                  </FormSection>
-                </Show>
-
-                <dl class="settings-grid readonly">
+                  <KFormField field="name" label={t('identity.settings.name')} />
+                  <KFormField
+                    field="slug"
+                    label={t('identity.settings.slug')}
+                    hint={t('identity.settings.slug_hint')}
+                  />
+                </KForm>
+              </FormSection>
+            ) : (
+              <FormSection title={t('identity.settings.general')}>
+                <dl className="settings-grid">
                   <div>
-                    <dt>{t('identity.settings.id')}</dt>
-                    <dd class="mono">{currentOrg().id}</dd>
+                    <dt>{t('identity.settings.name')}</dt>
+                    <dd>{org.name}</dd>
                   </div>
                   <div>
-                    <dt>{t('identity.settings.created')}</dt>
-                    <dd>{formatDateTime(currentOrg().createdAt)}</dd>
-                  </div>
-                </dl>
-              </Card>
-
-              <Card title={t('identity.settings.appearance')}>
-                <FormSection title={t('identity.settings.theme')} description={t('identity.settings.theme_desc')}>
-                  <FormField label={t('identity.settings.theme_label')}>
-                    <Select
-                      value={theme()}
-                      options={THEMES.map((th) => ({ value: th.id, label: th.label }))}
-                      onChange={onThemeChange}
-                    />
-                  </FormField>
-                </FormSection>
-              </Card>
-
-              <Card title={t('identity.settings.security')}>
-                <p class="info">{t('identity.settings.security_body')}</p>
-                <dl class="settings-grid compact">
-                  <div>
-                    <dt>{t('identity.settings.admin_email')}</dt>
+                    <dt>{t('identity.settings.slug')}</dt>
                     <dd>
-                      <code>KaizenGo_ADMIN_EMAIL</code>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('identity.settings.admin_password')}</dt>
-                    <dd>
-                      <code>KaizenGo_ADMIN_PASSWORD</code>
+                      <code>{org.slug}</code>
                     </dd>
                   </div>
                 </dl>
-              </Card>
-            </div>
-          )}
-        </Show>
-      }>
-        <Alert variant="danger">{identity.error}</Alert>
-      </Show>
+              </FormSection>
+            )}
+
+            <dl className="settings-grid readonly">
+              <div>
+                <dt>{t('identity.settings.id')}</dt>
+                <dd className="mono">{org.id}</dd>
+              </div>
+              <div>
+                <dt>{t('identity.settings.created')}</dt>
+                <dd>{formatDateTime(org.createdAt)}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card title={t('identity.settings.appearance')}>
+            <FormSection
+              title={t('identity.settings.theme')}
+              description={t('identity.settings.theme_desc')}
+            >
+              <div className="flex min-w-[12rem] flex-1 flex-col gap-1">
+                <Label>{t('identity.settings.theme_label')}</Label>
+                <Select value={theme} onValueChange={onThemeChange}>
+                  <SelectTrigger aria-label={t('identity.settings.theme_label')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {themeOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </FormSection>
+          </Card>
+
+          <Card title={t('identity.settings.security')}>
+            <p className="info">{t('identity.settings.security_body')}</p>
+            <dl className="settings-grid compact">
+              <div>
+                <dt>{t('identity.settings.admin_email')}</dt>
+                <dd>
+                  <code>KaizenGo_ADMIN_EMAIL</code>
+                </dd>
+              </div>
+              <div>
+                <dt>{t('identity.settings.admin_password')}</dt>
+                <dd>
+                  <code>KaizenGo_ADMIN_PASSWORD</code>
+                </dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
+      )}
 
       <KAppStatus />
 
@@ -155,6 +169,6 @@ export default function Settings() {
         .mono { background: none; padding: 0; word-break: break-all; }
         .info { font-size: 0.875rem; color: var(--kg-text-secondary); line-height: 1.6; }
       `}</style>
-    </Show>
+    </>
   )
 }

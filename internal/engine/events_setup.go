@@ -51,6 +51,34 @@ func (r *ModelRegistry) List(ctx context.Context, orgID, model string) ([]Record
 	return svc.List(ctx, orgID)
 }
 
+func (r *ModelRegistry) ListPage(ctx context.Context, orgID, model string, opts ListPageOpts) (ListPageResult, error) {
+	svc, err := r.require(model)
+	if err != nil {
+		return ListPageResult{}, err
+	}
+	return svc.ListPage(ctx, orgID, opts)
+}
+
+func (r *ModelRegistry) Count(ctx context.Context, orgID, model string) (int, error) {
+	return r.CountOpts(ctx, orgID, model, ListPageOpts{})
+}
+
+func (r *ModelRegistry) CountOpts(ctx context.Context, orgID, model string, opts ListPageOpts) (int, error) {
+	svc, err := r.require(model)
+	if err != nil {
+		return 0, err
+	}
+	return svc.CountOpts(ctx, orgID, opts)
+}
+
+func (r *ModelRegistry) Groups(ctx context.Context, orgID, model string, opts ListPageOpts) ([]GroupBucket, error) {
+	svc, err := r.require(model)
+	if err != nil {
+		return nil, err
+	}
+	return svc.Groups(ctx, orgID, opts)
+}
+
 func (r *ModelRegistry) Get(ctx context.Context, orgID, model, id string) (Record, error) {
 	svc, err := r.require(model)
 	if err != nil {
@@ -143,6 +171,9 @@ func SetupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks 
 
 	reg := &ModelRegistry{byName: map[string]*modelService{}}
 	for _, model := range spec.Models {
+		if model.Virtual {
+			continue
+		}
 		svc := newModelService(db.Pool(), spec, model, hooks)
 		svc.registry = reg
 		svc.host = host

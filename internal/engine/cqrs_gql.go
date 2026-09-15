@@ -16,6 +16,14 @@ import (
 func registerCQRS(host *module.Host, spec appspec.AppSpec, models *ModelRegistry, handlers *handlerRegistry) error {
 	objs := map[string]*graphql.Object{}
 	for _, m := range spec.Models {
+		if m.Virtual {
+			obj, err := virtualModelObject(spec, m)
+			if err != nil {
+				return err
+			}
+			objs[m.Name] = obj
+			continue
+		}
 		svc, err := findModelService(models, m.Name)
 		if err != nil {
 			return err
@@ -38,6 +46,55 @@ func registerCQRS(host *module.Host, spec appspec.AppSpec, models *ModelRegistry
 		})
 		host.GQL.RegisterQuery(fieldName, field)
 		acl.RegisterOperation(resource, acl.ActRead, "graphql", fieldName)
+
+		if model := strings.TrimSpace(q.List); model != "" {
+			modelName := model // capture for closures
+			countName := fieldName + "Count"
+			countResource := acl.QueryResource(spec.Name, countName)
+			host.GQL.RegisterQuery(countName, &graphql.Field{
+				Type: graphql.NewNonNull(graphql.Int),
+				Args: listFilterArgs(),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead)
+					if err != nil {
+						return nil, err
+					}
+					rc := RequestContext{Context: p.Context, OrgID: pr.OrgID, UserID: pr.UserID}
+					page, err := listCQRSPage(spec.Name, models, modelName, rc, parseListPageOpts(p.Args))
+					if err != nil {
+						return nil, err
+					}
+					return page.Total, nil
+				},
+			})
+			acl.Register(acl.ResourceDescriptor{
+				App: spec.Name, Kind: acl.KindQuery, Name: countName,
+				Resource: countResource, Label: q.Name + " count", Actions: acl.CallActions(),
+				Surface: "graphql",
+			})
+			acl.RegisterOperation(countResource, acl.ActRead, "graphql", countName)
+
+			groupsName := fieldName + "Groups"
+			groupsResource := acl.QueryResource(spec.Name, groupsName)
+			host.GQL.RegisterQuery(groupsName, &graphql.Field{
+				Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(groupBucketType(spec.Name)))),
+				Args: listPageArgs(),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead)
+					if err != nil {
+						return nil, err
+					}
+					rc := RequestContext{Context: p.Context, OrgID: pr.OrgID, UserID: pr.UserID}
+					return groupsCQRS(spec.Name, models, modelName, rc, parseListPageOpts(p.Args))
+				},
+			})
+			acl.Register(acl.ResourceDescriptor{
+				App: spec.Name, Kind: acl.KindQuery, Name: groupsName,
+				Resource: groupsResource, Label: q.Name + " groups", Actions: acl.CallActions(),
+				Surface: "graphql",
+			})
+			acl.RegisterOperation(groupsResource, acl.ActRead, "graphql", groupsName)
+		}
 	}
 
 	for _, c := range spec.Commands {
@@ -115,19 +172,21 @@ func buildQueryField(
 		}
 		return &graphql.Field{
 			Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(obj))),
+			Args: listPageArgs(),
 			Resolve: func(p graphql.ResolveParams) (any, error) {
 				pr, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead)
 				if err != nil {
 					return nil, err
 				}
-				list, err := models.List(p.Context, pr.OrgID, model)
+				rc := RequestContext{Context: p.Context, OrgID: pr.OrgID, UserID: pr.UserID}
+				page, err := listCQRSPage(spec.Name, models, model, rc, parseListPageOpts(p.Args))
 				if err != nil {
 					return nil, err
 				}
-				if list == nil {
-					list = []Record{}
+				if page.Items == nil {
+					page.Items = []Record{}
 				}
-				return list, nil
+				return page.Items, nil
 			},
 		}, nil
 	}
@@ -346,4 +405,110 @@ func cqrsBindingsForModel(spec appspec.AppSpec, model string) (list, get, create
 		}
 	}
 	return
+}
+
+// virtualModelObject builds a GraphQL type for virtual (non-Postgres) models.
+// Prefer RegisterModel.ObjectType when present.
+func virtualModelObject(spec appspec.AppSpec, m appspec.ModelSpec) (*graphql.Object, error) {
+	if rm, ok := registeredModelByName(spec.Name, m.Name); ok && rm.ObjectType != nil {
+		return rm.ObjectType, nil
+	}
+	fields := graphql.Fields{
+		"id": &graphql.Field{Type: graphql.NewNonNull(graphql.ID), Resolve: mapField("id")},
+	}
+	for _, f := range m.Fields {
+		gqlType := gqlInputType(f)
+		if f.Required {
+			gqlType = graphql.NewNonNull(gqlType)
+		}
+		fields[f.Name] = &graphql.Field{Type: gqlType, Resolve: mapField(f.Name)}
+	}
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name:   typeName(spec, m),
+		Fields: fields,
+	}), nil
+}
+
+// listCQRSPage prefers a RegisteredModel List (virtual / code-backed), else ModelRegistry.
+func listCQRSPage(app string, models *ModelRegistry, model string, rc RequestContext, opts ListPageOpts) (ListPageResult, error) {
+	opts = opts.Normalize()
+	if rm, ok := registeredModelByName(app, model); ok && rm.List != nil {
+		list, err := rm.List(rc)
+		if err != nil {
+			return ListPageResult{}, err
+		}
+		if list == nil {
+			list = []any{}
+		}
+		list = filterAnyRecords(list, opts)
+		items, total := sliceAnyPage(list, opts)
+		out := make([]Record, 0, len(items))
+		for _, item := range items {
+			if rec := anyToRecord(item); rec != nil {
+				out = append(out, rec)
+			}
+		}
+		page := opts.Page
+		pageSize := opts.PageSize
+		if pageSize <= 0 {
+			page, pageSize = 1, total
+		}
+		return ListPageResult{Items: out, Total: total, Page: page, PageSize: pageSize}, nil
+	}
+	if models == nil {
+		return ListPageResult{}, fmt.Errorf("model %q: not registered (virtual models require RegisterModel)", model)
+	}
+	return models.ListPage(rc.Context, rc.OrgID, model, opts)
+}
+
+func groupsCQRS(app string, models *ModelRegistry, model string, rc RequestContext, opts ListPageOpts) ([]GroupBucket, error) {
+	opts = opts.Normalize()
+	if len(opts.GroupBy) == 0 {
+		return nil, nil
+	}
+	if rm, ok := registeredModelByName(app, model); ok && rm.List != nil {
+		list, err := rm.List(rc)
+		if err != nil {
+			return nil, err
+		}
+		list = filterAnyRecords(list, ListPageOpts{
+			Domain: opts.Domain, Q: opts.Q, SearchIn: opts.SearchIn,
+		})
+		return groupAnyRecords(list, opts.GroupBy), nil
+	}
+	if models == nil {
+		return nil, fmt.Errorf("model %q: not registered", model)
+	}
+	return models.Groups(rc.Context, rc.OrgID, model, opts)
+}
+
+func groupAnyRecords(list []any, groupBy []string) []GroupBucket {
+	counts := map[string]*GroupBucket{}
+	order := []string{}
+	for _, item := range list {
+		rec := anyToRecord(item)
+		if rec == nil {
+			continue
+		}
+		vals := make([]string, len(groupBy))
+		for i, f := range groupBy {
+			vals[i] = fmt.Sprint(rec[f])
+			if vals[i] == "<nil>" {
+				vals[i] = ""
+			}
+		}
+		key := strings.Join(vals, "\x1f")
+		if b, ok := counts[key]; ok {
+			b.Count++
+		} else {
+			b := &GroupBucket{Values: vals, Count: 1}
+			counts[key] = b
+			order = append(order, key)
+		}
+	}
+	out := make([]GroupBucket, 0, len(order))
+	for _, k := range order {
+		out = append(out, *counts[k])
+	}
+	return out
 }

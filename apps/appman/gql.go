@@ -1,19 +1,20 @@
 package appman
 
 import (
+	"fmt"
+	"strings"
+
+	"kaizengo/internal/engine"
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
-	"kaizengo/internal/engine"
-	sdkgql "kaizengo/internal/gql"
+	"kaizengo/packages/sdk-go/appspec"
 
 	"github.com/graphql-go/graphql"
 )
 
 const resource = "appman"
 
-func registerGQL(host *module.Host, mgr *engine.Manager) {
-	appType := newAppType()
-
+func registerAppModel(host *module.Host, spec appspec.AppSpec, mgr *engine.Manager) error {
 	acl.Register(acl.ResourceDescriptor{
 		App:         "appman",
 		Kind:        acl.KindApp,
@@ -24,114 +25,176 @@ func registerGQL(host *module.Host, mgr *engine.Manager) {
 		Actions:     acl.AppActions(),
 		Surface:     "graphql",
 	})
-	acl.RegisterOperation(resource, acl.ActRead, "graphql", "apps")
-	acl.RegisterOperation(resource, acl.ActCreate, "graphql", "installApp")
-	acl.RegisterOperation(resource, acl.ActExecute, "graphql", "installApp")
-	acl.RegisterOperation(resource, acl.ActUpdate, "graphql", "upgradeApp")
-	acl.RegisterOperation(resource, acl.ActExecute, "graphql", "upgradeApp")
+	acl.RegisterOperation(resource, acl.ActRead, "graphql", "appmanApps")
+	acl.RegisterOperation(resource, acl.ActCreate, "graphql", "appmanInstallApp")
+	acl.RegisterOperation(resource, acl.ActExecute, "graphql", "appmanInstallApp")
+	acl.RegisterOperation(resource, acl.ActUpdate, "graphql", "appmanUpgradeApp")
+	acl.RegisterOperation(resource, acl.ActExecute, "graphql", "appmanUpgradeApp")
 
-	host.GQL.RegisterQuery("apps", &graphql.Field{
-		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(appType))),
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			if _, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead); err != nil {
+	return engine.RegisterModel(host, spec, engine.RegisteredModel{
+		Name:       "app",
+		Resource:   resource,
+		ObjectType: appRecordType(),
+		List: func(ctx engine.RequestContext) ([]any, error) {
+			apps, err := mgr.Apps(ctx.Context)
+			if err != nil {
 				return nil, err
 			}
-			return mgr.Apps(p.Context)
-		},
-	})
-	host.GQL.RegisterMutation("installApp", &graphql.Field{
-		Type: graphql.NewNonNull(appType),
-		Args: graphql.FieldConfigArgument{
-			"name": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-		},
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			if _, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActCreate); err != nil {
-				return nil, err
+			out := make([]any, 0, len(apps))
+			for _, a := range apps {
+				out = append(out, appToRecord(a))
 			}
-			name, _ := p.Args["name"].(string)
-			return mgr.Install(p.Context, name)
-		},
-	})
-	host.GQL.RegisterMutation("upgradeApp", &graphql.Field{
-		Type: graphql.NewNonNull(appType),
-		Args: graphql.FieldConfigArgument{
-			"name": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-		},
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			if _, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActUpdate); err != nil {
-				return nil, err
-			}
-			name, _ := p.Args["name"].(string)
-			return mgr.Upgrade(p.Context, name)
+			return out, nil
 		},
 	})
 }
 
-func newAppType() *graphql.Object {
-	return graphql.NewObject(graphql.ObjectConfig{
-		Name: "App",
-		Fields: graphql.Fields{
-			"name":             nonNullString(func(a engine.AppInfo) string { return a.Name }),
-			"title":            nonNullString(func(a engine.AppInfo) string { return a.Title }),
-			"summary":          nonNullString(func(a engine.AppInfo) string { return a.Summary }),
-			"version":          nonNullString(func(a engine.AppInfo) string { return a.Version }),
-			"installedVersion": stringField(func(a engine.AppInfo) string { return a.InstalledVersion }),
-			"installed":        nonNullBool(func(a engine.AppInfo) bool { return a.Installed }),
-			"loaded":           nonNullBool(func(a engine.AppInfo) bool { return a.Loaded }),
-			"autoInstall":      nonNullBool(func(a engine.AppInfo) bool { return a.AutoInstall }),
-			"upgrade":          nonNullBool(func(a engine.AppInfo) bool { return a.Upgrade }),
-			"depends": &graphql.Field{
-				Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(graphql.String))),
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					deps := sourceApp(p).Depends
-					if deps == nil {
-						deps = []string{}
-					}
-					return deps, nil
-				},
-			},
-		},
+func registerCommands(app *engine.App) {
+	app.Command("installApp", func(c engine.HandlerCtx, args map[string]any) (any, error) {
+		mgr, err := engine.ManagerFromHost(c.Host)
+		if err != nil {
+			return nil, err
+		}
+		name, _ := args["name"].(string)
+		if strings.TrimSpace(name) == "" {
+			return nil, fmt.Errorf("name is required")
+		}
+		info, err := mgr.Install(c.Context, name)
+		if err != nil {
+			return nil, err
+		}
+		if info == nil {
+			return nil, fmt.Errorf("install returned no app")
+		}
+		return appToRecord(*info), nil
+	})
+	app.Command("upgradeApp", func(c engine.HandlerCtx, args map[string]any) (any, error) {
+		mgr, err := engine.ManagerFromHost(c.Host)
+		if err != nil {
+			return nil, err
+		}
+		name, _ := args["name"].(string)
+		if strings.TrimSpace(name) == "" {
+			return nil, fmt.Errorf("name is required")
+		}
+		info, err := mgr.Upgrade(c.Context, name)
+		if err != nil {
+			return nil, err
+		}
+		if info == nil {
+			return nil, fmt.Errorf("upgrade returned no app")
+		}
+		return appToRecord(*info), nil
 	})
 }
 
-func sourceApp(p graphql.ResolveParams) engine.AppInfo {
-	switch v := p.Source.(type) {
-	case engine.AppInfo:
-		return v
-	case *engine.AppInfo:
-		return *v
-	default:
-		return engine.AppInfo{}
+func appLane(a engine.AppInfo) string {
+	if a.AutoInstall {
+		return "system"
+	}
+	if a.Upgrade {
+		return "upgrade"
+	}
+	if a.Installed {
+		return "installed"
+	}
+	return "available"
+}
+
+func appToRecord(a engine.AppInfo) engine.Record {
+	deps := a.Depends
+	if deps == nil {
+		deps = []string{}
+	}
+	return engine.Record{
+		"id":               a.Name,
+		"name":             a.Name,
+		"title":            a.Title,
+		"summary":          a.Summary,
+		"version":          a.Version,
+		"installedVersion": a.InstalledVersion,
+		"installed":        a.Installed,
+		"loaded":           a.Loaded,
+		"autoInstall":      a.AutoInstall,
+		"upgrade":          a.Upgrade,
+		"status":           appLane(a),
+		"depends":          strings.Join(deps, ", "),
 	}
 }
 
-func nonNullString(fn func(engine.AppInfo) string) *graphql.Field {
+func appRecordType() *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: "AppmanAppRecord",
+		Fields: graphql.Fields{
+			"id":               mapStringID("id"),
+			"name":             mapNonNullString("name"),
+			"title":            mapNonNullString("title"),
+			"summary":          mapNonNullString("summary"),
+			"version":          mapNonNullString("version"),
+			"installedVersion": mapString("installedVersion"),
+			"installed":        mapNonNullBool("installed"),
+			"loaded":           mapNonNullBool("loaded"),
+			"autoInstall":      mapNonNullBool("autoInstall"),
+			"upgrade":          mapNonNullBool("upgrade"),
+			"status":           mapNonNullString("status"),
+			"depends":          mapNonNullString("depends"),
+		},
+	})
+}
+
+func sourceRecord(p graphql.ResolveParams) engine.Record {
+	switch v := p.Source.(type) {
+	case engine.Record:
+		return v
+	case map[string]any:
+		return engine.Record(v)
+	default:
+		return engine.Record{}
+	}
+}
+
+func mapStringID(key string) *graphql.Field {
+	return &graphql.Field{
+		Type: graphql.NewNonNull(graphql.ID),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return fmt.Sprint(sourceRecord(p)[key]), nil
+		},
+	}
+}
+
+func mapNonNullString(key string) *graphql.Field {
 	return &graphql.Field{
 		Type: graphql.NewNonNull(graphql.String),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return fn(sourceApp(p)), nil
+			return fmt.Sprint(sourceRecord(p)[key]), nil
 		},
 	}
 }
 
-func stringField(fn func(engine.AppInfo) string) *graphql.Field {
+func mapString(key string) *graphql.Field {
 	return &graphql.Field{
 		Type: graphql.String,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			v := fn(sourceApp(p))
-			if v == "" {
+			v := sourceRecord(p)[key]
+			if v == nil || fmt.Sprint(v) == "" {
 				return nil, nil
 			}
-			return v, nil
+			return fmt.Sprint(v), nil
 		},
 	}
 }
 
-func nonNullBool(fn func(engine.AppInfo) bool) *graphql.Field {
+func mapNonNullBool(key string) *graphql.Field {
 	return &graphql.Field{
 		Type: graphql.NewNonNull(graphql.Boolean),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return fn(sourceApp(p)), nil
+			v := sourceRecord(p)[key]
+			switch t := v.(type) {
+			case bool:
+				return t, nil
+			default:
+				return false, nil
+			}
 		},
 	}
 }

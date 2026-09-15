@@ -23,6 +23,7 @@ type Field struct {
 	Required bool
 	Relation string
 	Inverse  string
+	Values   []string
 }
 
 type View struct {

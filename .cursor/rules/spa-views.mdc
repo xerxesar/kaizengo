@@ -1,0 +1,41 @@
+---
+description: React SPA app views — imports, pages, styling conventions
+globs: apps/*/views/**/*.{tsx,ts},apps/core/spa/src/**/*.{tsx,ts}
+alwaysApply: false
+---
+
+# SPA views
+
+## Page files
+
+- App screens: `apps/<app>/views/*.page.tsx` — default-export a React function component.
+- Import platform from `@/lib` and `@/k`; UI from `@/components/ui/...`.
+- Copy via `t('app.key')` — do not hardcode user-facing English when a key exists or belongs in locale.
+
+## Patterns
+
+```tsx
+import { t } from '@/lib'
+import { KAppStatus, KTable } from '@/k'
+
+export default function GreetingList() {
+  return (
+    <>
+      <KTable query="hellospec.greetings" paginated searchable emptyMessage={t('hellospec.empty')} />
+      <KAppStatus />
+    </>
+  )
+}
+```
+
+- Prefer `<KTable|KKanban|KCollection query="…" paginated searchable />` over bespoke list chrome.
+- End list/form pages with `<KAppStatus />` when sibling apps do.
+- Styling: CSS variables (`--kg-*`), `cn()` from `@/lib`. Prefer existing tokens over one-off colors.
+- Shell layout is platform-owned — do not wrap every page in custom app chrome.
+
+## Do not
+
+- Import from deleted `packages/sdk-solid` or Solid JSX.
+- Duplicate shadcn primitives under an app — use `@/components/ui`.
+- Bypass Vite aliases (`@/`) with deep relative paths into `apps/core/spa`.
+- Add page-local keyboard shortcuts for search/pagination/save — use keymap + `data-keymap-id` (see `keymap.mdc`).

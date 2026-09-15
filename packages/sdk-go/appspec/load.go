@@ -43,6 +43,7 @@ type fileSpec struct {
 type fileModel struct {
 	Name     string      `yaml:"name"`
 	Internal bool        `yaml:"internal"`
+	Virtual  bool        `yaml:"virtual"`
 	Fields   []FieldSpec `yaml:"fields"`
 	Search   *SearchSpec `yaml:"search"`
 }
@@ -143,7 +144,8 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 	if raw.SPA != nil {
 		spec.EnableSPA = *raw.SPA
 	}
-	spec.EnableI18n = true
+	// i18n only when the app declares locales (or sets i18n: explicitly).
+	spec.EnableI18n = len(raw.Locales) > 0
 	if raw.I18n != nil {
 		spec.EnableI18n = *raw.I18n
 	}
@@ -163,6 +165,7 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 		spec.Models = append(spec.Models, ModelSpec{
 			Name:     m.Name,
 			Internal: m.Internal,
+			Virtual:  m.Virtual,
 			Fields:   m.Fields,
 			Search:   m.Search,
 		})

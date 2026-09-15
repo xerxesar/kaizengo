@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"kaizengo/internal/module"
-	tsbackend "kaizengo/internal/platform/search/typesense"
 	"kaizengo/internal/app"
 	"kaizengo/internal/engine"
 	"kaizengo/internal/extension"
+	"kaizengo/internal/module"
+	tsbackend "kaizengo/internal/platform/search/typesense"
 )
 
 const appName = "typesense"
@@ -20,34 +20,19 @@ func init() {
 	extension.RegisterNamed("indexDocument", indexDocument)
 	extension.RegisterNamed("deleteDocument", deleteDocument)
 	extension.RegisterNamed("queryDocuments", queryDocuments)
-	module.Register(&App{})
-}
-
-type App struct{}
-
-func (a *App) Manifest() module.Manifest {
-	return app.ManifestFromSpec(app.MustAppSpec(appName), appVersion)
-}
-
-func (a *App) Setup(host *module.Host) error {
-	tsbackend.RegisterFromEnv()
-	spec := app.MustAppSpec(appName)
-	if spec.EnableI18n {
-		app.MustLoadLocales(appName)
-	}
-	if _, err := engine.SetupEvents(host, appName, spec, nil); err != nil {
-		return err
-	}
-	if err := extension.SetupAddon(spec); err != nil {
-		return err
-	}
-	engine.RegisterPing(host, spec)
-	RegisterGQL(host)
-	return nil
-}
-
-func (a *App) Mount(host *module.Host) error {
-	return nil
+	module.Register(engine.New(engine.Options{
+		AppName: appName,
+		Version: appVersion,
+		Setup: func(host *module.Host, _ *engine.EventsSetup) error {
+			tsbackend.RegisterFromEnv()
+			spec := app.MustAppSpec(appName)
+			if err := extension.SetupAddon(spec); err != nil {
+				return err
+			}
+			RegisterGQL(host)
+			return nil
+		},
+	}))
 }
 
 func typesenseConnected() bool {

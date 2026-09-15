@@ -32,7 +32,7 @@ Compare with `apps/hellospec/` — same shape, different names.
 |------|---------|
 | `models` | Persistence + `{app}Views` list/form metadata (`internal: true` keeps writes in-process) |
 | `queries` / `commands` | Named GraphQL public API (CQRS). When present, generic model CRUD is **not** registered |
-| pages (`views/*.page.tsx`) | Solid screens menus mount |
+| pages (`views/*.page.tsx`) | React screens menus mount |
 | `nav` | Entry in the shell Apps menu |
 | `menus` | In-app menu tree (`todoMenus`) |
 | `locales` | Loaded `.po` catalogs |
@@ -49,7 +49,7 @@ Without `queries`/`commands`, GraphQL still exposes generic model CRUD. For app 
 | Update | `updateTodoTask` |
 | Delete | `deleteTodoTask` |
 
-With CQRS (see `apps/hellospec`), declare intents instead — e.g. `hellospecGreetings`, `hellospecPostGreeting`. `KTable` / `KForm` pick those up from view metadata.
+With CQRS (see `apps/hellospec`), declare intents instead — e.g. `hellospecGreetings`, `hellospecPostGreeting`. Pages pass those as `query="hellospec.greetings"` / `command="hellospec.postGreeting"`; `KTable` / `KForm` resolve the GraphQL fields from view metadata.
 
 ## Registration
 

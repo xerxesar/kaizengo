@@ -1,0 +1,46 @@
+---
+description: Keyboard shortcuts — data-keymap-id, keymap.yaml, locale labels
+globs: apps/**/keymap.yaml,apps/core/spa/src/lib/keymap/**/*,apps/core/spa/src/components/k/**/*.{ts,tsx},apps/core/spa/src/App.tsx,apps/settings/views/Keymap.page.tsx
+alwaysApply: false
+---
+
+# Keymap
+
+Platform shortcuts are **declarative**. Do not add ad-hoc `keydown` listeners for shell/K chrome.
+
+## Wire a control
+
+1. Put `data-keymap-id="<id>"` on the focusable/clickable element (`KEYMAP_ID_ATTR` from `@/lib/keymap`).
+2. Add a binding in the app’s `keymap.yaml` (core: `apps/core/keymap.yaml`).
+3. Add `labelKey` strings to `locale/en.po` + `fa.po`; run `kaizengo gen-types <app>` for `template.pot`.
+
+```yaml
+# apps/core/keymap.yaml
+- id: search_focus
+  action: element:k-search   # clicks/focuses [data-keymap-id="k-search"]
+  keys: alt+f
+  labelKey: keymap.shell.search_focus
+  scope: global
+  hint: true
+  inForm: true               # optional — fire while focus is in inputs
+```
+
+## Action kinds
+
+| Action | Effect |
+|--------|--------|
+| `element:<id>` | Activate `[data-keymap-id="<id>"]` (click / focus+select for inputs) |
+| `custom:<name>` | Handler from `useKeymapAction(name, fn)` |
+| `shell.*` / `nav.<app>` | Built-ins in `lib/keymap/actions.ts` |
+
+## K chrome ids (core)
+
+| Id | Control |
+|----|---------|
+| `k-search` | Search input |
+| `k-search-filter` | Filter button |
+| `k-search-group` | Group button |
+| `k-page-prev` / `k-page-next` | Pagination |
+| `form-save` | KForm submit |
+
+Reuse these ids — do not invent parallel shortcut systems in views. Prefer `labelKey` with underscores (`keymap.shell.search_focus`); hyphens truncate in pot codegen.

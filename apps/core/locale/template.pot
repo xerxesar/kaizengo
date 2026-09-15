@@ -27,6 +27,26 @@ msgid "keymap.shell.go_home"
 msgstr ""
 
 #: keymap.yaml
+msgid "keymap.shell.page_next"
+msgstr ""
+
+#: keymap.yaml
+msgid "keymap.shell.page_prev"
+msgstr ""
+
+#: keymap.yaml
+msgid "keymap.shell.search_filter"
+msgstr ""
+
+#: keymap.yaml
+msgid "keymap.shell.search_focus"
+msgstr ""
+
+#: keymap.yaml
+msgid "keymap.shell.search_group"
+msgstr ""
+
+#: keymap.yaml
 msgid "keymap.shell.sign_out"
 msgstr ""
 
@@ -34,40 +54,32 @@ msgstr ""
 msgid "keymap.shell.toggle_apps"
 msgstr ""
 
-#: spa/src/views/Login.tsx
+#: spa/src/pages/Login.tsx
 msgid "login.brand"
 msgstr ""
 
-#: spa/src/views/Login.tsx
+#: spa/src/pages/Login.tsx
 msgid "login.email"
 msgstr ""
 
-#: spa/src/views/Login.tsx
-msgid "login.hint"
-msgstr ""
-
-#: spa/src/views/Login.tsx
+#: spa/src/pages/Login.tsx
 msgid "login.manage_databases"
 msgstr ""
 
-#: spa/src/views/Login.tsx
+#: spa/src/pages/Login.tsx
 msgid "login.password"
 msgstr ""
 
-#: spa/src/views/Login.tsx
+#: spa/src/pages/Login.tsx
 msgid "login.password_placeholder"
 msgstr ""
 
-#: spa/src/views/Login.tsx
+#: spa/src/pages/Login.tsx
 msgid "login.submit"
 msgstr ""
 
-#: spa/src/views/Login.tsx
+#: spa/src/pages/Login.tsx
 msgid "login.tagline"
-msgstr ""
-
-#: app.yaml
-msgid "nav.core"
 msgstr ""
 
 #: spa/src/App.tsx
@@ -75,18 +87,22 @@ msgid "shell.admin"
 msgstr ""
 
 #: spa/src/App.tsx
+msgid "shell.app_not_found"
+msgstr ""
+
+#: spa/src/App.tsx
 msgid "shell.apps"
 msgstr ""
 
-#: spa/src/App.tsx
+#: views/Home.page.tsx
 msgid "shell.get_started"
 msgstr ""
 
-#: spa/src/App.tsx
+#: views/Home.page.tsx
 msgid "shell.get_started_hint"
 msgstr ""
 
-#: spa/src/App.tsx
+#: app.yaml
 msgid "shell.home"
 msgstr ""
 
@@ -99,14 +115,18 @@ msgid "shell.no_apps"
 msgstr ""
 
 #: spa/src/App.tsx
+msgid "shell.not_found"
+msgstr ""
+
+#: spa/src/App.tsx
 msgid "shell.sign_out"
 msgstr ""
 
-#: spa/src/App.tsx
+#: views/Home.page.tsx
 msgid "shell.signed_in"
 msgstr ""
 
-#: spa/src/App.tsx
+#: views/Home.page.tsx
 msgid "shell.welcome"
 msgstr ""
 

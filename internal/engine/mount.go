@@ -51,21 +51,17 @@ func New(opts Options) *App {
 
 func (a *App) Manifest() module.Manifest {
 	a.ensureSpec()
-	depends := a.spec.Depends
-	if len(depends) == 0 {
-		depends = []string{"core", "identity", "auth", "permissions"}
+	m := app.ManifestFromSpec(a.spec, a.opts.Version)
+	if m.Name == "" {
+		m.Name = a.opts.AppName
 	}
-	summary := a.spec.Summary
-	if summary == "" {
-		summary = a.opts.AppName + " app"
+	if m.Summary == "" {
+		m.Summary = a.opts.AppName + " app"
 	}
-	return module.Manifest{
-		Name:        a.opts.AppName,
-		Version:     a.opts.Version,
-		Summary:     summary,
-		Depends:     depends,
-		Installable: true,
+	if m.Version == "" {
+		m.Version = a.opts.Version
 	}
+	return m
 }
 
 func (a *App) ensureSpec() {
@@ -84,10 +80,10 @@ func (a *App) Setup(host *module.Host) error {
 	}
 	a.spec = spec
 
-	if spec.EnableI18n {
+	if spec.EnableI18n && len(spec.Locales) > 0 {
 		app.MustLoadLocales(a.opts.AppName)
 	}
-	if spec.EnableSPA {
+	if hasNav(spec.Nav) {
 		app.RegisterNavFromSpec(host, a.opts.AppName, spec)
 	}
 	registerBasics(host, spec)
@@ -96,15 +92,6 @@ func (a *App) Setup(host *module.Host) error {
 	events, err := SetupEvents(host, a.opts.AppName, spec, a.opts.Hooks)
 	if err != nil {
 		return err
-	}
-	if spec.HasCQRS() {
-		handlers := a.opts.Handlers
-		if handlers == nil {
-			handlers = newHandlerRegistry()
-		}
-		if err := registerCQRS(host, spec, events.Models, handlers); err != nil {
-			return fmt.Errorf("%s cqrs: %w", a.opts.AppName, err)
-		}
 	}
 	host.Provide(ModelsKey(a.opts.AppName), events.Models)
 	host.Provide(a.opts.AppName, a)
@@ -120,8 +107,20 @@ func (a *App) Setup(host *module.Host) error {
 			return nil
 		})
 	}
+	// Setup may RegisterModel / handlers needed by CQRS list bindings.
 	if a.opts.Setup != nil {
-		return a.opts.Setup(host, events)
+		if err := a.opts.Setup(host, events); err != nil {
+			return err
+		}
+	}
+	if spec.HasCQRS() {
+		handlers := a.opts.Handlers
+		if handlers == nil {
+			handlers = newHandlerRegistry()
+		}
+		if err := registerCQRS(host, spec, events.Models, handlers); err != nil {
+			return fmt.Errorf("%s cqrs: %w", a.opts.AppName, err)
+		}
 	}
 	return nil
 }
@@ -148,6 +147,12 @@ func (a *App) schemaEnv() string {
 		return a.opts.SchemaEnv
 	}
 	return "KaizenGo_" + strings.ToUpper(a.opts.AppName) + "_SCHEMA"
+}
+
+func hasNav(nav appspec.NavSpec) bool {
+	return strings.TrimSpace(nav.Route) != "" ||
+		strings.TrimSpace(nav.LabelKey) != "" ||
+		strings.TrimSpace(nav.Label) != ""
 }
 
 // Mount is a one-liner helper: module.Register(engine.New(engine.Options{AppName: "hello"}))

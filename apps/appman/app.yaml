@@ -15,6 +15,56 @@ nav:
   labelKey: nav.appman
   route: appman
   order: 999999999
+
+models:
+  - name: app
+    internal: true
+    virtual: true
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: title
+        type: string
+        required: true
+      - name: summary
+        type: string
+      - name: version
+        type: string
+      - name: installedVersion
+        type: string
+      - name: installed
+        type: bool
+      - name: loaded
+        type: bool
+      - name: autoInstall
+        type: bool
+      - name: upgrade
+        type: bool
+      - name: status
+        type: enum
+        values: [available, installed, upgrade, system]
+      - name: depends
+        type: string
+
+queries:
+  - name: apps
+    list: app
+
+commands:
+  - name: installApp
+    args:
+      - name: name
+        type: string
+        required: true
+    returns: app
+  - name: upgradeApp
+    args:
+      - name: name
+        type: string
+        required: true
+    returns: app
+
 menus:
   - id: apps
     labelKey: appman.menu.apps

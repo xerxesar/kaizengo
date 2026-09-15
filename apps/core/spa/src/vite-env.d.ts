@@ -6,7 +6,7 @@ declare module 'virtual:kaizengo-i18n' {
 }
 
 declare module '*.tsx' {
-  import type { Component } from 'solid-js'
-  const component: Component
+  import type { ComponentType } from 'react'
+  const component: ComponentType
   export default component
 }

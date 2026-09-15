@@ -90,19 +90,21 @@ const vanillaSpaJSTmpl = "/**\n" +
 	"\n" +
 	"export default plugin\n"
 
-const solidViewTmpl = `import { KAppStatus, t } from '@kaizengo/sdk-solid/ui'
+const reactViewTmpl = `import { t } from '@/lib'
+import { KAppStatus } from '@/k'
 
 export default function Index() {
   return (
     <>
-      <p class="m-0 mb-[var(--kg-space-05)] text-[var(--kg-text-secondary)]">{t('{{.Name}}.subtitle')}</p>
+      <p className="m-0 mb-[var(--kg-space-05)] text-[var(--kg-text-secondary)]">{t('{{.Name}}.subtitle')}</p>
       <KAppStatus />
     </>
   )
 }
 `
 
-const solidListViewTmpl = `import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
+const reactListViewTmpl = `import { t } from '@/lib'
+import { KTable, KAppStatus } from '@/k'
 
 export default function Items() {
   return (
@@ -114,7 +116,7 @@ export default function Items() {
 }
 `
 
-const solidFormViewTmpl = `import { KForm, KAppStatus } from '@kaizengo/sdk-solid/ui'
+const reactFormViewTmpl = `import { KForm, KAppStatus } from '@/k'
 
 export default function NewItem() {
   return (
@@ -126,7 +128,7 @@ export default function NewItem() {
 }
 `
 
-const solidGraphQLTSTmpl = `async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+const reactGraphQLTSTmpl = `async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch('/graphql', {
     method: 'POST',
     credentials: 'include',

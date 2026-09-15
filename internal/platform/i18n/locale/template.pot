@@ -19,10 +19,6 @@ msgid "nav.auth"
 msgstr ""
 
 #: app.yaml
-msgid "nav.core"
-msgstr ""
-
-#: app.yaml
 msgid "nav.hellospec"
 msgstr ""
 
@@ -44,5 +40,9 @@ msgstr ""
 
 #: app.yaml
 msgid "nav.typesense"
+msgstr ""
+
+#: app.yaml
+msgid "shell.home"
 msgstr ""
 

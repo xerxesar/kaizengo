@@ -1,29 +1,30 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "preserve",
-    "jsxImportSource": "solid-js",
+    "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "strict": true,
     "skipLibCheck": true,
+    "noEmit": true,
     "types": ["vite/client"],
+    "baseUrl": ".",
     "paths": {
-      "@kaizengo/sdk-solid/*": ["../../../packages/sdk-solid/*"],
-      "solid-js": ["./node_modules/solid-js"],
-      "solid-js/*": ["./node_modules/solid-js/*"],
-      "solid-js/jsx-runtime": ["./node_modules/solid-js/jsx-runtime"]
+      "@/*": ["./src/*"],
+      "@apps/*": ["../../../*"]
     }
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.d.ts",
+    "vite/**/*.d.ts",
     "../../../apps/**/views/**/*.tsx",
-    "../../../packages/sdk-solid/**/*.ts",
-    "../../../packages/sdk-solid/**/*.tsx"
+    "../../../apps/**/lib/**/*.ts",
+    "../../../apps/**/lib/**/*.tsx"
   ]
 }

@@ -2,13 +2,16 @@
 
 How KaizenGo’s host and SDKs are structured and how data moves through the process. Trees, lifecycles, and data-flow maps for the host.
 
-SDK usage recipes: [Go SDK](go-sdk.md) · [Solid SDK](solid-sdk.md). Day-to-day workflow: [Development](../development/index.md).
+SDK usage recipes: [Go SDK](go-sdk.md) · [React SPA](solid-sdk.md). Day-to-day workflow: [Development](../development/index.md).
 
-| Guide | Contents |
-|-------|----------|
+## Guides
+
+| Doc | What it covers |
+|-----|----------------|
 | [This page](index.md) | Layer map, project tree, boot & load lifecycle, mutation & UI data flows |
 | [Go SDK](go-sdk.md) | Engine, hooks runtime, extension dispatch, package map |
-| [Solid SDK](solid-sdk.md) | View registry, Vite aliases, model-client ↔ GraphQL naming |
+| [React SPA](solid-sdk.md) | View registry, Vite aliases, `useKQuery` / K* ↔ GraphQL naming |
+| [`AGENTS.md`](../../AGENTS.md) | AI agent conventions + `.cursor/rules/` |
 
 ## Layer map
 
@@ -21,7 +24,7 @@ internal/app        → schema migrator, install store, nav helpers
 internal/platform   → i18n, time, config, postgres, search
 internal/auth       → session middleware / principal
 packages/sdk-go     → appspec, acl, i18n, views, codegen (portable contracts)
-packages/sdk-solid  → UI kit, model client, identity/search clients
+apps/core/spa       → React Vite SPA shell + shared UI (@/lib, @/k, @/components)
 apps/<name>         → app.yaml + module.go + views + migrations
 ```
 
@@ -29,7 +32,7 @@ apps/<name>         → app.yaml + module.go + views + migrations
 |-------|------|--------------|
 | `internal/` | Kernel, engine, lifecycle, middleware | Per-app business rules |
 | `packages/sdk-go` | Spec/ACL/i18n contracts for apps | Host wiring / process kernel |
-| `packages/sdk-solid` | Shared UI + GraphQL clients | Product screens |
+| `apps/core/spa` | Shared React UI + GraphQL clients | Product-only screens |
 | `apps/` | Spec, hooks, views, migrations | Platform kernel forks |
 
 → Calling these from app code: [Development](../development/index.md)
@@ -58,18 +61,14 @@ kaizengo/
       i18n/           # facade over platform catalogs
       views/          # menu/view DTOs
       codegen/        # kaizengo helpers
-    sdk-solid/
-      ui/             # KTable, KForm, t(), model-client
-      identity/       # UserPicker, fetchUsers
-      search/         # SearchBar
-      spa-config/     # shared Vite
   apps/
     apps.go           # blank-imports every bundled app
+    core/spa/         # React Vite SPA: components/, lib/, pages/
     <name>/
       app.yaml
       module.go
       models/         # optional spec.yaml + hooks.go
-      views/          # *.page.tsx
+      views/          # *.page.tsx (React)
       migrations/
       locale/
 ```
@@ -194,7 +193,7 @@ flowchart LR
 
 There is **one** shell SPA (`apps/core/spa`). Pages under `apps/<name>/views/*.page.tsx` are discovered at build time and keyed as `{app}.{ViewName}`.
 
-→ Writing pages: [Development → Solid](solid-sdk.md) · registry details: [Solid shell](solid-sdk.md)
+→ Writing pages: [React SPA](solid-sdk.md) · registry details: [React SPA](solid-sdk.md)
 
 ## Worked map: hellospec
 

@@ -114,17 +114,18 @@ System columns (`id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_a
 
 ## 4. Views
 
-Views are Solid files compiled into the **core** SPA. Pages are `views/<Name>.page.tsx`.
+Views are React files compiled into the **core** SPA. Pages are `views/<Name>.page.tsx`.
 
 `apps/todo/views/TaskList.page.tsx`:
 
 ```tsx
-import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
+import { t } from '@/lib'
+import { KTable, KAppStatus } from '@/k'
 
 export default function TaskList() {
   return (
     <>
-      <KTable model="todo.task" emptyMessage={t('todo.empty')} />
+      <KTable query="todo.tasks" emptyMessage={t('todo.empty')} />
       <KAppStatus />
     </>
   )
@@ -134,23 +135,24 @@ export default function TaskList() {
 `apps/todo/views/TaskForm.page.tsx`:
 
 ```tsx
-import { createSignal } from 'solid-js'
-import { KForm, KFormField, KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
+import { useState } from 'react'
+import { t } from '@/lib'
+import { KForm, KFormField, KTable, KAppStatus } from '@/k'
 
 export default function TaskForm() {
-  const [refreshToken, setRefreshToken] = createSignal(0)
+  const [refreshToken, setRefreshToken] = useState(0)
 
   return (
     <>
-      <KForm model="todo.task" onsuccess={() => setRefreshToken((n) => n + 1)}>
+      <KForm command="todo.postTask" onsuccess={() => setRefreshToken((n) => n + 1)}>
         <KFormField field="title" label={t('todo.create')} placeholder={t('todo.new_placeholder')} />
       </KForm>
 
       <KTable
-        model="todo.task"
+        query="todo.tasks"
         emptyMessage={t('todo.empty')}
-        class="mt-4"
-        refreshToken={refreshToken()}
+        className="mt-4"
+        refreshToken={refreshToken}
       />
 
       <KAppStatus />
@@ -159,7 +161,7 @@ export default function TaskForm() {
 }
 ```
 
-`model="todo.task"` is `{app}.{model}`. The SDK maps that to `todoTasks` / `createTodoTask` and sends the session cookie.
+`query="todo.tasks"` / `command="todo.postTask"` are `{app}.{cqrsName}` — the SDK maps them to GraphQL `todoTasks` / `todoPostTask` via `{app}Views`.
 
 ## 5. Locale
 

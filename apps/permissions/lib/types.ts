@@ -1,4 +1,4 @@
-import type { ModelRecord } from '@kaizengo/sdk-solid/ui'
+import type { ModelRecord } from '@/lib'
 
 export type Role = ModelRecord & { name?: string; label?: string; active?: boolean; description?: string }
 export type UserRole = ModelRecord & { userId?: string; roleId?: string }

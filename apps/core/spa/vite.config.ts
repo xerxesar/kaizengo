@@ -1,21 +1,21 @@
 import { defineConfig } from 'vite'
-import solid from 'vite-plugin-solid'
+import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { poCatalogPlugin } from '../../../packages/sdk-solid/spa-config/app-vite.ts'
+import { poCatalogPlugin } from './vite/po-plugin.ts'
 
 const spaRoot = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(spaRoot, '../../..')
 
 export default defineConfig({
   base: '/app/',
-  plugins: [solid(), tailwindcss(), poCatalogPlugin(repoRoot)],
+  plugins: [react(), tailwindcss(), poCatalogPlugin(repoRoot)],
   resolve: {
-    dedupe: ['solid-js'],
+    dedupe: ['react', 'react-dom'],
     alias: {
+      '@': resolve(spaRoot, 'src'),
       '@apps': resolve(repoRoot, 'apps'),
-      '@kaizengo/sdk-solid': resolve(repoRoot, 'packages/sdk-solid'),
     },
   },
   server: {

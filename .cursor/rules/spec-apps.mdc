@@ -1,0 +1,48 @@
+---
+description: Spec-driven Kaizen apps — app.yaml, CQRS, Go modules, keymap
+globs: apps/**/app.yaml,apps/**/keymap.yaml,apps/**/module.go,apps/**/models/**/*,apps/**/security.yaml,packages/sdk-go/**/*
+alwaysApply: false
+---
+
+# Spec apps
+
+## Layout
+
+```text
+apps/<name>/
+  app.yaml | security.yaml | module.go
+  keymap.yaml         # optional — listed under app.yaml keymap:
+  views/*.page.tsx
+  locale/*.po
+  __types__/          # generated — do not edit
+  models/…            # optional split specs + hooks
+```
+
+Mirror `apps/hellospec` for CQRS (`queries` / `commands`) and `docs/tutorial/app-anatomy.md`.
+
+## Contract
+
+- `app.yaml` is source of truth for models, menus, locales, security, keymap includes.
+- With `queries`/`commands`, pages bind via dotted refs: `query="app.field"`, `command="app.field"`.
+- Without CQRS, generic GraphQL CRUD still exists; prefer named CQRS for public APIs.
+- Register with `engine.New(...)` in `module.go` + `module.Register`.
+- **Virtual models** (`virtual: true`): no Postgres table; declare fields for `{app}Views`, implement `engine.RegisterModel` List in Setup (before CQRS mounts). Example: appman.
+
+## UI binding
+
+List/form metadata from `{app}Views` drives `KTable` / `KForm`. After schema or view changes, ensure list views expose `columns` / `fields` and `listQuery` for search/pagination.
+
+## Keymap
+
+```yaml
+# app.yaml
+keymap:
+  - keymap.yaml
+```
+
+Bindings merge into `GET /api/keymap`. Shell/K chrome belongs in **core**; app-specific shortcuts use `scope: app` and `nav.<app>` / `custom:` / `element:` as needed. See `.cursor/rules/keymap.mdc`.
+
+## Go
+
+- Follow `packages/sdk-go` and `docs/internals/go-sdk.md`.
+- Keep hooks next to models; list page args (`page`, `pageSize`, `domain`, `q`, `searchIn`, `groupBy`) already exist — do not reinvent.
