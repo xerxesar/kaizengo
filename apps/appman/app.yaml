@@ -46,6 +46,42 @@ models:
         values: [available, installed, upgrade, system]
       - name: depends
         type: string
+    filters:
+      - id: installed
+        labelKey: appman.filter.installed
+        domain:
+          - - status
+            - "="
+            - installed
+      - id: available
+        labelKey: appman.filter.available
+        domain:
+          - - status
+            - "="
+            - available
+      - id: installed_or_available
+        labelKey: appman.filter.installed_or_available
+        domain:
+          - "|"
+          - - status
+            - "="
+            - installed
+          - - status
+            - "="
+            - available
+    charts:
+      - id: by_status
+        labelKey: appman.chart.by_status
+        type: bar
+        types: [bar, line, area, pie, doughnut]
+        xField: status
+        measure: count
+      - id: by_status_radar
+        labelKey: appman.chart.by_status_radar
+        type: radar
+        types: [radar, bar, pie]
+        xField: status
+        measure: count
 
 queries:
   - name: apps

@@ -7,6 +7,41 @@ import (
 	"kaizengo/packages/sdk-go/views"
 )
 
+func TestViewCatalogIncludesFilterPresets(t *testing.T) {
+	spec := appspec.AppSpec{
+		Name: "appman",
+		Models: []appspec.ModelSpec{{
+			Name: "app",
+			Fields: []appspec.FieldSpec{
+				{Name: "status", Type: "enum", Values: []string{"installed", "available"}},
+			},
+			Filters: []appspec.FilterPresetSpec{{
+				ID:       "installed",
+				LabelKey: "appman.filter.installed",
+				Domain:   [][]any{{"status", "=", "installed"}},
+			}},
+			Charts: []appspec.ChartPresetSpec{{
+				ID:       "by_status",
+				LabelKey: "appman.chart.by_status",
+				Type:     "bar",
+				Types:    []string{"bar", "pie"},
+				XField:   "status",
+				Measure:  "count",
+			}},
+		}},
+	}
+	list := buildListView(spec, spec.Models[0])
+	if len(list.FilterPresets) != 1 || list.FilterPresets[0].ID != "installed" {
+		t.Fatalf("unexpected filter presets: %+v", list.FilterPresets)
+	}
+	if len(list.ChartPresets) != 1 || list.ChartPresets[0].ID != "by_status" {
+		t.Fatalf("unexpected chart presets: %+v", list.ChartPresets)
+	}
+	if list.ChartPresets[0].Type != "bar" || len(list.ChartPresets[0].Types) != 2 {
+		t.Fatalf("unexpected chart preset fields: %+v", list.ChartPresets[0])
+	}
+}
+
 func TestViewCatalogGeneratesListAndFormFromModels(t *testing.T) {
 	spec := appspec.AppSpec{
 		Name: "hellospec",

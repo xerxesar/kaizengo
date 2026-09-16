@@ -11,13 +11,14 @@ alwaysApply: false
 ```text
 useKQuery          → resolve list view + server fetch (page, q, domain, groupBy)
 KQueryShell        → KSearch + KPagination + loading/empty
-KTableView / KKanbanBoard  → presentational only
-KTable / KKanban / KCollection  → conveniences on top
+KTableView / KKanbanBoard / KChartView / KPivotView  → presentational only
+KTable / KKanban / KChart / KPivot / KCollection  → conveniences on top
 ```
 
 - **Fetch** model/CQRS lists only via **`useKQuery`**. Do not call `listModelRecordsPage` from views unless building a custom adapter.
 - **Server-side** pagination/search when `paginated` / `searchable` are set — no client `sliceItems` in query mode.
 - Chrome flags: `paginated` / `searchable` as `true` or config (`url`, `pageSize`, field allowlists, …).
+- URL sync (default on): `KCollection` → `?view=`; `KChart` → `?chart=` / `?chartType=` / draft `chartX|Y|Series|Measure`; `KPivot` → `?pivotRows=` / `?pivotCols=` / `?pivotY=` / `?pivotMeasure=`. Pass `url={false}` to disable.
 
 ## Prefer query props
 

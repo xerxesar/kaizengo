@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"strings"
 
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
@@ -375,6 +376,66 @@ func applyCQRSBindings(v *views.View, spec appspec.AppSpec, model string) {
 	v.CreateCommand, v.UpdateCommand, v.DeleteCommand = create, update, del
 }
 
+func filterPresetsFromModel(m appspec.ModelSpec) []views.FilterPreset {
+	if len(m.Filters) == 0 {
+		return nil
+	}
+	out := make([]views.FilterPreset, 0, len(m.Filters))
+	for _, p := range m.Filters {
+		domain, err := appspec.EncodeFilterDomain(p.Domain)
+		if err != nil {
+			continue
+		}
+		out = append(out, views.FilterPreset{
+			ID:       p.ID,
+			Label:    p.Label,
+			LabelKey: p.LabelKey,
+			Domain:   domain,
+			Q:        p.Q,
+			SearchIn: append([]string{}, p.SearchIn...),
+			GroupBy:  append([]string{}, p.GroupBy...),
+		})
+	}
+	return out
+}
+
+func chartPresetsFromModel(m appspec.ModelSpec) []views.ChartPreset {
+	if len(m.Charts) == 0 {
+		return nil
+	}
+	out := make([]views.ChartPreset, 0, len(m.Charts))
+	for _, p := range m.Charts {
+		chartType := strings.TrimSpace(p.Type)
+		if chartType == "" {
+			chartType = "bar"
+		}
+		types := append([]string{}, p.Types...)
+		if len(types) == 0 {
+			types = []string{"bar", "line", "area", "pie", "doughnut"}
+		}
+		measure := strings.TrimSpace(p.Measure)
+		if measure == "" {
+			if strings.TrimSpace(p.YField) != "" {
+				measure = "sum"
+			} else {
+				measure = "count"
+			}
+		}
+		out = append(out, views.ChartPreset{
+			ID:          p.ID,
+			Label:       p.Label,
+			LabelKey:    p.LabelKey,
+			Type:        chartType,
+			Types:       types,
+			XField:      p.XField,
+			YField:      p.YField,
+			SeriesField: p.SeriesField,
+			Measure:     measure,
+		})
+	}
+	return out
+}
+
 func modelListViewName(model string) string {
 	return pascal(model) + "List"
 }
@@ -385,9 +446,11 @@ func modelFormViewName(model string) string {
 
 func buildListView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
 	item := views.View{
-		Name:  modelListViewName(m.Name),
-		Model: m.Name,
-		Kind:  views.ListView,
+		Name:          modelListViewName(m.Name),
+		Model:         m.Name,
+		Kind:          views.ListView,
+		FilterPresets: filterPresetsFromModel(m),
+		ChartPresets:  chartPresetsFromModel(m),
 	}
 	for _, f := range m.Fields {
 		if f.CanonicalType() == appspec.TypeOne2Many {
@@ -448,6 +511,32 @@ func newViewType(name string) *graphql.Object {
 			"values":   &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
 		},
 	})
+	filterPresetType := graphql.NewObject(graphql.ObjectConfig{
+		Name: name + "FilterPreset",
+		Fields: graphql.Fields{
+			"id":       &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"label":    &graphql.Field{Type: graphql.String},
+			"labelKey": &graphql.Field{Type: graphql.String},
+			"domain":   &graphql.Field{Type: graphql.String},
+			"q":        &graphql.Field{Type: graphql.String},
+			"searchIn": &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
+			"groupBy":  &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
+		},
+	})
+	chartPresetType := graphql.NewObject(graphql.ObjectConfig{
+		Name: name + "ChartPreset",
+		Fields: graphql.Fields{
+			"id":          &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"label":       &graphql.Field{Type: graphql.String},
+			"labelKey":    &graphql.Field{Type: graphql.String},
+			"type":        &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"types":       &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
+			"xField":      &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"yField":      &graphql.Field{Type: graphql.String},
+			"seriesField": &graphql.Field{Type: graphql.String},
+			"measure":     &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
 	return graphql.NewObject(graphql.ObjectConfig{
 		Name: name,
 		Fields: graphql.Fields{
@@ -479,6 +568,18 @@ func newViewType(name string) *graphql.Object {
 				Type: graphql.NewList(graphql.NewNonNull(fieldType)),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					return p.Source.(views.View).Fields, nil
+				},
+			},
+			"filterPresets": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(filterPresetType)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).FilterPresets, nil
+				},
+			},
+			"chartPresets": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(chartPresetType)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).ChartPresets, nil
 				},
 			},
 			"listQuery": &graphql.Field{

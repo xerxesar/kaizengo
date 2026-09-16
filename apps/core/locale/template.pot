@@ -82,6 +82,10 @@ msgstr ""
 msgid "login.tagline"
 msgstr ""
 
+#: spa/src/components/k/KChart.tsx
+msgid "preset.labelKey"
+msgstr ""
+
 #: spa/src/App.tsx
 msgid "shell.admin"
 msgstr ""

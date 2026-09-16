@@ -5,6 +5,34 @@ export { KForm } from './KForm'
 export { KFormField } from './KFormField'
 export { KTable, KTableView } from './KTable'
 export type { KTablePaginationConfig, KTableSearchConfig, KTableViewProps } from './KTable'
+export { KChart, KChartView } from './KChart'
+export { KChartDesigner } from './KChartDesigner'
+export type {
+  KChartConfig,
+  KChartMeasure,
+  KChartPaginationConfig,
+  KChartProps,
+  KChartSearchConfig,
+  KChartType,
+  KChartViewProps,
+} from './KChart'
+export { DEFAULT_CHART_TYPES, chartConfigFromPreset } from './KChart'
+export {
+  listChartPresets,
+  listChartPresetsSync,
+  saveChartPreset,
+  deleteChartPreset,
+  fetchDefaultChartPreset,
+} from './chart-presets'
+export { KPivot, KPivotView } from './KPivot'
+export type {
+  KPivotFieldOption,
+  KPivotMeasure,
+  KPivotPaginationConfig,
+  KPivotProps,
+  KPivotSearchConfig,
+  KPivotViewProps,
+} from './KPivot'
 export { KKanban, KKanbanBoard } from './KKanban'
 export type {
   KKanbanColumn,
@@ -15,9 +43,11 @@ export type {
 } from './KKanban'
 export { KCollection } from './KCollection'
 export type {
+  KCollectionChartConfig,
   KCollectionFilter,
   KCollectionGroupBy,
   KCollectionPaginationConfig,
+  KCollectionPivotConfig,
   KCollectionProps,
   KCollectionSearchConfig,
   KCollectionView,
@@ -47,6 +77,19 @@ export type { PaginationParamsOptions, PaginationState } from './pagination'
 export { useKSearchParams } from './search/params'
 export type { KSearchParamsOptions } from './search/params'
 export {
+  useCollectionViewParam,
+  useChartUrlState,
+  usePivotUrlState,
+  useLocationVersion,
+  getUrlParam,
+  setUrlParams,
+} from './url-state'
+export type {
+  ChartUrlState,
+  CollectionViewParamOptions,
+  PivotUrlState,
+} from './url-state'
+export {
   decodeDomain,
   encodeDomain,
   extractLeaves,
@@ -66,7 +109,6 @@ export type {
 export {
   deleteSearchTemplate,
   listSearchTemplates,
-  renameSearchTemplate,
   saveSearchTemplate,
 } from './search/templates'
 export { getKFormContext, useKForm } from './kform-context'

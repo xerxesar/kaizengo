@@ -60,6 +60,18 @@ export default function GreetingList() {
 - **Server:** list queries accept optional `page` / `pageSize`; companion `{listField}Count` returns the total
 - **Hotkeys** (core keymap): `Alt+,` previous page, `Alt+.` next page
 
+### Collection / chart / pivot URL state
+
+List presentation settings sync to the address bar (same `replaceState` + `kaizengo:location` pattern as pagination/search):
+
+| UI | Params |
+|----|--------|
+| `KCollection` view toggle | `?view=table\|kanban\|chart\|pivot` (omitted when default) |
+| `KChart` / chart view | `?chart=` preset id, `?chartType=`, draft `?chartX=` / `?chartY=` / `?chartSeries=` / `?chartMeasure=` |
+| `KPivot` / pivot view | `?pivotRows=` / `?pivotCols=` (CSV), `?pivotY=` measure field, `?pivotMeasure=` |
+
+Pass `url={false}` to keep state local. Controlled `view={…}` on `KCollection` also disables view URL sync.
+
 ### Search / filter / groupBy
 
 `KSearch` is an Odoo-inspired toolbar (multi-field search, AND/OR filters, nested groupBy, saved templates). Syncs to `?q=` / `?searchIn=` / `?domain=` / `?groupBy=`.
@@ -75,10 +87,38 @@ export default function GreetingList() {
 - **Groups:** `{listField}Groups(groupBy: …)` → `{ values, count }[]` (kanban columns)
 - **Hotkeys** (core keymap): `Alt+F` focus search, `Alt+Shift+F` filter, `Alt+G` group by
 
+### Charts (Apache ECharts)
+
+`KChart` / `KCollection` chart view render via **Apache ECharts**. Chart presets come from `app.yaml` `models[].charts` (same pattern as `filters`):
+
+```yaml
+models:
+  - name: app
+    charts:
+      - id: by_status
+        labelKey: appman.chart.by_status
+        type: bar                    # default type
+        types: [bar, line, area, pie, doughnut]  # UI switcher
+        xField: status
+        measure: count               # count | sum | avg
+        # yField: amount             # required for sum/avg
+        # seriesField: category      # optional series split
+```
+
+```tsx
+<KChart query="appman.apps" searchable />
+// or within a collection:
+<KCollection query="…" views={['table', 'kanban', 'chart']} card={…} />
+```
+
+Supported types: `bar`, `line`, `area`, `pie`, `doughnut`, `scatter`, `radar`. Spec `types` (or `DEFAULT_CHART_TYPES`) drives the in-toolbar type switcher.
+
+**Chart builder:** `KChartView` shows a **Build** button when `fields` are available. Opens `KChartDesigner` — edit type / x / y / series / measure with live preview. **Apply** uses the config immediately; **Save** stores a user preset (with optional **Share with others** and **Set as default**) via GraphQL `chartViewPresets` / `saveChartViewPreset` (falls back to `localStorage`). Defaults apply automatically when opening the chart view.
+
 ### Shared query hook
 
 ```text
-useKQuery → KQueryShell (KSearch + KPagination) → KTableView | KKanbanBoard
+useKQuery → KQueryShell (KSearch + KPagination) → KTableView | KKanbanBoard | KChartView | KPivotView
 ```
 
 - Prefer `query` / `model` props; do not hand-fetch in normal app pages.

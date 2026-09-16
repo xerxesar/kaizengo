@@ -5,9 +5,11 @@ type DialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   children?: React.ReactNode
+  /** Panel width/layout (default `max-w-lg`). */
+  className?: string
 }
 
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
+export function Dialog({ open, onOpenChange, children, className }: DialogProps) {
   if (!open) return null
   return (
     <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4">
@@ -17,7 +19,12 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         aria-label="Close"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-[9001] flex max-h-[90vh] w-full max-w-lg flex-col bg-[var(--kg-surface)] shadow-lg outline-none">
+      <div
+        className={cn(
+          'relative z-[9001] flex max-h-[90vh] w-full max-w-lg flex-col bg-[var(--kg-surface)] shadow-lg outline-none',
+          className,
+        )}
+      >
         {children}
       </div>
     </div>

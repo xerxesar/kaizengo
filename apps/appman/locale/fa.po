@@ -18,6 +18,21 @@ msgstr "نصب یا ارتقای برنامه‌های همراه. نصب مها
 msgid "appman.search"
 msgstr "جستجوی برنامه…"
 
+msgid "appman.filter.installed"
+msgstr "برنامه‌های نصب‌شده"
+
+msgid "appman.filter.available"
+msgstr "برنامه‌های موجود"
+
+msgid "appman.filter.installed_or_available"
+msgstr "نصب‌شده یا موجود"
+
+msgid "appman.chart.by_status"
+msgstr "برنامه‌ها بر اساس وضعیت"
+
+msgid "appman.chart.by_status_radar"
+msgstr "توزیع وضعیت"
+
 msgid "appman.installed"
 msgstr "نصب‌شده"
 

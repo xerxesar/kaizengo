@@ -20,10 +20,13 @@ import {
   usePaginationParams,
   type PaginationParamsOptions,
 } from './pagination'
+import { encodeDomain } from './search/types'
+import { fetchDefaultSearchTemplate, listSearchTemplates } from './search/templates'
 import { useKSearchParams } from './search/params'
-import type { SearchField } from './search/types'
+import type { SearchField, SearchTemplate } from './search/types'
 import type { KPaginationProps } from './KPagination'
 import type { KSearchProps } from './KSearch'
+import { topLevelGroupColumns } from './group-by'
 
 export type KQueryPaginationConfig = {
   pageSize?: number
@@ -82,9 +85,14 @@ export type UseKQueryResult = {
   view: ModelView | null
   deleteCommand?: string
   groups: GroupBucket[]
-  /** Kanban-ready columns derived from groups / groupByField. */
-  groupColumns: Array<{ id: string; label: string }>
+  /** Kanban-ready columns derived from groups / groupByField (level 1 only). */
+  groupColumns: Array<{ id: string; label: string; count?: number }>
+  /** All active groupBy fields in nested order. */
+  groupByFields: string[]
+  /** Primary column/swimlane field (groupBy[0] or groupByField). */
   columnField: string
+  /** Secondary nested group field (groupBy[1]) when set. */
+  nestedGroupField: string
   refresh: () => Promise<void>
   remove: (id: string) => Promise<void>
   paginated: boolean
@@ -97,6 +105,13 @@ export type UseKQueryResult = {
   pagerProps: Omit<KPaginationProps, 'className' | 'class'> | null
   /** Ready for `<KSearch {...searchProps} />` (null until model resolved / not searchable). */
   searchProps: Omit<KSearchProps, 'className'> | null
+  savedTemplates: SearchTemplate[]
+  refreshTemplates: () => Promise<void>
+}
+
+function hasListStateInUrl(): boolean {
+  const p = new URLSearchParams(window.location.search)
+  return ['q', 'searchIn', 'domain', 'groupBy', 'page', 'pageSize'].some((k) => p.has(k))
 }
 
 export function enableConfig<T extends object>(
@@ -218,11 +233,12 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
   const [view, setView] = useState<ModelView | null>(null)
   const [deleteCommand, setDeleteCommand] = useState<string | undefined>()
   const [groups, setGroups] = useState<GroupBucket[]>([])
+  const [savedTemplates, setSavedTemplates] = useState<SearchTemplate[]>([])
+  const defaultAppliedRef = useRef(false)
 
-  const columnField =
-    (searching ? search.groupBy[0]?.trim() : '') ||
-    options.groupByField?.trim() ||
-    ''
+  const groupByFields = searching ? search.groupBy.map((f) => f.trim()).filter(Boolean) : []
+  const columnField = groupByFields[0] || options.groupByField?.trim() || ''
+  const nestedGroupField = groupByFields[1] ?? ''
 
   const searchOptsKey = searching
     ? `${search.q}|${search.searchIn.join(',')}|${JSON.stringify(search.domain)}|${search.groupBy.join(',')}`
@@ -244,6 +260,12 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
     [options.onerror],
   )
 
+  const refreshTemplates = useCallback(async () => {
+    if (!modelRef) return
+    const items = await listSearchTemplates(modelRef)
+    setSavedTemplates(items)
+  }, [modelRef])
+
   const refresh = useCallback(async () => {
     if (!enabled) {
       setLoading(false)
@@ -262,11 +284,39 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
       setColumns(buildColumns(nextView.columns ?? []))
       setSearchFields(toSearchFields(nextView.fields, nextView.columns ?? []))
 
-      const fieldKeys = [
+      const modelKey = `${nextApp}.${nextView.model}`
+      if (searching && !defaultAppliedRef.current) {
+        defaultAppliedRef.current = true
+        const useUrl = searching.url !== false
+        if (!useUrl || !hasListStateInUrl()) {
+          const tpl = await fetchDefaultSearchTemplate(modelKey)
+          if (tpl) {
+            search.setState({
+              q: tpl.q,
+              searchIn: tpl.searchIn,
+              domain: tpl.domain,
+              groupBy: tpl.groupBy,
+            })
+            if (paging && tpl.pageSize) pagination.setPageSize(tpl.pageSize)
+            listFilterOptsRef.current = {
+              q: tpl.q.trim() || undefined,
+              searchIn: tpl.searchIn.length ? tpl.searchIn : undefined,
+              domain: encodeDomain(tpl.domain) || undefined,
+              groupBy: tpl.groupBy.length ? tpl.groupBy : undefined,
+            }
+            searchGroupByRef.current = tpl.groupBy
+          }
+        }
+      }
+
+      const activeGroupBy = searchGroupByRef.current
+      const fieldKeySet = new Set([
         ...(nextView.columns ?? []).map((c) => c.key),
         ...(options.fields ?? []),
-        ...(columnField ? [columnField] : []),
-      ]
+        ...activeGroupBy,
+        ...(options.groupByField ? [options.groupByField] : []),
+      ])
+      const fieldKeys = [...fieldKeySet]
       const listQuery = nextView.listQuery?.trim() || undefined
       const filters = listFilterOptsRef.current
       const listOpts =
@@ -288,7 +338,6 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
       setItems(page.items)
       setTotal(page.total)
 
-      const activeGroupBy = searchGroupByRef.current
       const groupKeys =
         activeGroupBy.length > 0 ? activeGroupBy : columnField ? [columnField] : []
       if (groupKeys.length) {
@@ -307,6 +356,7 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
       }
 
       await fetchViewSlots(nextApp, nextView.name)
+      void listSearchTemplates(modelKey).then(setSavedTemplates)
     } catch (e) {
       reportError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -352,25 +402,10 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.refreshToken])
 
-  const groupColumns = useMemo(() => {
-    if (!columnField) return [{ id: 'all', label: 'All' }]
-    if (groups.length) {
-      return groups.map((g) => {
-        const id = g.values[0] ?? ''
-        return { id, label: id || '(empty)' }
-      })
-    }
-    const seen = new Set<string>()
-    const order: string[] = []
-    for (const item of items) {
-      const id = String(item[columnField] ?? '')
-      if (!seen.has(id)) {
-        seen.add(id)
-        order.push(id)
-      }
-    }
-    return order.map((id) => ({ id, label: id || '(empty)' }))
-  }, [columnField, groups, items])
+  const groupColumns = useMemo(
+    () => topLevelGroupColumns(columnField, groups, items),
+    [columnField, groups, items],
+  )
 
   const pagerProps = paging
     ? {
@@ -384,11 +419,31 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
       }
     : null
 
+  const mergedFilterPresets = useMemo(() => {
+    const spec = view?.filterPresets ?? []
+    const user = savedTemplates
+      .filter((t) => t.predefined)
+      .map((t) => ({
+        id: `user:${t.id}`,
+        label: t.name,
+        domain: encodeDomain(t.domain),
+        q: t.q,
+        searchIn: t.searchIn,
+        groupBy: t.groupBy,
+      }))
+    return [...spec, ...user]
+  }, [view?.filterPresets, savedTemplates])
+
   const searchProps =
     searching && modelRef
       ? {
           model: modelRef,
           fields: searchFields,
+          presets: mergedFilterPresets,
+          savedTemplates,
+          pageSize: paging ? pagination.pageSize : undefined,
+          onApplyPageSize: paging ? pagination.setPageSize : undefined,
+          onTemplatesChanged: refreshTemplates,
           searchable: searching.searchable,
           filterable: searching.filterable,
           groupable: searching.groupable,
@@ -417,7 +472,9 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
     deleteCommand,
     groups,
     groupColumns,
+    groupByFields,
     columnField,
+    nestedGroupField,
     refresh,
     remove,
     paginated: Boolean(paging),
@@ -428,5 +485,7 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
     setPageSize: pagination.setPageSize,
     pagerProps,
     searchProps,
+    savedTemplates,
+    refreshTemplates,
   }
 }

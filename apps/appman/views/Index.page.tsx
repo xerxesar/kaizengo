@@ -177,6 +177,7 @@ export default function Index() {
         paginated
         searchable
         groupByField="status"
+        views={['table', 'kanban', 'chart', 'pivot']}
         defaultView="kanban"
         columns={tableColumns}
         keyOf={(app) => String(app.name ?? app.id)}

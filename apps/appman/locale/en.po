@@ -18,6 +18,21 @@ msgstr "Install or upgrade bundled apps. Install runs migrations and loads the a
 msgid "appman.search"
 msgstr "Search apps…"
 
+msgid "appman.filter.installed"
+msgstr "Installed Apps"
+
+msgid "appman.filter.available"
+msgstr "Available Apps"
+
+msgid "appman.filter.installed_or_available"
+msgstr "Installed or Available"
+
+msgid "appman.chart.by_status"
+msgstr "Apps by status"
+
+msgid "appman.chart.by_status_radar"
+msgstr "Status distribution"
+
 msgid "appman.installed"
 msgstr "Installed"
 

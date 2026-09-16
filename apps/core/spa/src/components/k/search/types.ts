@@ -29,6 +29,18 @@ export type SearchField = {
   relation?: string
 }
 
+/** Spec-defined filter preset from `{app}Views.filterPresets`. */
+export type SearchFilterPreset = {
+  id: string
+  label?: string
+  labelKey?: string
+  /** JSON-encoded polish domain. */
+  domain?: string | null
+  q?: string | null
+  searchIn?: string[] | null
+  groupBy?: string[] | null
+}
+
 export type SearchTemplate = {
   id: string
   name: string
@@ -38,6 +50,13 @@ export type SearchTemplate = {
   domain: Domain
   groupBy: string[]
   /** Nested group levels use the same groupBy array order. */
+  shared?: boolean
+  /** Auto-apply when opening this list (includes pageSize). */
+  isDefault?: boolean
+  /** Show in the Filters menu alongside appspec presets. */
+  predefined?: boolean
+  pageSize?: number
+  ownerId?: string
   createdAt: string
   updatedAt: string
 }

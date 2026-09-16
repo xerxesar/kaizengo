@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { ModelRecord } from '@/lib/model-client'
 import { cn } from '@/lib/utils'
+import { nestedGroupsInColumn } from './group-by'
 import { KQueryShell } from './KQueryShell'
 import {
   useKQuery,
@@ -20,6 +21,9 @@ export type KKanbanBoardProps<T> = {
   items: T[]
   columns: KKanbanColumn[]
   columnOf: (item: T) => string
+  /** Second-level group field — subdivides cards inside each column. */
+  nestedGroupField?: string
+  nestedGroupLabel?: (value: string) => string
   card: (item: T) => ReactNode
   keyOf?: (item: T) => string
   emptyMessage?: string
@@ -36,8 +40,23 @@ export function KKanbanBoard<T>(props: KKanbanBoardProps<T>) {
     return String(index)
   }
 
-  function itemsIn(columnId: string): T[] {
-    return props.items.filter((item) => props.columnOf(item) === columnId)
+  function renderCards(items: T[]) {
+    if (!items.length) {
+      return (
+        <p className="col-span-full px-1 py-6 text-center text-xs text-[var(--kg-text-muted)]">
+          Empty
+        </p>
+      )
+    }
+    return items.map((item, i) => (
+      <div
+        key={keyOf(item, i)}
+        className="h-full min-h-0 min-w-0 overflow-hidden border border-[var(--kg-border)] bg-[var(--kg-surface)] p-4 shadow-sm [&_:is(h1,h2,h3,h4,h5,h6)]:truncate [&_p]:line-clamp-2"
+        data-kanban-card={keyOf(item, i)}
+      >
+        <div className="h-full min-h-0 overflow-hidden">{props.card(item)}</div>
+      </div>
+    ))
   }
 
   if (props.items.length === 0) {
@@ -58,7 +77,12 @@ export function KKanbanBoard<T>(props: KKanbanBoardProps<T>) {
       )}
     >
       {props.columns.map((col) => {
-        const items = itemsIn(col.id)
+        const columnItems = props.items.filter((item) => props.columnOf(item) === col.id)
+        const nestedField = props.nestedGroupField?.trim()
+        const subGroups = nestedField
+          ? nestedGroupsInColumn(columnItems as Record<string, unknown>[], nestedField)
+          : null
+
         return (
           <section
             key={col.id}
@@ -66,25 +90,34 @@ export function KKanbanBoard<T>(props: KKanbanBoardProps<T>) {
           >
             <header className="flex items-center justify-between gap-2 border-b border-[var(--kg-border)] px-4 py-3">
               <h3 className="text-sm font-semibold text-[var(--kg-text)]">{col.label}</h3>
-              <span className="text-xs tabular-nums text-[var(--kg-text-muted)]">{items.length}</span>
+              <span className="text-xs tabular-nums text-[var(--kg-text-muted)]">{columnItems.length}</span>
             </header>
-            <div className="grid flex-1 auto-rows-[9rem] grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] content-start gap-3 p-3">
-              {items.length > 0 ? (
-                items.map((item, i) => (
+            {subGroups ? (
+              <div className="flex flex-1 flex-col gap-3 p-3">
+                {subGroups.map((sub) => (
                   <div
-                    key={keyOf(item, i)}
-                    className="h-full min-h-0 min-w-0 overflow-hidden border border-[var(--kg-border)] bg-[var(--kg-surface)] p-4 shadow-sm [&_:is(h1,h2,h3,h4,h5,h6)]:truncate [&_p]:line-clamp-2"
-                    data-kanban-card={keyOf(item, i)}
+                    key={sub.id}
+                    className="rounded border border-[var(--kg-border)] bg-[var(--kg-surface)]/60 p-2"
                   >
-                    <div className="h-full min-h-0 overflow-hidden">{props.card(item)}</div>
+                    <div className="mb-2 flex items-center justify-between gap-2 px-1">
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--kg-text-muted)]">
+                        {props.nestedGroupLabel?.(sub.label) ?? sub.label}
+                      </h4>
+                      <span className="text-xxs tabular-nums text-[var(--kg-text-muted)]">
+                        {sub.items.length}
+                      </span>
+                    </div>
+                    <div className="grid auto-rows-[9rem] grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] content-start gap-3">
+                      {renderCards(sub.items as T[])}
+                    </div>
                   </div>
-                ))
-              ) : (
-                <p className="col-span-full px-1 py-6 text-center text-xs text-[var(--kg-text-muted)]">
-                  Empty
-                </p>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid flex-1 auto-rows-[9rem] grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] content-start gap-3 p-3">
+                {renderCards(columnItems)}
+              </div>
+            )}
           </section>
         )
       })}
@@ -180,6 +213,11 @@ function KKanbanQuery(props: QueryProps) {
         columnOf={(item) =>
           columnField ? String(item[columnField] ?? '') : 'all'
         }
+        nestedGroupField={kq.nestedGroupField || undefined}
+        nestedGroupLabel={(value) => {
+          const field = kq.searchFields.find((f) => f.key === kq.nestedGroupField)
+          return field ? `${field.label}: ${value}` : value
+        }}
         card={props.card}
         keyOf={props.keyOf}
       />

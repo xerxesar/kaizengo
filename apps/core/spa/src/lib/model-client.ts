@@ -15,12 +15,36 @@ export type ModelField = {
   values?: string[]
 }
 
+export type ModelFilterPreset = {
+  id: string
+  label?: string | null
+  labelKey?: string | null
+  domain?: string | null
+  q?: string | null
+  searchIn?: string[] | null
+  groupBy?: string[] | null
+}
+
+export type ModelChartPreset = {
+  id: string
+  label?: string | null
+  labelKey?: string | null
+  type: string
+  types?: string[] | null
+  xField: string
+  yField?: string | null
+  seriesField?: string | null
+  measure: string
+}
+
 export type ModelView = {
   name: string
   kind: string
   model: string
   columns?: ModelColumn[]
   fields?: ModelField[]
+  filterPresets?: ModelFilterPreset[]
+  chartPresets?: ModelChartPreset[]
   listQuery?: string | null
   getQuery?: string | null
   createCommand?: string | null
@@ -141,6 +165,8 @@ export async function fetchModelViews(app: string): Promise<ModelView[]> {
           name kind model
           columns { key label width align }
           fields { key label type required relation inverse values }
+          filterPresets { id label labelKey domain q searchIn groupBy }
+          chartPresets { id label labelKey type types xField yField seriesField measure }
           listQuery getQuery createCommand updateCommand deleteCommand
         }
       }`)

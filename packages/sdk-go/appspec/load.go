@@ -41,11 +41,13 @@ type fileSpec struct {
 }
 
 type fileModel struct {
-	Name     string      `yaml:"name"`
-	Internal bool        `yaml:"internal"`
-	Virtual  bool        `yaml:"virtual"`
-	Fields   []FieldSpec `yaml:"fields"`
-	Search   *SearchSpec `yaml:"search"`
+	Name     string             `yaml:"name"`
+	Internal bool               `yaml:"internal"`
+	Virtual  bool               `yaml:"virtual"`
+	Fields   []FieldSpec        `yaml:"fields"`
+	Search   *SearchSpec        `yaml:"search"`
+	Filters  []FilterPresetSpec `yaml:"filters"`
+	Charts   []ChartPresetSpec  `yaml:"charts"`
 }
 
 type fileCQRS struct {
@@ -168,6 +170,8 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 			Virtual:  m.Virtual,
 			Fields:   m.Fields,
 			Search:   m.Search,
+			Filters:  m.Filters,
+			Charts:   m.Charts,
 		})
 	}
 	for _, q := range raw.Queries {

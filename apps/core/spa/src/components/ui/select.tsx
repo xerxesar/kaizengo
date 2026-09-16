@@ -34,7 +34,7 @@ export const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'z-50 max-h-64 min-w-[8rem] overflow-auto border border-[var(--kg-border-strong)] bg-[var(--kg-surface)] py-1 shadow-lg',
+        'z-[10050] max-h-64 min-w-[8rem] overflow-auto border border-[var(--kg-border-strong)] bg-[var(--kg-surface)] py-1 shadow-lg',
         className,
       )}
       position={position}

@@ -11,6 +11,14 @@ msgid "appman.available"
 msgstr ""
 
 #: app.yaml
+msgid "appman.chart.by_status"
+msgstr ""
+
+#: app.yaml
+msgid "appman.chart.by_status_radar"
+msgstr ""
+
+#: app.yaml
 msgid "appman.create"
 msgstr ""
 
@@ -88,6 +96,18 @@ msgstr ""
 
 #: app.yaml
 msgid "appman.field.version"
+msgstr ""
+
+#: app.yaml
+msgid "appman.filter.available"
+msgstr ""
+
+#: app.yaml
+msgid "appman.filter.installed"
+msgstr ""
+
+#: app.yaml
+msgid "appman.filter.installed_or_available"
 msgstr ""
 
 #: views/Index.page.tsx

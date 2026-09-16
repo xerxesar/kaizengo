@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import type { ModelRecord } from '@/lib/model-client'
 import type { Column } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { buildGroupedTableRows } from './group-by'
 import { KQueryShell } from './KQueryShell'
 import {
   useKQuery,
@@ -16,6 +17,9 @@ export type KTableSearchConfig = KQuerySearchConfig
 export type KTableViewProps<T extends Record<string, unknown> = ModelRecord> = {
   columns: Column<T>[]
   rows: T[]
+  /** Nested group fields (from KSearch groupBy order). */
+  groupBy?: string[]
+  fieldLabel?: (field: string) => string
   emptyMessage?: string
   actions?: (row: T) => ReactNode
   keyField?: string
@@ -23,8 +27,25 @@ export type KTableViewProps<T extends Record<string, unknown> = ModelRecord> = {
   className?: string
 }
 
+const GROUP_HEADER_TONES = [
+  'bg-[var(--kg-surface-muted,var(--kg-field-hover))]',
+  'bg-[var(--kg-surface)]',
+] as const
+
 /** Presentational table — no fetching. */
 export function KTableView<T extends Record<string, unknown>>(props: KTableViewProps<T>) {
+  const groupBy = props.groupBy?.filter(Boolean) ?? []
+  const labelOf = props.fieldLabel ?? ((field: string) => field)
+
+  function rowKey(row: T, index: number): string {
+    return props.keyOf?.(row) ?? String(row[props.keyField ?? 'id'] ?? index)
+  }
+
+  const groupedRows = useMemo(
+    () => buildGroupedTableRows(props.rows, groupBy, labelOf, rowKey),
+    [props.rows, groupBy, labelOf, props.keyField, props.keyOf],
+  )
+
   if (!props.rows.length) {
     return (
       <div className="rounded border border-dashed border-[var(--kg-border)] bg-[var(--kg-surface)] px-6 py-10 text-center">
@@ -40,6 +61,8 @@ export function KTableView<T extends Record<string, unknown>>(props: KTableViewP
     const val = row[col.key]
     return val == null ? '' : String(val)
   }
+
+  const colSpan = props.columns.length + (props.actions ? 1 : 0)
 
   return (
     <div
@@ -66,17 +89,45 @@ export function KTableView<T extends Record<string, unknown>>(props: KTableViewP
           </tr>
         </thead>
         <tbody>
-          {props.rows.map((row, index) => {
-            const key =
-              props.keyOf?.(row) ??
-              String(row[props.keyField ?? 'id'] ?? index)
+          {groupedRows.map((entry) => {
+            if (entry.kind === 'header') {
+              const tone = GROUP_HEADER_TONES[entry.level % GROUP_HEADER_TONES.length]
+              const indent = 16 + entry.level * 28
+              return (
+                <tr key={entry.key} className={cn('border-b border-[var(--kg-border)]', tone)}>
+                  <td colSpan={colSpan} className="py-2.5 pr-4" style={{ paddingLeft: indent }}>
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className="inline-block w-1 shrink-0 self-stretch rounded-full bg-[var(--kg-border-strong)]"
+                        aria-hidden
+                        style={{ minHeight: '1em' }}
+                      />
+                      <span>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--kg-text-muted)]">
+                          {entry.fieldLabel}
+                        </span>
+                        <span className="mx-1.5 text-[var(--kg-text-muted)]">·</span>
+                        <span className="font-semibold text-[var(--kg-text)]">{entry.value}</span>
+                        <span className="ml-2 text-xs tabular-nums text-[var(--kg-text-muted)]">
+                          ({entry.count})
+                        </span>
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              )
+            }
+            const row = entry.data
             return (
-              <tr key={key} className="border-b border-[var(--kg-border)]">
-                {props.columns.map((col) => (
+              <tr key={entry.key} className="border-b border-[var(--kg-border)]">
+                {props.columns.map((col, colIndex) => (
                   <td
                     key={col.key}
                     className={cn('px-4 py-3', col.mono && 'font-mono text-xs')}
-                    style={{ textAlign: col.align ?? 'left' }}
+                    style={{
+                      textAlign: col.align ?? 'left',
+                      paddingLeft: colIndex === 0 ? 16 + entry.level * 28 : undefined,
+                    }}
                   >
                     {col.cell ? col.cell(row) : cellText(row, col)}
                   </td>
@@ -130,6 +181,10 @@ export function KTable(props: Props) {
       <KTableView
         columns={kq.columns}
         rows={kq.items}
+        groupBy={kq.groupByFields}
+        fieldLabel={(field) =>
+          kq.searchFields.find((f) => f.key === field)?.label ?? field
+        }
         actions={
           deletable
             ? (row) => (

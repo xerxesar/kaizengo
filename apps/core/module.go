@@ -11,6 +11,8 @@ import (
 	"kaizengo/internal/engine"
 	"kaizengo/internal/module"
 	i18ngql "kaizengo/internal/platform/i18n/gql"
+	chartpresetgql "kaizengo/internal/platform/chartpresets/gql"
+	listpresetgql "kaizengo/internal/platform/listpresets/gql"
 	searchgql "kaizengo/internal/platform/search/gql"
 
 	"github.com/go-chi/chi/v5"
@@ -25,6 +27,8 @@ func init() {
 		Version: appVersion,
 		Setup: func(host *module.Host, _ *engine.EventsSetup) error {
 			i18ngql.Register(host)
+			listpresetgql.Register(host)
+			chartpresetgql.Register(host)
 			searchgql.Register(host)
 			return nil
 		},

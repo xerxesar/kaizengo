@@ -43,6 +43,8 @@ type ModelSpec struct {
 	Virtual  bool // no Postgres table; list via RegisterModel (code-backed)
 	Fields   []FieldSpec
 	Search   *SearchSpec
+	Filters  []FilterPresetSpec
+	Charts   []ChartPresetSpec
 }
 
 // QuerySpec declares a named read on the public GraphQL surface.
@@ -163,7 +165,9 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 			return fmt.Errorf("duplicate model name %q", m.Name)
 		}
 		models[m.Name] = struct{}{}
+		fieldSet := map[string]struct{}{}
 		for _, f := range m.Fields {
+			fieldSet[f.Name] = struct{}{}
 			if !fieldNameRe.MatchString(f.Name) {
 				return fmt.Errorf("model %q has invalid field %q", m.Name, f.Name)
 			}
@@ -206,6 +210,12 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 			if f.Readonly && f.Required && f.Default == nil {
 				return fmt.Errorf("model %q field %q is readonly+required but has no default", m.Name, f.Name)
 			}
+		}
+		if err := validateFilterPresets(m.Name, m.Filters, fieldSet); err != nil {
+			return err
+		}
+		if err := validateChartPresets(m.Name, m.Charts, fieldSet); err != nil {
+			return err
 		}
 	}
 	if err := validateQueriesCommands(s, models); err != nil {

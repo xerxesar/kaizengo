@@ -1,5 +1,13 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Bookmark, Filter, Layers, Search, X } from 'lucide-react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
+import { Bookmark, ChevronRight, Filter, Layers, Search, SearchIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -9,29 +17,34 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { t } from '@/lib'
 import { cn } from '@/lib/utils'
 import { KEYMAP_ID_ATTR } from '@/lib/keymap/types'
+import { KFilterCriteriaDialog } from './search/KFilterCriteriaDialog'
+import { KSaveCriteriaDialog } from './search/KSaveCriteriaDialog'
 import { useKSearchParams } from './search/params'
 import {
-  deleteSearchTemplate,
-  listSearchTemplates,
-  saveSearchTemplate,
-} from './search/templates'
+  countFilterLeaves,
+  domainContains,
+  domainToFilterTree,
+  filterTreeToDomain,
+  andDomains,
+  domainsEqual,
+  peelSearchFacets,
+  searchTermToDomain,
+  toggleDomainConjunct,
+  updateFilterNode,
+  type FilterGroup,
+  type FilterNode,
+  type SearchFacet,
+} from './search/domain-tree'
+import { deleteSearchTemplate, saveSearchTemplate } from './search/templates'
 import {
-  extractLeaves,
-  opsForFieldType,
-  serializeLeaves,
+  type Domain,
   type DomainLeaf,
-  type DomainOp,
   type SearchField,
+  type SearchFilterPreset,
   type SearchState,
   type SearchTemplate,
 } from './search/types'
@@ -46,6 +59,13 @@ export type KSearchProps = {
   filterable?: string[]
   /** Fields offered for groupBy (default: enum/bool/many2one + string). */
   groupable?: string[]
+  /** Spec-defined quick filters from `{app}Views.filterPresets`. */
+  presets?: SearchFilterPreset[]
+  /** Saved criteria (server + local). */
+  savedTemplates?: SearchTemplate[]
+  pageSize?: number
+  onApplyPageSize?: (pageSize: number) => void
+  onTemplatesChanged?: () => void | Promise<void>
   placeholder?: string
   /** Controlled mode — parent owns URL via useKSearchParams. */
   q?: string
@@ -69,6 +89,258 @@ function leafLabel(fields: SearchField[], leaf: DomainLeaf): string {
   return `${name} ${op} ${value == null ? '' : String(value)}`
 }
 
+type SearchSuggestion = {
+  id: string
+  label: string
+  hint?: string
+  searchIn: string[]
+  q: string
+}
+
+function buildSearchSuggestions(fields: SearchField[], raw: string): SearchSuggestion[] {
+  const trimmed = raw.trim()
+  if (!trimmed) return []
+
+  const colon = raw.indexOf(':')
+  const prefix = colon >= 0 ? raw.slice(0, colon).trim().toLowerCase() : ''
+  const queryForSearch = colon >= 0 ? raw.slice(colon + 1).trim() : trimmed
+
+  const filtered = prefix
+    ? fields.filter(
+        (f) =>
+          f.key.toLowerCase().includes(prefix) ||
+          f.label.toLowerCase().includes(prefix),
+      )
+    : fields
+
+  if (!filtered.length) return []
+
+  const items: SearchSuggestion[] = []
+
+  if (!prefix && queryForSearch) {
+    items.push({
+      id: '__all__',
+      label: queryForSearch,
+      hint: 'All fields',
+      searchIn: [],
+      q: queryForSearch,
+    })
+  }
+
+  for (const f of filtered) {
+    items.push({
+      id: f.key,
+      label: queryForSearch ? `${f.label}: ${queryForSearch}` : `${f.label}:`,
+      searchIn: [f.key],
+      q: queryForSearch,
+    })
+  }
+
+  return items
+}
+
+function parsePresetDomain(raw?: string | null): Domain {
+  if (!raw?.trim()) return []
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed) ? (parsed as Domain) : []
+  } catch {
+    return []
+  }
+}
+
+function presetLabel(p: SearchFilterPreset): string {
+  if (p.labelKey) return t(p.labelKey)
+  return p.label ?? p.id
+}
+
+type TagKind = 'search' | 'filter' | 'group' | 'preset'
+
+const tagStyles: Record<TagKind, string> = {
+  search:
+    'border-[var(--kg-info-border)] bg-[var(--kg-info-bg)] text-[var(--kg-text)] [&_.kg-tag-label]:text-[var(--kg-info)]',
+  filter:
+    'border-[var(--kg-warning-border)] bg-[var(--kg-warning-bg)] text-[var(--kg-text)] [&_.kg-tag-label]:text-[var(--kg-warning)]',
+  group:
+    'border-[var(--kg-success-border)] bg-[var(--kg-success-bg)] text-[var(--kg-text)] [&_.kg-tag-label]:text-[var(--kg-success)]',
+  preset:
+    'border-[var(--kg-warning-border)] bg-[var(--kg-warning-bg)] text-[var(--kg-text)] [&_.kg-tag-label]:text-[var(--kg-warning)]',
+}
+
+const activeToolbarStyles = {
+  filter:
+    'border-[var(--kg-warning-border)] bg-[var(--kg-warning-bg)] text-[var(--kg-warning)] hover:bg-[var(--kg-warning-bg)] hover:opacity-90',
+  group:
+    'border-[var(--kg-success-border)] bg-[var(--kg-success-bg)] text-[var(--kg-success)] hover:bg-[var(--kg-success-bg)] hover:opacity-90',
+} as const
+
+function TagChip({
+  kind,
+  label,
+  icon,
+  children,
+  onRemove,
+  onClick,
+  className,
+}: {
+  kind: TagKind
+  label?: string
+  icon?: ReactNode
+  children: ReactNode
+  onRemove?: () => void
+  onClick?: () => void
+  className?: string
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex max-w-full items-center gap-2 rounded-md border px-3 py-1.5 text-sm leading-snug',
+        tagStyles[kind],
+        onClick && 'cursor-pointer hover:opacity-90',
+        className,
+      )}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
+      {icon}
+      {label ? (
+        <span className="kg-tag-label shrink-0 text-xs font-semibold uppercase tracking-wide">{label}</span>
+      ) : null}
+      <span className="min-w-0">{children}</span>
+      {onRemove ? (
+        <button
+          type="button"
+          className="shrink-0 rounded-sm p-0.5 opacity-70 transition hover:bg-black/10 hover:opacity-100"
+          aria-label="Remove"
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </span>
+  )
+}
+
+function findActivePresets(
+  presets: SearchFilterPreset[],
+  templates: SearchTemplate[],
+  domain: Domain,
+): SearchFilterPreset[] {
+  return presets.filter((preset) => {
+    if (preset.id.startsWith('user:')) {
+      const tpl = templates.find((t) => `user:${t.id}` === preset.id)
+      return tpl ? domainContains(domain, tpl.domain) : false
+    }
+    const pd = parsePresetDomain(preset.domain)
+    return domainContains(domain, pd)
+  })
+}
+
+function FilterChipTree({
+  node,
+  fields,
+  onRemove,
+  depth = 0,
+}: {
+  node: FilterNode
+  fields: SearchField[]
+  onRemove: (id: string) => void
+  depth?: number
+}) {
+  if (node.kind === 'leaf') {
+    return (
+      <TagChip
+        kind="filter"
+        label={depth === 0 ? 'Filter' : undefined}
+        onRemove={() => onRemove(node.id)}
+      >
+        {leafLabel(fields, [node.field, node.op, node.value])}
+      </TagChip>
+    )
+  }
+  if (!node.children.length) return null
+  if (node.children.length === 1) {
+    return <FilterChipTree node={node.children[0]} fields={fields} onRemove={onRemove} depth={depth} />
+  }
+  return (
+    <span
+      className={cn(
+        'inline-flex flex-wrap items-center gap-1.5 rounded-md border border-[var(--kg-warning-border)] bg-[var(--kg-warning-bg)] px-2.5 py-1.5',
+        depth > 0 && 'ml-1 border-l-2 border-l-[var(--kg-warning)]',
+      )}
+    >
+      <span className="rounded bg-[var(--kg-warning)]/15 px-1.5 py-0.5 text-xxs font-bold uppercase tracking-wide text-[var(--kg-warning)]">
+        {node.junction}
+      </span>
+      {node.children.map((child, i) => (
+        <span key={child.id} className="inline-flex items-center gap-1.5">
+          {i > 0 ? <span className="text-xs text-[var(--kg-text-muted)]">·</span> : null}
+          <FilterChipTree node={child} fields={fields} onRemove={onRemove} depth={depth + 1} />
+        </span>
+      ))}
+    </span>
+  )
+}
+
+function GroupNestChip({
+  groupBy,
+  fields,
+  onRemove,
+}: {
+  groupBy: string[]
+  fields: SearchField[]
+  onRemove: (key: string) => void
+}) {
+  return (
+    <TagChip
+      kind="group"
+      label="Group"
+      icon={<Layers className="h-3.5 w-3.5 shrink-0 opacity-80" />}
+    >
+      <span className="inline-flex flex-wrap items-center gap-1">
+        {groupBy.map((key, i) => (
+          <span key={key} className="inline-flex items-center gap-1">
+            {i > 0 ? (
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--kg-success)]" aria-hidden />
+            ) : null}
+            <span className="inline-flex items-center gap-1.5 rounded bg-black/10 px-2 py-0.5">
+              <span
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--kg-success)]/20 text-xxs font-bold tabular-nums text-[var(--kg-success)]"
+                aria-hidden
+              >
+                {i + 1}
+              </span>
+              <span>{fieldLabel(fields, key)}</span>
+              <button
+                type="button"
+                className="rounded-sm p-0.5 opacity-70 transition hover:bg-black/10 hover:opacity-100"
+                aria-label={`Remove group ${fieldLabel(fields, key)}`}
+                onClick={() => onRemove(key)}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          </span>
+        ))}
+      </span>
+    </TagChip>
+  )
+}
+
 /**
  * Server-backed search / filter / groupBy toolbar (Odoo-inspired).
  * Syncs to `?q=` `?searchIn=` `?domain=` `?groupBy=` by default.
@@ -81,12 +353,17 @@ export function KSearch(props: KSearchProps) {
   const searchIn = props.searchIn ?? fromUrl.searchIn
   const domain = props.domain ?? fromUrl.domain
   const groupBy = props.groupBy ?? fromUrl.groupBy
-  const junction = props.junction ?? fromUrl.junction
 
   function patch(next: Partial<SearchState>) {
     if (props.onChange) props.onChange(next)
     else fromUrl.setState(next)
   }
+
+  const filterTree = useMemo(() => domainToFilterTree(domain), [domain])
+  const { facets: searchFacets, remaining: filterOnlyTree } = useMemo(
+    () => peelSearchFacets(filterTree),
+    [filterTree],
+  )
 
   const searchable = useMemo(() => {
     if (props.searchable?.length) {
@@ -115,34 +392,132 @@ export function KSearch(props: KSearchProps) {
     })
   }, [props.fields, props.groupable])
 
-  const { leaves } = extractLeaves(domain)
+  const [draftQ, setDraftQ] = useState('')
+  const [draftSearchIn, setDraftSearchIn] = useState<string[]>([])
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const [draftQ, setDraftQ] = useState(q)
-  useEffect(() => setDraftQ(q), [q])
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [highlightIndex, setHighlightIndex] = useState(-1)
 
-  const [filterOpen, setFilterOpen] = useState(false)
-  const [newField, setNewField] = useState(filterable[0]?.key ?? '')
-  const [newOp, setNewOp] = useState<DomainOp>('ilike')
-  const [newValue, setNewValue] = useState('')
+  const suggestions = useMemo(
+    () => buildSearchSuggestions(searchable, draftQ),
+    [searchable, draftQ],
+  )
+  const showSuggestions = suggestOpen && suggestions.length > 0
 
   useEffect(() => {
-    const f = filterable.find((x) => x.key === newField)
-    const ops = opsForFieldType(f?.type)
-    if (!ops.includes(newOp)) setNewOp(ops[0] ?? '=')
-  }, [newField, filterable, newOp])
+    if (!suggestions.length) {
+      setHighlightIndex(-1)
+      return
+    }
+    setHighlightIndex((i) => (i < 0 || i >= suggestions.length ? 0 : i))
+  }, [suggestions])
 
-  const [templates, setTemplates] = useState<SearchTemplate[]>(() =>
-    listSearchTemplates(props.model),
-  )
-  const [tplName, setTplName] = useState('')
+  const [criteriaOpen, setCriteriaOpen] = useState(false)
 
-  function refreshTemplates() {
-    setTemplates(listSearchTemplates(props.model))
+  const templates = props.savedTemplates ?? []
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [saveSeed, setSaveSeed] = useState<Partial<SearchTemplate>>({})
+
+  async function refreshTemplates() {
+    await props.onTemplatesChanged?.()
+  }
+
+  function openSaveDialog(seed?: Partial<SearchTemplate>) {
+    setSaveSeed(seed ?? {})
+    setSaveOpen(true)
+  }
+
+  function applySuggestion(item: SearchSuggestion) {
+    const nextQ = item.q.trim()
+    const nextSearchIn = item.searchIn
+    if (!nextQ) {
+      setDraftSearchIn(nextSearchIn)
+      setSuggestOpen(false)
+      setHighlightIndex(-1)
+      return
+    }
+    commitSearchTerm(nextQ, nextSearchIn)
+    setSuggestOpen(false)
+    setHighlightIndex(-1)
+  }
+
+  function commitSearchTerm(term: string, fields: string[]) {
+    const trimmed = term.trim()
+    if (!trimmed) return
+    const keys = fields.length ? fields : searchable.map((f) => f.key)
+    if (!keys.length) return
+
+    let nextDomain = domain
+    // Flush any leftover free-text q into the domain first.
+    if (q.trim()) {
+      const flushKeys = searchIn.length ? searchIn : searchable.map((f) => f.key)
+      if (flushKeys.length) {
+        nextDomain = andDomains(nextDomain, searchTermToDomain(q.trim(), flushKeys))
+      }
+    }
+    nextDomain = andDomains(nextDomain, searchTermToDomain(trimmed, keys))
+    patch({ q: '', searchIn: [], domain: nextDomain })
+    setDraftQ('')
+    setDraftSearchIn([])
   }
 
   function submitSearch(e: FormEvent) {
     e.preventDefault()
-    patch({ q: draftQ })
+    if (showSuggestions && highlightIndex >= 0 && suggestions[highlightIndex]) {
+      applySuggestion(suggestions[highlightIndex])
+      return
+    }
+    commitSearchTerm(draftQ, draftSearchIn)
+    setSuggestOpen(false)
+  }
+
+  function editSearchFacet(facet: SearchFacet) {
+    const next = updateFilterNode(filterTree, facet.id, () => null)
+    patch({ domain: filterTreeToDomain(next), q: '', searchIn: [] })
+    setDraftQ(facet.q)
+    setDraftSearchIn(facet.searchIn)
+    window.setTimeout(() => searchInputRef.current?.focus(), 0)
+  }
+
+  function editPendingQ() {
+    setDraftQ(q)
+    setDraftSearchIn(searchIn)
+    patch({ q: '', searchIn: [] })
+    window.setTimeout(() => searchInputRef.current?.focus(), 0)
+  }
+
+  function removeSearchFacet(facet: SearchFacet) {
+    const next = updateFilterNode(filterTree, facet.id, () => null)
+    patch({ domain: filterTreeToDomain(next) })
+  }
+
+  function handleSearchInputKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown') {
+      if (!suggestions.length) return
+      e.preventDefault()
+      setSuggestOpen(true)
+      setHighlightIndex((i) => Math.min(i < 0 ? 0 : i + 1, suggestions.length - 1))
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      if (!suggestions.length) return
+      e.preventDefault()
+      setSuggestOpen(true)
+      setHighlightIndex((i) => Math.max(i < 0 ? 0 : i - 1, 0))
+      return
+    }
+    if (e.key === 'Escape') {
+      if (!showSuggestions) return
+      e.preventDefault()
+      setSuggestOpen(false)
+      setHighlightIndex(-1)
+      return
+    }
+    if (e.key === 'Enter' && showSuggestions && highlightIndex >= 0) {
+      e.preventDefault()
+      applySuggestion(suggestions[highlightIndex])
+    }
   }
 
   function toggleSearchField(key: string) {
@@ -152,26 +527,100 @@ export function KSearch(props: KSearchProps) {
     patch({ searchIn: [...set] })
   }
 
-  function addFilter() {
-    if (!newField) return
-    let value: unknown = newValue
-    if (newOp === 'ilike' || newOp === 'like') {
-      const s = String(newValue ?? '')
-      value = s.includes('%') ? s : `%${s}%`
+  function normalizeFilterTree(node: FilterNode): FilterNode {
+    if (node.kind === 'leaf') {
+      if (node.op === 'ilike' || node.op === 'like') {
+        const s = String(node.value ?? '')
+        if (s && !s.includes('%')) return { ...node, value: `%${s}%` }
+      }
+      return node
     }
-    const leaf: DomainLeaf =
-      newOp === 'is set' || newOp === 'is not set'
-        ? [newField, newOp]
-        : [newField, newOp, value]
-    const nextLeaves = [...leaves, leaf]
-    patch({ domain: serializeLeaves(nextLeaves, junction) })
-    setNewValue('')
-    setFilterOpen(false)
+    return { ...node, children: node.children.map(normalizeFilterTree) }
   }
 
-  function removeLeaf(index: number) {
-    const next = leaves.filter((_, i) => i !== index)
-    patch({ domain: serializeLeaves(next, junction) })
+  function applyFilterTree(next: FilterGroup) {
+    const normalized = normalizeFilterTree(next) as FilterGroup
+    const searchDomain =
+      searchFacets.length === 0
+        ? []
+        : filterTreeToDomain(
+            searchFacets.length === 1
+              ? searchFacets[0].node
+              : {
+                  kind: 'group',
+                  id: 'search',
+                  junction: 'and',
+                  children: searchFacets.map((f) => f.node),
+                },
+          )
+    patch({
+      domain: andDomains(searchDomain, filterTreeToDomain(normalized)),
+    })
+  }
+
+  function removeFilterNode(id: string) {
+    const next = updateFilterNode(filterOnlyTree, id, () => null)
+    applyFilterTree(next)
+  }
+
+  function clearFilters() {
+    const searchDomain =
+      searchFacets.length === 0
+        ? []
+        : filterTreeToDomain(
+            searchFacets.length === 1
+              ? searchFacets[0].node
+              : {
+                  kind: 'group',
+                  id: 'search',
+                  junction: 'and',
+                  children: searchFacets.map((f) => f.node),
+                },
+          )
+    patch({ domain: searchDomain })
+  }
+
+  function applyTemplateState(t: Pick<SearchTemplate, 'q' | 'searchIn' | 'domain' | 'groupBy' | 'pageSize'>) {
+    let nextDomain = t.domain
+    if (t.q.trim()) {
+      const keys = t.searchIn.length ? t.searchIn : searchable.map((f) => f.key)
+      if (keys.length) nextDomain = andDomains(nextDomain, searchTermToDomain(t.q.trim(), keys))
+    }
+    patch({
+      q: '',
+      searchIn: [],
+      domain: nextDomain,
+      groupBy: t.groupBy,
+    })
+    setDraftQ('')
+    setDraftSearchIn([])
+    if (t.pageSize && props.onApplyPageSize) props.onApplyPageSize(t.pageSize)
+  }
+
+  function presetDomain(preset: SearchFilterPreset): Domain {
+    if (preset.id.startsWith('user:')) {
+      const tpl = templates.find((t) => `user:${t.id}` === preset.id)
+      if (!tpl) return []
+      let d = tpl.domain
+      if (tpl.q.trim()) {
+        const keys = tpl.searchIn.length ? tpl.searchIn : searchable.map((f) => f.key)
+        if (keys.length) d = andDomains(d, searchTermToDomain(tpl.q.trim(), keys))
+      }
+      return d
+    }
+    let d = parsePresetDomain(preset.domain)
+    const pq = preset.q?.trim() ?? ''
+    if (pq) {
+      const keys = preset.searchIn?.length ? preset.searchIn : searchable.map((f) => f.key)
+      if (keys.length) d = andDomains(d, searchTermToDomain(pq, keys))
+    }
+    return d
+  }
+
+  function togglePreset(preset: SearchFilterPreset) {
+    const conjunct = presetDomain(preset)
+    if (!conjunct.length) return
+    patch({ domain: toggleDomainConjunct(domain, conjunct) })
   }
 
   function toggleGroup(key: string) {
@@ -181,31 +630,59 @@ export function KSearch(props: KSearchProps) {
   }
 
   function applyTemplate(t: SearchTemplate) {
-    patch({
-      q: t.q,
-      searchIn: t.searchIn,
-      domain: t.domain,
-      groupBy: t.groupBy,
-    })
-    setDraftQ(t.q)
+    applyTemplateState(t)
   }
 
-  function saveTemplate() {
-    const name = tplName.trim()
-    if (!name) return
-    saveSearchTemplate({
+  async function saveTemplate(opts: {
+    name: string
+    shared: boolean
+    isDefault: boolean
+    predefined: boolean
+  }) {
+    await saveSearchTemplate({
       model: props.model,
-      name,
+      name: opts.name,
       q,
       searchIn,
       domain,
       groupBy,
+      id: saveSeed.id,
+      shared: opts.shared,
+      isDefault: opts.isDefault,
+      predefined: opts.predefined,
+      pageSize: props.pageSize,
     })
-    setTplName('')
-    refreshTemplates()
+    await refreshTemplates()
   }
 
-  const activeCount = leaves.length + (q ? 1 : 0) + groupBy.length
+  const presets = props.presets ?? []
+  const activePresets = useMemo(
+    () => findActivePresets(presets, templates, domain),
+    [presets, templates, domain],
+  )
+  const activePresetIds = useMemo(() => new Set(activePresets.map((p) => p.id)), [activePresets])
+  const customFilterNodes = useMemo(() => {
+    return filterOnlyTree.children.filter((child) => {
+      const childDomain = filterTreeToDomain(child)
+      return !activePresets.some((p) => {
+        if (p.id.startsWith('user:')) {
+          const tpl = templates.find((t) => `user:${t.id}` === p.id)
+          return tpl ? domainsEqual(tpl.domain, childDomain) : false
+        }
+        return domainsEqual(parsePresetDomain(p.domain), childDomain)
+      })
+    })
+  }, [filterOnlyTree, activePresets, templates])
+  const customFilterCount = useMemo(
+    () => customFilterNodes.reduce((n, child) => n + countFilterLeaves(child), 0),
+    [customFilterNodes],
+  )
+  const hasPendingQ = q.trim().length > 0
+  const hasSearch = hasPendingQ || searchFacets.length > 0
+  const hasFilters = customFilterCount > 0 || activePresets.length > 0
+  const hasGroups = groupBy.length > 0
+  const activeCount =
+    customFilterCount + searchFacets.length + (hasPendingQ ? 1 : 0) + groupBy.length + activePresets.length
 
   return (
     <div
@@ -217,154 +694,150 @@ export function KSearch(props: KSearchProps) {
       <div className="flex flex-wrap items-center gap-2">
         <form className="flex min-w-[14rem] flex-1 items-center gap-2" onSubmit={submitSearch}>
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--kg-text-muted)]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--kg-text-muted)]" />
             <Input
+              ref={searchInputRef}
               value={draftQ}
-              onChange={(e) => setDraftQ(e.target.value)}
-              onBlur={() => {
-                if (draftQ !== q) patch({ q: draftQ })
+              onChange={(e) => {
+                const next = e.target.value
+                setDraftQ(next)
+                if (!next.trim()) setDraftSearchIn([])
+                setSuggestOpen(next.trim().length > 0)
               }}
+              onFocus={() => {
+                if (draftQ.trim()) setSuggestOpen(true)
+              }}
+              onBlur={() => {
+                window.setTimeout(() => setSuggestOpen(false), 150)
+              }}
+              onKeyDown={handleSearchInputKeyDown}
               placeholder={props.placeholder ?? 'Search…'}
               className="pl-9"
               aria-label="Search"
+              role="combobox"
+              aria-expanded={showSuggestions}
+              aria-controls="k-search-suggestions"
+              aria-activedescendant={
+                showSuggestions && highlightIndex >= 0
+                  ? `k-search-suggestion-${suggestions[highlightIndex]?.id}`
+                  : undefined
+              }
+              aria-autocomplete="list"
               {...{ [KEYMAP_ID_ATTR]: 'k-search' }}
             />
+            {showSuggestions ? (
+              <div
+                id="k-search-suggestions"
+                role="listbox"
+                className="absolute z-50 mt-1 max-h-64 w-full overflow-auto border border-[var(--kg-border-strong)] bg-[var(--kg-surface)] shadow-lg"
+              >
+                {suggestions.map((item, i) => (
+                  <button
+                    key={item.id}
+                    id={`k-search-suggestion-${item.id}`}
+                    type="button"
+                    role="option"
+                    aria-selected={i === highlightIndex}
+                    className={cn(
+                      'flex w-full items-baseline gap-2 px-3 py-2 text-left text-sm',
+                      i === highlightIndex
+                        ? 'bg-[var(--kg-surface-hover)]'
+                        : 'hover:bg-[var(--kg-surface-hover)]',
+                    )}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setHighlightIndex(i)}
+                    onClick={() => applySuggestion(item)}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {item.hint ? (
+                      <span className="shrink-0 text-xs text-[var(--kg-text-muted)]">{item.hint}</span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
           <Button type="submit" size="sm" variant="secondary">
-            Search
+            <SearchIcon className="h-4 w-4" />
           </Button>
         </form>
 
-        {/* Search fields */}
+        {/* Filters */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" size="sm" variant="secondary">
-              Fields{searchIn.length ? ` (${searchIn.length})` : ''}
+            <Button
+              type="button"
+              size="sm"
+              variant={hasFilters ? 'secondary' : 'ghost'}
+              className={cn(hasFilters && activeToolbarStyles.filter)}
+              {...{ [KEYMAP_ID_ATTR]: 'k-search-filter' }}
+            >
+              <Filter className="h-4 w-4" />
+              Filter{hasFilters ? ` (${activePresets.length + customFilterCount})` : ''}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="min-w-[14rem]">
-            <DropdownMenuLabel>Search in</DropdownMenuLabel>
-            {searchable.map((f) => (
+            <DropdownMenuLabel>Filters</DropdownMenuLabel>
+            {presets.map((preset) => {
+              const active = activePresetIds.has(preset.id)
+              return (
+                <DropdownMenuItem
+                  key={preset.id}
+                  className="gap-2"
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    togglePreset(preset)
+                  }}
+                >
+                  <Checkbox checked={active} />
+                  <span className="flex-1">{presetLabel(preset)}</span>
+                </DropdownMenuItem>
+              )
+            })}
+            {presets.length ? (
+              <div className="my-1 border-t border-[var(--kg-border)]" role="separator" />
+            ) : null}
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault()
+                setCriteriaOpen(true)
+              }}
+            >
+              Custom criteria…
+            </DropdownMenuItem>
+            {customFilterCount > 0 || activePresets.length > 0 ? (
               <DropdownMenuItem
-                key={f.key}
-                className="gap-2"
+                className="text-[var(--kg-danger)]"
                 onSelect={(e) => {
                   e.preventDefault()
-                  toggleSearchField(f.key)
+                  clearFilters()
                 }}
               >
-                <Checkbox checked={searchIn.includes(f.key)} />
-                {f.label}
+                Clear filters
               </DropdownMenuItem>
-            ))}
-            {!searchable.length ? (
-              <div className="px-3 py-2 text-sm text-[var(--kg-text-muted)]">No fields</div>
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Filters */}
-        <div className="relative">
-          <Button
-            type="button"
-            size="sm"
-            variant={filterOpen || leaves.length ? 'secondary' : 'ghost'}
-            onClick={() => setFilterOpen((o) => !o)}
-            {...{ [KEYMAP_ID_ATTR]: 'k-search-filter' }}
-          >
-            <Filter className="h-4 w-4" />
-            Filter{leaves.length ? ` (${leaves.length})` : ''}
-          </Button>
-          {filterOpen ? (
-            <div className="absolute right-0 z-40 mt-1 w-[22rem] border border-[var(--kg-border-strong)] bg-[var(--kg-surface)] p-3 shadow-lg">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[var(--kg-text-muted)]">
-                  Add filter
-                </span>
-                <div className="inline-flex border border-[var(--kg-border)]">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={junction === 'and' ? 'secondary' : 'ghost'}
-                    onClick={() => {
-                      patch({ junction: 'and', domain: serializeLeaves(leaves, 'and') })
-                    }}
-                  >
-                    AND
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={junction === 'or' ? 'secondary' : 'ghost'}
-                    onClick={() => {
-                      patch({ junction: 'or', domain: serializeLeaves(leaves, 'or') })
-                    }}
-                  >
-                    OR
-                  </Button>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Select value={newField} onValueChange={setNewField}>
-                  <SelectTrigger aria-label="Filter field">
-                    <SelectValue placeholder="Field" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filterable.map((f) => (
-                      <SelectItem key={f.key} value={f.key}>
-                        {f.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={newOp} onValueChange={(v) => setNewOp(v as DomainOp)}>
-                  <SelectTrigger aria-label="Operator">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {opsForFieldType(filterable.find((f) => f.key === newField)?.type).map((op) => (
-                      <SelectItem key={op} value={op}>
-                        {op}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {newOp !== 'is set' && newOp !== 'is not set' ? (
-                  filterable.find((f) => f.key === newField)?.values?.length ? (
-                    <Select value={newValue} onValueChange={setNewValue}>
-                      <SelectTrigger aria-label="Value">
-                        <SelectValue placeholder="Value" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filterable
-                          .find((f) => f.key === newField)!
-                          .values!.map((v) => (
-                            <SelectItem key={v} value={v}>
-                              {v}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      value={newValue}
-                      onChange={(e) => setNewValue(e.target.value)}
-                      placeholder="Value"
-                    />
-                  )
-                ) : null}
-                <div className="flex justify-end gap-2">
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setFilterOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="button" size="sm" onClick={addFilter}>
-                    Add
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
+        <KFilterCriteriaDialog
+          open={criteriaOpen}
+          onOpenChange={setCriteriaOpen}
+          fields={filterable}
+          root={filterOnlyTree}
+          onApply={applyFilterTree}
+          onSaveCriteria={() => openSaveDialog()}
+        />
+
+        <KSaveCriteriaDialog
+          open={saveOpen}
+          onOpenChange={setSaveOpen}
+          initialName={saveSeed.name ?? ''}
+          initialShared={saveSeed.shared}
+          initialDefault={saveSeed.isDefault}
+          initialPredefined={saveSeed.predefined}
+          pageSize={props.pageSize}
+          onSave={saveTemplate}
+        />
 
         {/* Group by */}
         <DropdownMenu>
@@ -372,7 +845,8 @@ export function KSearch(props: KSearchProps) {
             <Button
               type="button"
               size="sm"
-              variant={groupBy.length ? 'secondary' : 'ghost'}
+              variant={hasGroups ? 'secondary' : 'ghost'}
+              className={cn(hasGroups && activeToolbarStyles.group)}
               {...{ [KEYMAP_ID_ATTR]: 'k-search-group' }}
             >
               <Layers className="h-4 w-4" />
@@ -419,15 +893,32 @@ export function KSearch(props: KSearchProps) {
                 className="flex items-center justify-between gap-2"
                 onSelect={() => applyTemplate(t)}
               >
-                <span className="truncate">{t.name}</span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{t.name}</span>
+                  <span className="text-xxs text-[var(--kg-text-muted)]">
+                    {[t.shared && 'Shared', t.isDefault && 'Default', t.predefined && 'Filter menu']
+                      .filter(Boolean)
+                      .join(' · ') || 'Private'}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="text-xs text-[var(--kg-text-muted)]"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    openSaveDialog(t)
+                  }}
+                >
+                  Edit
+                </button>
                 <button
                   type="button"
                   className="text-xs text-[var(--kg-danger)]"
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    deleteSearchTemplate(props.model, t.id)
-                    refreshTemplates()
+                    void deleteSearchTemplate(props.model, t.id).then(refreshTemplates)
                   }}
                 >
                   Delete
@@ -435,17 +926,11 @@ export function KSearch(props: KSearchProps) {
               </DropdownMenuItem>
             ))}
             {!templates.length ? (
-              <div className="px-3 py-2 text-sm text-[var(--kg-text-muted)]">No saved filters</div>
+              <div className="px-3 py-2 text-sm text-[var(--kg-text-muted)]">No saved criteria</div>
             ) : null}
-            <div className="mt-1 flex gap-2 border-t border-[var(--kg-border)] p-2">
-              <Input
-                value={tplName}
-                onChange={(e) => setTplName(e.target.value)}
-                placeholder="Save as…"
-                className="h-8"
-              />
-              <Button type="button" size="sm" onClick={saveTemplate}>
-                Save
+            <div className="mt-1 border-t border-[var(--kg-border)] p-2">
+              <Button type="button" size="sm" className="w-full" onClick={() => openSaveDialog()}>
+                Save current criteria…
               </Button>
             </div>
           </DropdownMenuContent>
@@ -459,6 +944,7 @@ export function KSearch(props: KSearchProps) {
             onClick={() => {
               patch({ q: '', searchIn: [], domain: [], groupBy: [] })
               setDraftQ('')
+              setDraftSearchIn([])
             }}
           >
             Clear
@@ -466,42 +952,88 @@ export function KSearch(props: KSearchProps) {
         ) : null}
       </div>
 
-      {(leaves.length > 0 || groupBy.length > 0 || (q && searchIn.length)) && (
-        <div className="flex flex-wrap items-center gap-2">
-          {q && searchIn.length ? (
-            <span className="inline-flex items-center gap-1 border border-[var(--kg-border)] bg-[var(--kg-surface-muted,var(--kg-field-hover))] px-2 py-1 text-xs">
-              in: {searchIn.map((k) => fieldLabel(props.fields, k)).join(', ')}
-            </span>
+      {(hasFilters || hasGroups || hasSearch) ? (
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          {searchFacets.map((facet) => (
+            <TagChip
+              key={facet.id}
+              kind="search"
+              label="Search"
+              icon={<Search className="h-3.5 w-3.5 shrink-0 opacity-80" />}
+              onClick={() => editSearchFacet(facet)}
+              onRemove={() => removeSearchFacet(facet)}
+            >
+              {facet.searchIn.length === 1 ? (
+                <>
+                  <span className="text-[var(--kg-text-muted)]">in</span>{' '}
+                  {fieldLabel(props.fields, facet.searchIn[0])}
+                  <span className="text-[var(--kg-text-muted)]">:</span>{' '}
+                  <span className="font-medium">{facet.q}</span>
+                </>
+              ) : facet.searchIn.length > 1 &&
+                facet.searchIn.length < searchable.length ? (
+                <>
+                  <span className="text-[var(--kg-text-muted)]">in</span>{' '}
+                  {facet.searchIn.map((k) => fieldLabel(props.fields, k)).join(', ')}
+                  <span className="text-[var(--kg-text-muted)]">:</span>{' '}
+                  <span className="font-medium">{facet.q}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[var(--kg-text-muted)]">All fields</span>
+                  <span className="text-[var(--kg-text-muted)]">:</span>{' '}
+                  <span className="font-medium">{facet.q}</span>
+                </>
+              )}
+            </TagChip>
+          ))}
+          {hasPendingQ ? (
+            <TagChip
+              kind="search"
+              label="Search"
+              icon={<Search className="h-3.5 w-3.5 shrink-0 opacity-80" />}
+              onClick={editPendingQ}
+              onRemove={() => patch({ q: '', searchIn: [] })}
+            >
+              {searchIn.length ? (
+                <>
+                  <span className="text-[var(--kg-text-muted)]">in</span>{' '}
+                  {searchIn.map((k) => fieldLabel(props.fields, k)).join(', ')}
+                  <span className="text-[var(--kg-text-muted)]">:</span>{' '}
+                  <span className="font-medium">{q.trim()}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[var(--kg-text-muted)]">All fields</span>
+                  <span className="text-[var(--kg-text-muted)]">:</span>{' '}
+                  <span className="font-medium">{q.trim()}</span>
+                </>
+              )}
+            </TagChip>
           ) : null}
-          {leaves.map((leaf, i) => (
-            <span
-              key={`${leaf[0]}-${i}`}
-              className="inline-flex items-center gap-1 border border-[var(--kg-border)] bg-[var(--kg-surface-muted,var(--kg-field-hover))] px-2 py-1 text-xs"
+          {activePresets.map((preset) => (
+            <TagChip
+              key={preset.id}
+              kind="preset"
+              label="Filter"
+              onRemove={() => togglePreset(preset)}
             >
-              {i > 0 ? (
-                <span className="mr-1 font-semibold uppercase text-[var(--kg-text-muted)]">
-                  {junction}
-                </span>
-              ) : null}
-              {leafLabel(props.fields, leaf)}
-              <button type="button" aria-label="Remove filter" onClick={() => removeLeaf(i)}>
-                <X className="h-3 w-3" />
-              </button>
-            </span>
+              {presetLabel(preset)}
+            </TagChip>
           ))}
-          {groupBy.map((g, i) => (
-            <span
-              key={g}
-              className="inline-flex items-center gap-1 border border-[var(--kg-border)] px-2 py-1 text-xs"
-            >
-              group {i + 1}: {fieldLabel(props.fields, g)}
-              <button type="button" aria-label="Remove group" onClick={() => toggleGroup(g)}>
-                <X className="h-3 w-3" />
-              </button>
-            </span>
+          {customFilterNodes.map((child) => (
+            <FilterChipTree
+              key={child.id}
+              node={child}
+              fields={props.fields}
+              onRemove={removeFilterNode}
+            />
           ))}
+          {hasGroups ? (
+            <GroupNestChip groupBy={groupBy} fields={props.fields} onRemove={toggleGroup} />
+          ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
