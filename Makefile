@@ -11,7 +11,7 @@ endif
 spa-build:
 	cd $(SPA_DIR) && npm install --prefer-offline --no-audit --no-fund && npm run build
 
-# Generate apps/*/__types__ and locale/template.pot from app.yaml + sources.
+# Generate apps/*/__types__ (.go + .ts) and locale/template.pot from app.yaml + sources.
 generate:
 	go run ./cmd/kaizengo gen-types
 

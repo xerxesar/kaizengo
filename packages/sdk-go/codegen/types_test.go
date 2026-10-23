@@ -65,4 +65,24 @@ models:
 			t.Fatalf("generated file missing %q:\n%s", want, out)
 		}
 	}
+
+	ts, err := os.ReadFile(filepath.Join(dir, "__types__", "item.ts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tsOut := string(ts)
+	for _, want := range []string{
+		"export type ItemStatus = \"open\" | \"closed\"",
+		"export type Item = {",
+		"title: string // required",
+		"status: ItemStatus | null // default=open",
+		"locked: boolean | null // readonly, default=false",
+		"qty: number | null",
+		"categoryId: string | null",
+		"createdAt: string",
+	} {
+		if !strings.Contains(tsOut, want) {
+			t.Fatalf("generated ts missing %q:\n%s", want, tsOut)
+		}
+	}
 }

@@ -26,9 +26,7 @@ export function appNameFromFile(file: string): string | undefined {
   const parts = path.normalize(file).split(path.sep);
   const i = parts.lastIndexOf("apps");
   if (i < 0 || !parts[i + 1]) return undefined;
-  if (parts[i + 2] === "app.yaml") return parts[i + 1];
-  if (/\.ya?ml$/i.test(parts[parts.length - 1] ?? "")) return parts[i + 1];
-  return undefined;
+  return parts[i + 1];
 }
 
 export function findRepoRoot(startFile: string): string | undefined {

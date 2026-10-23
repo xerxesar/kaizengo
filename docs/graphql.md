@@ -113,6 +113,8 @@ mutation { shareNote(noteId: "…", userId: "…", permission: "read") { userId 
 
 ## Client usage (SPA)
 
+`make generate` (`kaizengo gen-types`) writes a TypeScript record next to each Go model type: `apps/<app>/__types__/<model>.ts`. Views import that type. It follows the GraphQL JSON shape of the record (string dates, nullable optional fields). List and form screens still load data through `useKQuery` / `K*`; the generated file is the type, not a second client.
+
 Always include credentials:
 
 ```ts

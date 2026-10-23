@@ -242,15 +242,14 @@ go run ./cmd/kaizengo gen-types          # all apps
 go run ./cmd/kaizengo gen-types identity # one app
 ```
 
-Each model becomes `apps/<app>/__types__/<model>.go` (package `types`) with:
+Each model becomes two files under `apps/<app>/__types__/`:
 
-- system fields: `ID`, `OrgID`, `AuthorID`, `Deleted`, `CreatedAt`, `UpdatedAt`
-- declared fields (enums get a typed string + `Valid()`)
-- `// Code generated … DO NOT EDIT` header
+- `<model>.go` (package `types`): system fields `ID`, `OrgID`, `AuthorID`, `Deleted`, `CreatedAt`, `UpdatedAt`, plus declared fields. Enums get a typed string and `Valid()`. Dates are `time.Time`.
+- `<model>.ts`: the same record for the SPA. Field names match the GraphQL JSON names (`internalNote`). Dates are `string`. Optional scalars are `T | null`. Enums are string unions. Relation lists are `string[]`.
+
+Both files start with `// Code generated … DO NOT EDIT`. Import the Go struct as `kaizengo/apps/<app>/__types__`. In a view, import the TypeScript type from `../__types__/<model>` (see `apps/hellospec/lib/graphql.ts`).
 
 It also writes `apps/<app>/locale/template.pot` (and `internal/platform/i18n/locale/template.pot` on a full generate) from `app.yaml` keys plus static `t('…')` / `labelKey` / `emptyKey` in the app sources. Translate in `en.po` / `fa.po`; do not edit the `.pot`.
-
-Import `kaizengo/apps/identity/__types__` for generated model structs and enums.
 
 ### Field attributes
 

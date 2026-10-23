@@ -55,6 +55,7 @@ func runGenTypes(args []string) error {
 		} else {
 			for _, m := range spec.Models {
 				fmt.Printf("generated apps/%s/__types__/%s.go\n", name, m.Name)
+				fmt.Printf("generated apps/%s/__types__/%s.ts\n", name, m.Name)
 			}
 		}
 		n, err := codegen.GenerateLocaleTemplate(spec, appDir)

@@ -72,7 +72,7 @@ export function KKanbanBoard<T>(props: KKanbanBoardProps<T>) {
   return (
     <div
       className={cn(
-        'grid auto-cols-[minmax(16rem,1fr)] grid-flow-col gap-4 overflow-x-auto pb-2',
+        'grid auto-cols-[minmax(16rem,1fr)] grid-flow-col gap-4 overflow-x-auto pb-2 max-w-[fit-content] min-w-0',
         props.className,
       )}
     >
@@ -86,7 +86,7 @@ export function KKanbanBoard<T>(props: KKanbanBoardProps<T>) {
         return (
           <section
             key={col.id}
-            className="flex min-h-[12rem] min-w-[16rem] flex-col border border-[var(--kg-border)] bg-[var(--kg-surface-muted,var(--kg-field-hover))]"
+            className="flex min-h-[12rem] w-fit flex-col border border-[var(--kg-border)] bg-[var(--kg-surface-muted,var(--kg-field-hover))]"
           >
             <header className="flex items-center justify-between gap-2 border-b border-[var(--kg-border)] px-4 py-3">
               <h3 className="text-sm font-semibold text-[var(--kg-text)]">{col.label}</h3>

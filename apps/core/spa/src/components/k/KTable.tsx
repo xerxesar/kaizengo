@@ -73,7 +73,7 @@ export function KTableView<T extends Record<string, unknown>>(props: KTableViewP
     >
       <table className="kg-table w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b border-[var(--kg-border)] bg-[var(--kg-surface-muted,var(--kg-field-hover))]">
+          <tr className="border-b border-r border-l border-[var(--kg-border)] bg-[var(--kg-surface-muted,var(--kg-field-hover))]">
             {props.columns.map((col) => (
               <th
                 key={col.key}
@@ -94,7 +94,7 @@ export function KTableView<T extends Record<string, unknown>>(props: KTableViewP
               const tone = GROUP_HEADER_TONES[entry.level % GROUP_HEADER_TONES.length]
               const indent = 16 + entry.level * 28
               return (
-                <tr key={entry.key} className={cn('border-b border-[var(--kg-border)]', tone)}>
+                <tr key={entry.key} className={cn('border-b border-l border-r border-[var(--kg-border)]', tone)}>
                   <td colSpan={colSpan} className="py-2.5 pr-4" style={{ paddingLeft: indent }}>
                     <div className="flex items-baseline gap-2">
                       <span
@@ -119,7 +119,7 @@ export function KTableView<T extends Record<string, unknown>>(props: KTableViewP
             }
             const row = entry.data
             return (
-              <tr key={entry.key} className="border-b border-[var(--kg-border)]">
+              <tr key={entry.key} className="border-b border-l border-r border-[var(--kg-border)]">
                 {props.columns.map((col, colIndex) => (
                   <td
                     key={col.key}

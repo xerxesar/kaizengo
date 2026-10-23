@@ -1,12 +1,6 @@
-export type HellospecGreeting = {
-  id: string
-  orgId: string
-  authorId: string
-  message: string
-  deleted: boolean
-  createdAt: string
-  updatedAt: string
-}
+import type { Greeting } from '../__types__/greeting'
+
+export type HellospecGreeting = Greeting
 
 export type HellospecMenu = {
   id: string

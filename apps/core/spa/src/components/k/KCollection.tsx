@@ -87,18 +87,18 @@ type SharedProps = {
   class?: string
 }
 
-type QueryProps = SharedProps & {
+type QueryProps<T extends Record<string, unknown> = ModelRecord> = SharedProps & {
   query?: string
   model?: string
-  card: (item: ModelRecord) => ReactNode
+  card: (item: T) => ReactNode
   paginated?: boolean | KCollectionPaginationConfig
   searchable?: boolean | KCollectionSearchConfig
   /** Kanban column field (defaults to KSearch groupBy[0]). */
   groupByField?: string
   /** Override table columns from the list view. */
-  columns?: Column<ModelRecord>[]
-  keyOf?: (item: ModelRecord) => string
-  actions?: (item: ModelRecord) => ReactNode
+  columns?: Column<T>[]
+  keyOf?: (item: T) => string
+  actions?: (item: T) => ReactNode
   deletable?: boolean
   chart?: KCollectionChartConfig
   pivot?: KCollectionPivotConfig
@@ -131,7 +131,7 @@ type ItemsProps<T extends Record<string, unknown>> = SharedProps & {
 }
 
 export type KCollectionProps<T extends Record<string, unknown> = ModelRecord> =
-  | QueryProps
+  | QueryProps<T>
   | ItemsProps<T>
 
 type SelectOption = { value: string; label: string }
@@ -214,7 +214,7 @@ function fieldLabelOf(
 }
 
 function defaultCategoryField(
-  columns: Column<ModelRecord>[],
+  columns: Array<{ key: string }>,
   groupBy: string[],
   explicit?: string,
 ): string {
@@ -226,7 +226,7 @@ function defaultCategoryField(
 }
 
 function defaultPivotFields(
-  columns: Column<ModelRecord>[],
+  columns: Array<{ key: string }>,
   groupBy: string[],
   rowFields?: string[],
   colFields?: string[],
@@ -284,12 +284,12 @@ export function KCollection<T extends Record<string, unknown> = ModelRecord>(
   props: KCollectionProps<T>,
 ) {
   if (isQueryMode(props)) {
-    return <KCollectionQuery {...(props as QueryProps)} />
+    return <KCollectionQuery {...(props as QueryProps<T>)} />
   }
   return <KCollectionItems {...(props as ItemsProps<T>)} />
 }
 
-function KCollectionQuery(props: QueryProps) {
+function KCollectionQuery<T extends Record<string, unknown> = ModelRecord>(props: QueryProps<T>) {
   const availableViews = useMemo(
     () => normalizeViews(props.views),
     [props.views],
@@ -319,7 +319,8 @@ function KCollectionQuery(props: QueryProps) {
     onerror: props.onerror,
   })
 
-  const columns = props.columns ?? kq.columns
+  const columns = props.columns ?? (kq.columns as Column<T>[])
+  const items = kq.items as T[]
   const columnField = kq.columnField
   const kanbanColumns = kq.groupColumns
   const pivotFields = defaultPivotFields(
@@ -349,10 +350,10 @@ function KCollectionQuery(props: QueryProps) {
     >
       {view === 'kanban' ? (
         <KKanbanBoard
-          items={kq.items}
+          items={items}
           columns={kanbanColumns}
           columnOf={(item) =>
-            columnField ? String(item[columnField] ?? '') : 'all'
+            columnField ? String((item as ModelRecord)[columnField] ?? '') : 'all'
           }
           nestedGroupField={kq.nestedGroupField || undefined}
           nestedGroupLabel={(value) => {
@@ -364,7 +365,7 @@ function KCollectionQuery(props: QueryProps) {
         />
       ) : view === 'chart' ? (
         <KChartView
-          rows={kq.items}
+          rows={items}
           presets={chartPresets}
           chartId={props.chart?.chartId}
           xField={
@@ -387,7 +388,7 @@ function KCollectionQuery(props: QueryProps) {
         />
       ) : view === 'pivot' ? (
         <KPivotView
-          rows={kq.items}
+          rows={items}
           rowFields={pivotFields.rowFields}
           colFields={pivotFields.colFields}
           measureField={props.pivot?.measureField}
@@ -399,7 +400,7 @@ function KCollectionQuery(props: QueryProps) {
       ) : (
         <KTableView
           columns={columns}
-          rows={kq.items}
+          rows={items}
           groupBy={kq.groupByFields}
           fieldLabel={(field) => fieldLabelOf(kq.searchFields, field)}
           keyOf={props.keyOf}
@@ -410,7 +411,7 @@ function KCollectionQuery(props: QueryProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => void kq.remove(String(row.id))}
+                    onClick={() => void kq.remove(String((row as ModelRecord).id))}
                   >
                     Delete
                   </Button>
