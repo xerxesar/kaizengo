@@ -19,3 +19,4 @@ data/
 .kaizengo/
 .venv/
 /site/
+node_modules
