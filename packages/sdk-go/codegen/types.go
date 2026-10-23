@@ -30,6 +30,14 @@ func GenerateAppTypes(spec appspec.AppSpec, appDir string) error {
 		if err := os.WriteFile(path, src, 0o644); err != nil {
 			return err
 		}
+		ts, err := renderModelTS(spec.Name, model)
+		if err != nil {
+			return fmt.Errorf("model %s ts: %w", model.Name, err)
+		}
+		tsPath := filepath.Join(outDir, model.Name+".ts")
+		if err := os.WriteFile(tsPath, ts, 0o644); err != nil {
+			return err
+		}
 	}
 	return pruneStaleModelFiles(outDir, spec.Models)
 }
@@ -43,13 +51,14 @@ func pruneStaleModelFiles(outDir string, models []appspec.ModelSpec) error {
 	keep := map[string]struct{}{}
 	for _, m := range models {
 		keep[m.Name+".go"] = struct{}{}
+		keep[m.Name+".ts"] = struct{}{}
 	}
 	entries, err := os.ReadDir(outDir)
 	if err != nil {
 		return err
 	}
 	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") {
+		if e.IsDir() || (!strings.HasSuffix(e.Name(), ".go") && !strings.HasSuffix(e.Name(), ".ts")) {
 			continue
 		}
 		if e.Name() == "doc.go" {

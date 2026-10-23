@@ -1,13 +1,14 @@
-import { createSignal } from 'solid-js'
-import { KAppStatus, KForm, KFormField, KTable, t } from '@kaizengo/sdk-solid/ui'
+import { useState } from 'react'
+import { t } from '@/lib'
+import { KAppStatus, KForm, KFormField, KTable } from '@/k'
 
 export default function Users() {
-  const [refreshToken, setRefreshToken] = createSignal(0)
+  const [refreshToken, setRefreshToken] = useState(0)
 
   return (
     <>
       <KForm
-        model="identity.user"
+        command="identity.postUser"
         submitLabel={t('identity.users.create')}
         successMessage={t('identity.created')}
         onsuccess={() => setRefreshToken((n) => n + 1)}
@@ -17,11 +18,11 @@ export default function Users() {
       </KForm>
 
       <KTable
-        model="identity.user"
+        query="identity.users"
         emptyMessage={t('identity.users.empty')}
         deletable={false}
-        class="mt-4"
-        refreshToken={refreshToken()}
+        className="mt-4"
+        refreshToken={refreshToken}
       />
 
       <KAppStatus />

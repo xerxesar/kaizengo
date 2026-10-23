@@ -21,6 +21,42 @@ bindings:
     hint: true
     inForm: true
 
+  - id: search_focus
+    action: element:k-search
+    keys: alt+f
+    labelKey: keymap.shell.search_focus
+    scope: global
+    hint: true
+    inForm: true
+
+  - id: search_filter
+    action: element:k-search-filter
+    keys: alt+shift+f
+    labelKey: keymap.shell.search_filter
+    scope: global
+    hint: true
+
+  - id: search_group
+    action: element:k-search-group
+    keys: alt+g
+    labelKey: keymap.shell.search_group
+    scope: global
+    hint: true
+
+  - id: page_prev
+    action: element:k-page-prev
+    keys: alt+,
+    labelKey: keymap.shell.page_prev
+    scope: global
+    hint: true
+
+  - id: page_next
+    action: element:k-page-next
+    keys: alt+.
+    labelKey: keymap.shell.page_next
+    scope: global
+    hint: true
+
   - id: sign_out
     action: element:sign-out
     keys: alt+q

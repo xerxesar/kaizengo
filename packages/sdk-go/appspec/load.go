@@ -24,15 +24,14 @@ type fileSpec struct {
 	Extensions *bool    `yaml:"extensions"`
 	Schema     string   `yaml:"schema"`
 	Resource   string   `yaml:"resource"`
-	Events     struct {
-		Enabled *bool `yaml:"enabled"`
-	} `yaml:"events"`
 	SPA         *bool        `yaml:"spa"`
 	I18n        *bool        `yaml:"i18n"`
 	AutoInstall *bool        `yaml:"autoInstall"`
 	Nav         NavSpec      `yaml:"nav"`
 	Menus       []MenuSpec   `yaml:"menus"`
 	Models      yaml.Node    `yaml:"models"`
+	Queries     []fileCQRS   `yaml:"queries"`
+	Commands    []fileCQRS   `yaml:"commands"`
 	Views       yaml.Node    `yaml:"views"`
 	Locales     []fileLocale `yaml:"locales"`
 	Extends     []ExtendSpec `yaml:"extends"`
@@ -42,12 +41,24 @@ type fileSpec struct {
 }
 
 type fileModel struct {
-	Name      string      `yaml:"name"`
-	Stream    string      `yaml:"stream"`
-	Aggregate string      `yaml:"aggregate"`
-	Internal  bool        `yaml:"internal"`
-	Fields    []FieldSpec `yaml:"fields"`
-	Search    *SearchSpec `yaml:"search"`
+	Name     string             `yaml:"name"`
+	Internal bool               `yaml:"internal"`
+	Virtual  bool               `yaml:"virtual"`
+	Fields   []FieldSpec        `yaml:"fields"`
+	Search   *SearchSpec        `yaml:"search"`
+	Filters  []FilterPresetSpec `yaml:"filters"`
+	Charts   []ChartPresetSpec  `yaml:"charts"`
+}
+
+type fileCQRS struct {
+	Name    string      `yaml:"name"`
+	List    string      `yaml:"list"`
+	Get     string      `yaml:"get"`
+	Create  string      `yaml:"create"`
+	Update  string      `yaml:"update"`
+	Delete  string      `yaml:"delete"`
+	Args    []FieldSpec `yaml:"args"`
+	Returns string      `yaml:"returns"`
 }
 
 type fileLocale struct {
@@ -125,15 +136,8 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 		Schema:       raw.Schema,
 		Resource:     raw.Resource,
 		EnableAuth:   true,
-		EnableEvents: true,
 		Nav:          raw.Nav,
 		Menus:        raw.Menus,
-	}
-	if raw.Events.Enabled != nil {
-		if !*raw.Events.Enabled {
-			return AppSpec{}, fmt.Errorf("events.enabled: false is not supported; all apps are event-sourced")
-		}
-		spec.EnableEvents = true
 	}
 	if raw.Extensions != nil {
 		spec.EnableExtensions = *raw.Extensions
@@ -142,7 +146,8 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 	if raw.SPA != nil {
 		spec.EnableSPA = *raw.SPA
 	}
-	spec.EnableI18n = true
+	// i18n only when the app declares locales (or sets i18n: explicitly).
+	spec.EnableI18n = len(raw.Locales) > 0
 	if raw.I18n != nil {
 		spec.EnableI18n = *raw.I18n
 	}
@@ -160,12 +165,24 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 	}
 	for _, m := range models {
 		spec.Models = append(spec.Models, ModelSpec{
-			Name:      m.Name,
-			Stream:    m.Stream,
-			Aggregate: m.Aggregate,
-			Internal:  m.Internal,
-			Fields:    m.Fields,
-			Search:    m.Search,
+			Name:     m.Name,
+			Internal: m.Internal,
+			Virtual:  m.Virtual,
+			Fields:   m.Fields,
+			Search:   m.Search,
+			Filters:  m.Filters,
+			Charts:   m.Charts,
+		})
+	}
+	for _, q := range raw.Queries {
+		spec.Queries = append(spec.Queries, QuerySpec{
+			Name: q.Name, List: q.List, Get: q.Get, Args: q.Args, Returns: q.Returns,
+		})
+	}
+	for _, c := range raw.Commands {
+		spec.Commands = append(spec.Commands, CommandSpec{
+			Name: c.Name, Create: c.Create, Update: c.Update, Delete: c.Delete,
+			Args: c.Args, Returns: c.Returns,
 		})
 	}
 	if appRoot != "" {

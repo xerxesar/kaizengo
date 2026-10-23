@@ -1,6 +1,7 @@
 package acl
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -14,12 +15,57 @@ const (
 	KindMenu     ResourceKind = "menu"
 	KindView     ResourceKind = "view"
 	KindQuery    ResourceKind = "query"
+	KindCommand  ResourceKind = "command"
 	KindMutation ResourceKind = "mutation"
 	KindEvent    ResourceKind = "event"
 	KindNav      ResourceKind = "nav"
 	KindApp      ResourceKind = "app"
 	KindAPI      ResourceKind = "api"
 )
+
+// IsCallStyle reports kinds where access is binary (allow/deny invoke);
+// policy actions are not meaningful for these surfaces.
+func IsCallStyle(kind ResourceKind) bool {
+	switch kind {
+	case KindQuery, KindCommand, KindView:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsCatalogKind reports kinds that appear in the client ACL resource catalog.
+// Menu and nav are not cataloged — visibility is implied from view access.
+func IsCatalogKind(kind ResourceKind) bool {
+	switch kind {
+	case KindQuery, KindCommand, KindView, KindMutation, KindApp, KindAPI, KindEvent:
+		return true
+	default:
+		return false
+	}
+}
+
+// InferKind classifies a resource id (exported for seeds and policy UIs).
+func InferKind(resource string) ResourceKind {
+	return inferKind(resource)
+}
+
+// ParseKind validates a kind string; empty returns ("", nil).
+func ParseKind(s string) (ResourceKind, error) {
+	s = strings.TrimSpace(strings.ToLower(s))
+	if s == "" {
+		return "", nil
+	}
+	k := ResourceKind(s)
+	switch k {
+	case KindModel, KindView, KindQuery, KindCommand, KindMutation, KindEvent, KindApp, KindAPI:
+		return k, nil
+	case KindMenu, KindNav:
+		return "", fmt.Errorf("kind %q is not used; grant view access instead (menus/nav are implied)", s)
+	default:
+		return "", fmt.Errorf("unknown resource kind %q", s)
+	}
+}
 
 // ResourceDescriptor is one registered securable target for ACL policies.
 type ResourceDescriptor struct {
@@ -30,6 +76,7 @@ type ResourceDescriptor struct {
 	Label       string
 	Description string
 	Actions     []string
+	Fields      []string // optional field names for policy authoring (query/command)
 	Surface     string
 }
 
@@ -91,13 +138,22 @@ func (r *Registry) Register(desc ResourceDescriptor) {
 	if desc.Kind == "" {
 		desc.Kind = inferKind(desc.Resource)
 	}
+	// Models, menus, and nav are not client ACL catalog entries.
+	// Models: persistence-only. Menus/nav: implied from view access.
+	if desc.Kind == KindModel || desc.Kind == KindMenu || desc.Kind == KindNav {
+		return
+	}
 	if desc.Name == "" {
 		desc.Name = inferName(desc.Resource, desc.Kind)
 	}
 	if desc.Label == "" {
 		desc.Label = desc.Resource
 	}
-	desc.Actions = normalizeActions(desc.Actions)
+	if IsCallStyle(desc.Kind) {
+		desc.Actions = nil
+	} else {
+		desc.Actions = normalizeActions(desc.Actions)
+	}
 	if desc.Surface == "" {
 		desc.Surface = "internal"
 	}
@@ -107,7 +163,10 @@ func (r *Registry) Register(desc ResourceDescriptor) {
 
 	existing, ok := r.byKey[desc.Resource]
 	if ok {
-		desc.Actions = mergeActions(existing.Actions, desc.Actions)
+		if !IsCallStyle(desc.Kind) {
+			desc.Actions = mergeActions(existing.Actions, desc.Actions)
+		}
+		desc.Fields = mergeActions(existing.Fields, desc.Fields)
 		if desc.Label == desc.Resource && existing.Label != "" {
 			desc.Label = existing.Label
 		}
@@ -115,6 +174,7 @@ func (r *Registry) Register(desc ResourceDescriptor) {
 			desc.Description = existing.Description
 		}
 	}
+	desc.Fields = mergeActions(nil, desc.Fields)
 	r.byKey[desc.Resource] = desc
 	for _, action := range desc.Actions {
 		r.trackAction(action)
@@ -247,6 +307,8 @@ func inferKind(resource string) ResourceKind {
 		return KindQuery
 	case "mutation":
 		return KindMutation
+	case "command":
+		return KindCommand
 	case "event":
 		return KindEvent
 	case "nav":
@@ -270,7 +332,7 @@ func inferName(resource string, kind ResourceKind) string {
 		if len(parts) >= 2 {
 			return parts[1]
 		}
-	case KindMenu, KindView, KindQuery, KindMutation, KindEvent, KindNav, KindAPI:
+	case KindMenu, KindView, KindQuery, KindCommand, KindMutation, KindEvent, KindNav, KindAPI:
 		if len(parts) >= 3 {
 			return strings.Join(parts[2:], ".")
 		}
@@ -291,12 +353,12 @@ func AppResource(app string) string {
 	return strings.TrimSpace(app)
 }
 
-// MenuResource identifies an in-app menubar entry (app.yaml menus:).
+// MenuResource identifies an in-app menubar entry (legacy id; not cataloged — implied from views).
 func MenuResource(app, menuID string) string {
 	return strings.TrimSpace(app) + ".menu." + strings.TrimSpace(menuID)
 }
 
-// NavResource identifies the shell Apps dropdown entry (app.yaml nav:).
+// NavResource identifies the shell Apps dropdown entry (legacy id; not cataloged — implied from views).
 func NavResource(app string) string {
 	return strings.TrimSpace(app) + ".nav"
 }
@@ -316,7 +378,45 @@ func MutationResource(app, mutationName string) string {
 	return strings.TrimSpace(app) + ".mutation." + strings.TrimSpace(mutationName)
 }
 
+// CommandResource identifies a CQRS command GraphQL surface.
+func CommandResource(app, commandName string) string {
+	return strings.TrimSpace(app) + ".command." + strings.TrimSpace(commandName)
+}
+
 // EventResource identifies an event stream/type.
 func EventResource(app, eventName string) string {
 	return strings.TrimSpace(app) + ".event." + strings.TrimSpace(eventName)
+}
+
+var (
+	appViewsMu sync.RWMutex
+	appViews   = map[string]map[string]struct{}{}
+)
+
+// TrackView records that an app exposes a named view (for menu/nav implication).
+func TrackView(app, viewName string) {
+	app = strings.TrimSpace(app)
+	viewName = strings.TrimSpace(viewName)
+	if app == "" || viewName == "" {
+		return
+	}
+	appViewsMu.Lock()
+	defer appViewsMu.Unlock()
+	if appViews[app] == nil {
+		appViews[app] = map[string]struct{}{}
+	}
+	appViews[app][viewName] = struct{}{}
+}
+
+// ViewsForApp returns tracked view names for an app (sorted).
+func ViewsForApp(app string) []string {
+	appViewsMu.RLock()
+	defer appViewsMu.RUnlock()
+	set := appViews[strings.TrimSpace(app)]
+	out := make([]string, 0, len(set))
+	for name := range set {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
 }

@@ -4,6 +4,10 @@
 
 GraphQL is a **runtime registry** on `host.GQL`. Apps register fields in `Setup`. Core mounts a single `/graphql` handler after all apps have set up — **core does not import other apps**.
 
+This is the **north–south** API (browser / Solid SDK). Cross-app or out-of-process capability calls are a separate lane — planned as gRPC via go-plugin; see [grpc-plugins.md](grpc-plugins.md). Do not use GraphQL as the east–west protocol between services.
+
+**CQRS apps** (`queries:` / `commands:` in `app.yaml`) expose only named fields (e.g. `hellospecGreetings`, `hellospecPostGreeting`). Generic `createX` / `listX` model CRUD is omitted. See [Go SDK → CQRS](internals/go-sdk.md).
+
 ```go
 // in your app Setup — do not edit apps/core for this
 host.GQL.RegisterQuery("myField", &graphql.Field{
@@ -56,13 +60,14 @@ query { search(q: "hello") { id title snippet } }
 query { me { id email name roles orgId } }
 ```
 
-**Identity** (`apps/identity`)
+**Identity** (`apps/identity` — CQRS public API)
 
 ```graphql
 query { identityOrganizations { id name slug } }
 query { identityOrgUnits { id name type parentId } }
 query { identityUsers { id email name status } }
 query { identityMemberships { id userId orgUnitId role } }
+mutation { identityPostOrgUnit(name: "…", type: "team") { id name type } }
 ```
 
 **Counter** (`apps/counter` — also requires permissions)
@@ -71,6 +76,16 @@ query { identityMemberships { id userId orgUnitId role } }
 query { counter }
 mutation { addCounter(by: 1) }
 mutation { resetCounter }
+```
+
+**HelloSpec** (`apps/hellospec` — CQRS public API)
+
+```graphql
+query { hellospecGreetings { id message mood } }
+query { hellospecGreeting(id: "…") { id message } }
+mutation { hellospecPostGreeting(message: "Hi", mood: "happy") { id message } }
+mutation { hellospecReviseGreeting(id: "…", message: "Hello") { id } }
+mutation { hellospecDiscardGreeting(id: "…") }
 ```
 
 **Settings**
@@ -98,6 +113,8 @@ mutation { shareNote(noteId: "…", userId: "…", permission: "read") { userId 
 
 ## Client usage (SPA)
 
+`make generate` (`kaizengo gen-types`) writes a TypeScript record next to each Go model type: `apps/<app>/__types__/<model>.ts`. Views import that type. It follows the GraphQL JSON shape of the record (string dates, nullable optional fields). List and form screens still load data through `useKQuery` / `K*`; the generated file is the type, not a second client.
+
 Always include credentials:
 
 ```ts
@@ -124,3 +141,9 @@ Keep mutable state in your app package, `Provide` it on the host if other apps n
 KaizenGo_APPS=core,identity ./bin/server
 # { counter } → Cannot query field "counter"
 ```
+
+## Related
+
+- [grpc-plugins.md](grpc-plugins.md) — east–west capabilities (go-plugin + gRPC)
+- [capabilities.md](capabilities.md) — `provides` / `uses`
+- [extension-platform.md](extension-platform.md) — hooks and composition

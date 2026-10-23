@@ -41,18 +41,18 @@ func TestMatchResource(t *testing.T) {
 
 func TestEvaluateCatalogDenyWithoutAllow(t *testing.T) {
 	entries := []Entry{{
-		ID: "1", Effect: EffectDeny, Resource: "identity.menu.users", Actions: []string{ActRead},
+		ID: "1", Effect: EffectDeny, Kind: KindView, Resource: "identity.view.Users",
 		Fields: []string{FieldsAll}, Priority: 2000, Active: true,
 	}}
 	p := PrincipalContext{Roles: []string{"member"}}
 
-	deny := EvaluateCatalog(entries, Check{Resource: "identity.menu.users", Action: ActRead}, p)
+	deny := EvaluateCatalog(entries, Check{Resource: "identity.view.Users", Action: ActRead}, p)
 	if deny.Allowed {
-		t.Fatal("expected users menu denied")
+		t.Fatal("expected Users view denied")
 	}
-	open := EvaluateCatalog(entries, Check{Resource: "identity.menu.overview", Action: ActRead}, p)
+	open := EvaluateCatalog(entries, Check{Resource: "identity.view.Overview", Action: ActRead}, p)
 	if !open.Allowed {
-		t.Fatal("expected overview menu visible when no policy matches")
+		t.Fatal("expected Overview view visible when no policy matches")
 	}
 }
 

@@ -19,19 +19,11 @@ msgid "nav.auth"
 msgstr ""
 
 #: app.yaml
-msgid "nav.core"
-msgstr ""
-
-#: app.yaml
 msgid "nav.hellospec"
 msgstr ""
 
 #: app.yaml
 msgid "nav.identity"
-msgstr ""
-
-#: app.yaml
-msgid "nav.inventory"
 msgstr ""
 
 #: app.yaml
@@ -48,5 +40,9 @@ msgstr ""
 
 #: app.yaml
 msgid "nav.typesense"
+msgstr ""
+
+#: app.yaml
+msgid "shell.home"
 msgstr ""
 

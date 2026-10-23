@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"kaizengo/packages/sdk-go/acl"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,8 +33,9 @@ type SecurityEntrySpec struct {
 	Name     string       `yaml:"name"`
 	Role     string       `yaml:"role"`
 	Effect   string       `yaml:"effect"` // allow|deny
+	Kind     string       `yaml:"kind"`   // model|query|command|menu|view|nav|…
 	Resource string       `yaml:"resource"`
-	Actions  []string     `yaml:"actions"`
+	Actions  []string     `yaml:"actions"` // model/app/api only; omit for call-style kinds
 	Fields   FieldsSpec   `yaml:"fields"`
 	Domain   [][]string   `yaml:"domain"`
 	Priority int          `yaml:"priority"`
@@ -134,6 +137,19 @@ func (s SecuritySpec) validate() error {
 		}
 		if effect != "allow" && effect != "deny" {
 			return fmt.Errorf("%s: effect must be allow or deny", loc)
+		}
+		kind, err := acl.ParseKind(e.Kind)
+		if err != nil {
+			return fmt.Errorf("%s: %w", loc, err)
+		}
+		if kind == "" {
+			kind = acl.InferKind(e.Resource)
+		}
+		if kind == "" {
+			return fmt.Errorf("%s: kind is required (or use a classifiable resource id)", loc)
+		}
+		if acl.IsCallStyle(kind) && len(e.Actions) > 0 {
+			return fmt.Errorf("%s: actions are not used for %s resources (allow/deny only)", loc, kind)
 		}
 		key := e.Name + "\x00" + e.Role
 		if _, ok := seenEntries[key]; ok {

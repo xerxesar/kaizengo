@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 const greetingPrefix = "Hello, "

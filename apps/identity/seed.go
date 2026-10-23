@@ -8,7 +8,7 @@ import (
 
 	idtypes "kaizengo/apps/identity/__types__"
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 
 	"github.com/google/uuid"
 )
@@ -19,7 +19,7 @@ const (
 )
 
 func seed(_ *module.Host, events *engine.EventsSetup) error {
-	ctx := context.Background()
+	ctx := engine.WithInternal(context.Background())
 	if err := seedDemo(ctx, events.Models); err != nil {
 		return err
 	}

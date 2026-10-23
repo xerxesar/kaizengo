@@ -1,13 +1,13 @@
 package auth
 
-//go:generate go run ../../cmd/godino gen-types auth
+//go:generate go run ../../cmd/kaizengo gen-types auth
 
 import (
 	"context"
 
 	permsvc "kaizengo/apps/permissions/service"
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func init() {

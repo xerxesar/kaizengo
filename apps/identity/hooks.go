@@ -3,7 +3,7 @@ package identity
 import (
 	"strings"
 
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func userHooks() engine.Hooks {

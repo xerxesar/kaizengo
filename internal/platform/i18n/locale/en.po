@@ -29,7 +29,7 @@ msgid "nav.hello"
 msgstr "Hello"
 
 msgid "nav.hellospec"
-msgstr "HelloSpec"
+msgstr "HelloSpecs"
 
 msgid "nav.appman"
 msgstr "Apps"

@@ -1,10 +1,10 @@
 package status
 
-//go:generate go run ../../cmd/godino gen-types status
+//go:generate go run ../../cmd/kaizengo gen-types status
 
 import (
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func init() {

@@ -1,24 +1,29 @@
 package appman
 
-//go:generate go run ../../cmd/godino gen-types appman
+//go:generate go run ../../cmd/kaizengo gen-types appman
 
 import (
+	"kaizengo/internal/engine"
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/packages/sdk-go/appspec"
 )
 
 func init() {
-	module.Register(engine.New(engine.Options{
+	app := engine.New(engine.Options{
 		AppName: "appman",
-		Version: "0.1.0",
+		Version: "0.2.0",
 		Setup: func(host *module.Host, events *engine.EventsSetup) error {
-			_ = events
 			mgr, err := engine.ManagerFromHost(host)
 			if err != nil {
 				return err
 			}
-			registerGQL(host, mgr)
-			return nil
+			spec, err := appspec.LoadApp("appman")
+			if err != nil {
+				return err
+			}
+			return registerAppModel(host, spec, mgr)
 		},
-	}))
+	})
+	registerCommands(app)
+	module.Register(app)
 }

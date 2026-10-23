@@ -1,10 +1,6 @@
-export type AuthUser = {
-  id: string
-  orgId: string
-  email: string
-  name: string
-  roles: string[]
-}
+import type { AuthUser } from './auth-context'
+
+export type { AuthUser }
 
 export async function fetchMe(): Promise<AuthUser | null> {
   const res = await fetch('/auth/me', { credentials: 'include' })

@@ -1,6 +1,6 @@
 package permissions
 
-//go:generate go run ../../cmd/godino gen-types permissions
+//go:generate go run ../../cmd/kaizengo gen-types permissions
 
 import (
 	"context"
@@ -11,23 +11,21 @@ import (
 	"kaizengo/apps/permissions/service"
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
-	"kaizengo/packages/sdk-go/app"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/app"
+	"kaizengo/internal/engine"
 )
 
 func init() {
-	module.Register(&App{})
+	module.Register(engine.New(engine.Options{
+		AppName: appName,
+		Version: appVersion,
+		Setup:   setup,
+	}))
 }
 
 const appName = "permissions"
 const appVersion = "0.2.0"
 const seedAuthor = "00000000-0000-0000-0000-000000000001"
-
-type App struct{}
-
-func (a *App) Manifest() module.Manifest {
-	return app.ManifestFromSpec(app.MustAppSpec(appName), appVersion)
-}
 
 type engineStore struct {
 	models *engine.ModelRegistry
@@ -149,6 +147,7 @@ func (s engineStore) ListEntriesForUser(ctx context.Context, userID, orgID strin
 			RoleID:   rid,
 			RoleName: roleName[rid],
 			Effect:   fmt.Sprint(rec["effect"]),
+			Kind:     acl.ResourceKind(strings.TrimSpace(fmt.Sprint(rec["kind"]))),
 			Resource: fmt.Sprint(rec["resource"]),
 			Actions:  actions,
 			Fields:   fields,
@@ -192,8 +191,11 @@ func (s engineStore) EnsureRole(ctx context.Context, orgID, authorID, name, labe
 	return fmt.Sprint(rec["id"]), nil
 }
 
-func (s engineStore) EnsureACL(ctx context.Context, orgID, authorID, roleID, name, effect, resource, actions, fields, domain string, priority int) error {
+func (s engineStore) EnsureACL(ctx context.Context, orgID, authorID, roleID, name, effect, kind, resource, actions, fields, domain string, priority int) error {
 	ictx := engine.WithInternal(ctx)
+	if strings.TrimSpace(kind) == "" {
+		kind = string(acl.InferKind(resource))
+	}
 	recs, err := s.models.List(ictx, orgID, "acl_entry")
 	if err != nil {
 		return err
@@ -202,6 +204,7 @@ func (s engineStore) EnsureACL(ctx context.Context, orgID, authorID, roleID, nam
 		if fmt.Sprint(r["name"]) == name && fmt.Sprint(r["roleId"]) == roleID {
 			_, err := s.models.Update(ictx, orgID, "acl_entry", fmt.Sprint(r["id"]), map[string]any{
 				"effect":   effect,
+				"kind":     kind,
 				"resource": resource,
 				"actions":  actions,
 				"fields":   fields,
@@ -216,6 +219,7 @@ func (s engineStore) EnsureACL(ctx context.Context, orgID, authorID, roleID, nam
 		"name":     name,
 		"roleId":   roleID,
 		"effect":   effect,
+		"kind":     kind,
 		"resource": resource,
 		"actions":  actions,
 		"fields":   fields,
@@ -271,29 +275,18 @@ func (s engineStore) UserHasRole(ctx context.Context, orgID, userID, roleID stri
 	return false, nil
 }
 
-func (a *App) Setup(host *module.Host) error {
-	spec := app.MustAppSpec(appName)
-	if spec.EnableI18n {
-		app.MustLoadLocales(appName)
-	}
-	events, err := engine.SetupEvents(host, appName, spec, nil)
-	if err != nil {
-		return err
-	}
-	host.Provide(engine.ModelsKey(appName), events.Models)
-
+func setup(host *module.Host, events *engine.EventsSetup) error {
 	svc := service.New(engineStore{models: events.Models})
 	host.Provide(service.Name, svc)
-	engine.RegisterAppResources(spec)
 	registerGQL(host)
 
-	if err := a.seed(host, svc); err != nil {
+	if err := seed(host, svc); err != nil {
 		log.Printf("permissions: seed: %v", err)
 	}
 	return nil
 }
 
-func (a *App) seed(host *module.Host, perm *service.Service) error {
+func seed(host *module.Host, perm *service.Service) error {
 	users, err := engine.ModelsFromHost(host, "identity")
 	if err != nil {
 		return err
@@ -307,8 +300,4 @@ func (a *App) seed(host *module.Host, perm *service.Service) error {
 	userID := fmt.Sprint(rec["id"])
 	orgID := fmt.Sprint(rec["orgId"])
 	return perm.SeedDefaults(ctx, orgID, userID)
-}
-
-func (a *App) Mount(host *module.Host) error {
-	return nil
 }

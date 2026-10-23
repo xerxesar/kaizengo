@@ -9,7 +9,7 @@ These are the usual next stops after that.
 - **More fields** — edit `app.yaml`, add a SQL column on the read-model table, run `make generate`.
 - **Enums** — `type: enum` plus `values:`. Generated Go gets a typed string and `Valid()`.
 - **Search** — under the model, set `search.collection` and `search.fields` (see `hellospec`).
-- **i18n** — add `locale/fa.po` (and a `locales:` entry) for RTL; `t('todo.empty')` in Svelte and `i18n.T("todo.empty")` in Go share the same catalog.
+- **i18n** — add `locale/fa.po` (and a `locales:` entry) for RTL; `t('todo.empty')` in Solid and `i18n.T("todo.empty")` in Go share the same catalog.
 
 ## Platform apps you should not reimplement
 
@@ -29,9 +29,9 @@ The [advanced tutorial](advanced/orm-and-services.md) covers `Setup`, `ModelRegi
 
 Addons that listen to *other* apps use `extension.Register` / `extends:` in `app.yaml` (`apps/audit` logs every model mutation).
 
-## Internals & SDKs
+## Development ## Development & technical docs reference
 
-[Internals & SDKs](../internals/index.md) explains boot order, the Host bag, and both SDKs with code from `hellospec`. Deeper package notes: [Go SDK](../internals/go-sdk.md), [Solid SDK](../internals/solid-sdk.md).
+[Development](../development/index.md) covers platform and SDK **usage**. [Internals](../internals/index.md) explain boot order, the Host bag, and data-flow maps. Deeper package notes: [Go SDK](../internals/go-sdk.md), [Solid SDK](../internals/solid-sdk.md).
 
 ## Reference in this repo
 
@@ -40,7 +40,7 @@ Addons that listen to *other* apps use `extension.Register` / `extends:` in `app
 | `apps/hellospec` | Smallest complete spec app + hooks |
 | `apps/identity` | Several models, menus, and views |
 | `apps/auth` | Setup/Mount for login |
-| `packages/sdk-go/engine` | What `engine.New` actually wires |
+| `internal/engine` | What `engine.New` actually wires |
 | `packages/sdk-solid/ui` | `KTable`, `KForm`, layout, i18n |
 
 ## Load a subset

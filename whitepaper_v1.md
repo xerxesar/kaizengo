@@ -1027,7 +1027,7 @@ Language alone is insufficient for operations. Calendars, first day of week, num
 
 Locale packs are gettext **`.po` files** under `apps/<name>/locale/` and embedded platform catalogs for nav keys. Apps load catalogs in `Setup`; the shell and modules consume translations through GraphQL `i18n` and `@kaizengo/ui` helpers (`fetchI18n`, `syncDocumentLocale`). Farsi registers as RTL and flips `document.documentElement.dir`.
 
-Shared presentation lives in **`@kaizengo/ui`**: layout, tables, forms, and themes inspired by IBM Carbon (plus a Kaizen brand theme). Mounted apps use a common `Layout` contract so industry products share one operational look without forking the shell. Details: `docs/platform.md`, `docs/svelte.md`.
+Shared presentation lives in **`@kaizengo/sdk-solid`**: layout, tables, forms, and themes inspired by IBM Carbon (plus a Kaizen brand theme). Mounted apps use a common `Layout` contract so industry products share one operational look without forking the shell. Details: `docs/development/platform.md`, `docs/internals/solid-sdk.md`.
 
 ---
 

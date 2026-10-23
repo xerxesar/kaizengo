@@ -10,7 +10,7 @@
 
 | Today | Limit |
 |-------|-------|
-| `app.yaml` + `packages/sdk-go/engine` | Spec-first CRUD within one app |
+| `app.yaml` + `internal/engine` | Spec-first CRUD within one app |
 | Per-app `Hooks` in `module.go` | Only the owning app can register |
 | `host.Provide` / `Lookup` | Ad hoc Go coupling |
 | GraphQL flat schema | Public API, but no formal `uses` / `provides` |
@@ -23,7 +23,7 @@ We cannot install `typesense` and have every list view upgrade automatically. We
 
 ## Design principles
 
-1. **Contracts over internals** — publish GraphQL fields, UI components, lifecycle point names; never export `service/store` packages to other apps.
+1. **Contracts over internals** — publish GraphQL fields (browser), gRPC/protobuf capabilities ([go-plugin plan](grpc-plugins.md)), UI components, lifecycle point names; never export `service/store` packages to other apps.
 2. **Composition over inheritance** — ordered hook chains and slot injection, not class/view xpath patching.
 3. **Platform for horizontal concerns** — search, audit, notifications, metrics → `internal/platform/*` drivers + blank-import.
 4. **Declare intent in yaml** — `provides`, `uses`, `search`, `extensionPoints` for validation and docs.
@@ -127,7 +127,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 
 **Deliverables**
 
-- [ ] This plan reviewed and linked from [sdk.md](sdk.md) and [platform.md](platform.md)
+- [ ] This plan reviewed and linked from [internals/go-sdk.md](internals/go-sdk.md) and [development/platform.md](development/platform.md)
 - [ ] Glossary in [apps.md](apps.md): *capability*, *extension point*, *addon*, *provider*
 - [ ] Inventory of existing cross-app calls (Notes→users, counter→permissions, etc.)
 
@@ -157,7 +157,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 
 **Deliverables**
 
-- [ ] New package `packages/sdk-go/extension`:
+- [ ] New package `internal/extension`:
   ```go
   func Register(point string, priority int, fn func(ext.Context) error)
   func Run(point string, hc ext.Context) error  // sorted by priority, short-circuit on error
@@ -170,7 +170,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
   ```
 - [ ] Keep existing per-app `engine.Hooks` (app-local) — run **before** global extensions or document order
 - [ ] Proof addon: `apps/audit` (or test module) registers `model.*.afterCreate` → structured log
-- [ ] Document extension point catalog in [sdk.md](sdk.md)
+- [ ] Document extension point catalog in [internals/go-sdk.md](internals/go-sdk.md)
 
 **Exit criteria:** audit addon logs greeting create/delete without editing `hellospec/hooks.go`.
 
@@ -250,7 +250,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 ## Non-goals (explicit)
 
 - Odoo `_inherit` on models or views
-- Runtime patching of Go types or Svelte AST
+- Runtime patching of Go types or Solid AST
 - Cross-app direct database joins
 - Automatic GraphQL schema merging / federation per app
 - Extension handlers in interpreted scripts (WASM/JS) — Go only for v1
@@ -287,7 +287,7 @@ Apps import from `@kaizengo/sdk-solid`, not from `apps/identity/spa`.
 2. **Notes** uses `@kaizengo/sdk-solid/identity` — no local `IdentityUser` type copy.
 3. **Typesense addon** indexes hellospec + notes via wildcard hook + yaml `search:` — no edits to those apps’ hooks.go.
 4. **New app** `uses: [identity.users]` fails fast if identity not in `KaizenGo_APPS`.
-5. Docs: a third-party developer can build an addon from [sdk.md](sdk.md) + this plan alone.
+5. Docs: a third-party developer can build an addon from [internals/go-sdk.md](internals/go-sdk.md) + this plan alone.
 
 ---
 
@@ -301,11 +301,19 @@ Defer Phase 4 (search platform) until extension registry is proven — search is
 
 ---
 
+## Out-of-process capabilities
+
+In-tree apps keep `host.Provide` / `Lookup` and GraphQL. When an extension must run as a **separate binary**, east–west calls use **gRPC via [hashicorp/go-plugin](https://github.com/hashicorp/go-plugin)**. GraphQL stays north–south (SPA); hooks stay in-process; plugins implement `provides` as protobuf services.
+
+Full plan: [grpc-plugins.md](grpc-plugins.md).
+
+---
+
 ## Open questions
 
 1. **Hook order:** app-local hooks vs global extensions — local first or global first?
 2. **After* errors:** ignore (today) vs collect vs fail — align for extensions?
-3. **Capability versioning:** `identity.users/v2` when GraphQL breaking change?
+3. **Capability versioning:** `identity.users/v2` when GraphQL or protobuf breaking change?
 4. **Opt-in vs opt-out** for wildcard extensions on sensitive apps (identity, permissions)?
 
-Track decisions in this doc as ADR-style bullets when resolved.
+Track decisions in this doc as ADR-style bullets when resolved. See also open questions on [grpc-plugins.md](grpc-plugins.md).

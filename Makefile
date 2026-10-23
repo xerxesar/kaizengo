@@ -11,9 +11,9 @@ endif
 spa-build:
 	cd $(SPA_DIR) && npm install --prefer-offline --no-audit --no-fund && npm run build
 
-# Generate apps/*/__types__ and locale/template.pot from app.yaml + sources.
+# Generate apps/*/__types__ (.go + .ts) and locale/template.pot from app.yaml + sources.
 generate:
-	go run ./cmd/godino gen-types
+	go run ./cmd/kaizengo gen-types
 
 build: generate spa-build
 	go build -o bin/server ./cmd/server
@@ -21,10 +21,26 @@ build: generate spa-build
 run: generate spa-build
 	go run ./cmd/server
 
-spa-dev:
+dev-spa-core:
 	cd $(SPA_DIR) && npm run dev
 
 # Standard dev: Go (:8080) + core Vite (:5173). App views hot-reload via Vite.
+dev-server: generate
+	@echo ""
+	@echo "  API     → http://localhost:8080 (proxied via Vite)"
+	@echo ""
+	@trap 'kill 0' INT TERM EXIT; \
+	go run ./cmd/server & \
+	wait
+
+dev-apps: generate
+	@echo ""
+	@echo "  Shell   → http://localhost:5173/app/"
+	@echo ""
+	@trap 'kill 0' INT TERM EXIT; \
+	(cd $(SPA_DIR) && npm run dev) & \
+	wait
+
 dev: generate
 	@echo ""
 	@echo "  Shell   → http://localhost:5173/app/"
@@ -36,7 +52,7 @@ dev: generate
 	wait
 
 cli:
-	go build -o bin/kaizengo ./cmd/godino
+	go build -o bin/kaizengo ./cmd/kaizengo
 
 # Usage: make new-app NAME=notes TYPE=solid EXTRA='--with-graphql'
 new-app: cli
@@ -45,7 +61,7 @@ new-app: cli
 tidy:
 	go mod tidy
 
-# Local PostgreSQL for event-sourced apps (notes, hello, …).
+# Local PostgreSQL for model-backed apps.
 db-up:
 	docker compose up -d postgres
 	@if [ ! -f .env ]; then cp .env.example .env && echo "Created .env from .env.example"; fi

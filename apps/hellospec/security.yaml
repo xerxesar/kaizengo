@@ -1,16 +1,44 @@
-# HelloSpec ACL demo: member may read/create greetings (message+mood),
-# update/delete only own rows; internalNote denied except own-record read.
+# HelloSpec ACL demo: member may call CQRS queries/commands (binary allow/deny).
+# Model ACL still applies for field masking when commands write through ModelRegistry.
 roles:
   - name: member
     label: Member
 
-disable:
-  - member-hellospec-greeting
-
 entries:
+  - name: hellospec-member-query-list
+    role: member
+    effect: allow
+    kind: query
+    resource: hellospec.query.hellospecGreetings
+
+  - name: hellospec-member-query-get
+    role: member
+    effect: allow
+    kind: query
+    resource: hellospec.query.hellospecGreeting
+
+  - name: hellospec-member-cmd-post
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecPostGreeting
+
+  - name: hellospec-member-cmd-revise
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecReviseGreeting
+
+  - name: hellospec-member-cmd-discard
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecDiscardGreeting
+
   - name: hellospec-member-read
     role: member
     effect: allow
+    kind: model
     resource: hellospec.greeting
     actions: [read]
     fields: [message, mood]
@@ -18,6 +46,7 @@ entries:
   - name: hellospec-member-create
     role: member
     effect: allow
+    kind: model
     resource: hellospec.greeting
     actions: [create]
     fields: [message, mood, internalNote]
@@ -25,6 +54,7 @@ entries:
   - name: hellospec-member-update-own
     role: member
     effect: allow
+    kind: model
     resource: hellospec.greeting
     actions: [update]
     fields: [message, mood]
@@ -33,6 +63,7 @@ entries:
   - name: hellospec-member-delete-own
     role: member
     effect: allow
+    kind: model
     resource: hellospec.greeting
     actions: [delete]
     fields: "*"
@@ -41,6 +72,7 @@ entries:
   - name: hellospec-member-deny-internal-note
     role: member
     effect: deny
+    kind: model
     resource: hellospec.greeting
     actions: [read, update]
     fields: [internalNote]
@@ -50,6 +82,7 @@ entries:
   - name: hellospec-member-allow-read-own-internal-note
     role: member
     effect: allow
+    kind: model
     resource: hellospec.greeting
     actions: [read]
     fields: [internalNote]

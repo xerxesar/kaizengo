@@ -2,7 +2,7 @@ package typesense
 
 import (
 	"kaizengo/internal/platform/search"
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/extension"
 )
 
 func indexDocument(ctx extension.Context) error {

@@ -1,20 +1,18 @@
-import { createEffect, createMemo, createSignal, For, on, onMount, Show } from 'solid-js'
+import { useEffect, useMemo, useState } from 'react'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import {
-  Alert,
-  Button,
-  Card,
-  FormActions,
-  FormField,
-  Input,
-  KAppStatus,
-  Modal,
   Select,
-  Spinner,
-  Toolbar,
-  TreeView,
-  t,
-  type TreeNode,
-} from '@kaizengo/sdk-solid/ui'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { TreeView, t, type TreeNode, Card, Toolbar, FormActions } from '@/lib'
+import { KAppStatus } from '@/k'
 import { IdentityToolbar } from '../lib/IdentityToolbar'
 import {
   ORG_UNIT_TYPES,
@@ -24,21 +22,21 @@ import {
   formatUnitType,
   type OrgUnitNode,
 } from '../lib/graphql'
-import { identityState, initIdentity } from '../lib/state'
+import { initIdentity, useIdentityState } from '../lib/state'
 
 export default function Structure() {
-  const identity = identityState()
+  const identity = useIdentityState()
 
-  const [tree, setTree] = createSignal<OrgUnitNode[]>([])
-  const [loading, setLoading] = createSignal(true)
-  const [error, setError] = createSignal('')
-  const [selectedId, setSelectedId] = createSignal<string | null>(null)
-  const [showModal, setShowModal] = createSignal(false)
-  const [newName, setNewName] = createSignal('')
-  const [newType, setNewType] = createSignal('department')
-  const [newParentId, setNewParentId] = createSignal('')
+  const [tree, setTree] = useState<OrgUnitNode[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newType, setNewType] = useState('department')
+  const [newParentId, setNewParentId] = useState('')
 
-  const org = createMemo(() => identity.selectedOrg)
+  const org = identity.selectedOrg
 
   function toTreeNodes(nodes: OrgUnitNode[]): TreeNode<OrgUnitNode>[] {
     return nodes.map((n) => ({
@@ -50,19 +48,20 @@ export default function Structure() {
     }))
   }
 
-  const flatUnits = createMemo(() => flattenTree(tree()))
-  const selectedNode = createMemo(() => flatUnits().find((u) => u.id === selectedId()) ?? null)
-  const treeNodes = createMemo(() => toTreeNodes(tree()))
+  const flatUnits = useMemo(() => flattenTree(tree), [tree])
+  const selectedNode = useMemo(
+    () => flatUnits.find((u) => u.id === selectedId) ?? null,
+    [flatUnits, selectedId],
+  )
+  const treeNodes = useMemo(() => toTreeNodes(tree), [tree])
 
   async function load() {
-    const currentOrg = org()
-    if (!currentOrg) return
+    if (!org) return
     setLoading(true)
     setError('')
     try {
-      const data = await fetchOrgTree(currentOrg.id)
+      const data = await fetchOrgTree(org.id)
       setTree(data.orgTree)
-      identity.onStats({ units: flatUnits().length })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -71,12 +70,11 @@ export default function Structure() {
   }
 
   async function submitUnit() {
-    const currentOrg = org()
-    if (!currentOrg || !newName().trim()) return
+    if (!org || !newName.trim()) return
     setLoading(true)
     setError('')
     try {
-      await createOrgUnit(currentOrg.id, newType(), newName().trim(), newParentId() || undefined)
+      await createOrgUnit(org.id, newType, newName.trim(), newParentId || undefined)
       setNewName('')
       setShowModal(false)
       await load()
@@ -86,133 +84,199 @@ export default function Structure() {
     }
   }
 
-  createEffect(
-    on(
-      () => (identity.ready ? org()?.id : undefined),
-      (orgId) => {
-        if (orgId) void load()
-      },
-    ),
-  )
+  useEffect(() => {
+    void initIdentity()
+  }, [])
 
-  onMount(async () => {
-    await initIdentity()
-  })
+  useEffect(() => {
+    if (identity.ready && org?.id) void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identity.ready, org?.id])
+
+  if (identity.loading) {
+    return (
+      <div className="flex items-center justify-center py-8" role="status" aria-label="Loading">
+        <Progress indeterminate className="w-48 max-w-full" />
+      </div>
+    )
+  }
 
   return (
-    <Show when={!identity.loading} fallback={<Spinner />}>
+    <>
       <IdentityToolbar />
 
-      <Show when={identity.error} fallback={
-        <Show when={org()} fallback={<Alert variant="warning">{t('identity.no_org')}</Alert>}>
-          <Show when={error()}>
-            <Alert variant="danger" dismissible onDismiss={() => setError('')}>
-              {error()}
+      {identity.error ? (
+        <Alert variant="danger">{identity.error}</Alert>
+      ) : !org ? (
+        <Alert variant="warning">{t('identity.no_org')}</Alert>
+      ) : (
+        <>
+          {error ? (
+            <Alert variant="danger">
+              <div className="min-w-0 flex-1">{error}</div>
+              <button
+                type="button"
+                className="shrink-0 text-current opacity-70 hover:opacity-100"
+                aria-label="Dismiss"
+                onClick={() => setError('')}
+              >
+                ×
+              </button>
             </Alert>
-          </Show>
+          ) : null}
 
           <Toolbar
-            start={<span class="text-sm font-medium text-[var(--kg-text-secondary)]">{t('identity.structure.count', flatUnits().length)}</span>}
+            start={
+              <span className="text-sm font-medium text-[var(--kg-text-secondary)]">
+                {t('identity.structure.count', flatUnits.length)}
+              </span>
+            }
             end={<Button onClick={() => setShowModal(true)}>{t('identity.structure.add')}</Button>}
           />
 
-          <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
-              <Show when={loading() && tree().length === 0} fallback={
-                <TreeView nodes={treeNodes()} selectedId={selectedId()} onSelect={(node) => setSelectedId(node.id)} />
-              }>
-                <Spinner />
-              </Show>
+              {loading && tree.length === 0 ? (
+                <Progress indeterminate className="w-48 max-w-full" />
+              ) : (
+                <TreeView
+                  nodes={treeNodes}
+                  selectedId={selectedId}
+                  onSelect={(node) => setSelectedId(node.id)}
+                />
+              )}
             </div>
 
             <div>
-              <Show
-                when={selectedNode()}
-                fallback={
-                  <Card title={t('identity.structure.details')}>
-                    <p class="text-sm text-[var(--kg-text-muted)]">{t('identity.structure.select_hint')}</p>
-                  </Card>
-                }
-              >
-                {(node) => (
-                  <Card title={node().name}>
-                    <dl class="detail-list">
-                      <div>
-                        <dt>{t('identity.structure.field.type')}</dt>
-                        <dd>{formatUnitType(node().type, t)}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('identity.structure.field.id')}</dt>
-                        <dd class="mono">{node().id}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('identity.structure.field.parent')}</dt>
-                        <dd>
-                          {node().parentId
-                            ? flatUnits().find((u) => u.id === node().parentId)?.name ?? node().parentId
-                            : t('identity.structure.root')}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>{t('identity.structure.field.created')}</dt>
-                        <dd>{node().createdAt ? new Date(node().createdAt).toLocaleDateString() : '—'}</dd>
-                      </div>
-                    </dl>
-                  </Card>
-                )}
-              </Show>
+              {!selectedNode ? (
+                <Card title={t('identity.structure.details')}>
+                  <p className="text-sm text-[var(--kg-text-muted)]">
+                    {t('identity.structure.select_hint')}
+                  </p>
+                </Card>
+              ) : (
+                <Card title={selectedNode.name}>
+                  <dl className="detail-list">
+                    <div>
+                      <dt>{t('identity.structure.field.type')}</dt>
+                      <dd>{formatUnitType(selectedNode.type, t)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('identity.structure.field.id')}</dt>
+                      <dd className="mono">{selectedNode.id}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('identity.structure.field.parent')}</dt>
+                      <dd>
+                        {selectedNode.parentId
+                          ? (flatUnits.find((u) => u.id === selectedNode.parentId)?.name ??
+                            selectedNode.parentId)
+                          : t('identity.structure.root')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t('identity.structure.field.created')}</dt>
+                      <dd>
+                        {selectedNode.createdAt
+                          ? new Date(selectedNode.createdAt).toLocaleDateString()
+                          : '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </Card>
+              )}
             </div>
           </div>
 
-          <Modal
-            open={showModal()}
-            title={t('identity.structure.add_title')}
-            onOpenChange={setShowModal}
-            footer={
-              <FormActions>
-                <Button variant="ghost" onClick={() => setShowModal(false)}>
-                  {t('identity.common.cancel')}
-                </Button>
-                <Button loading={loading()} onClick={() => void submitUnit()}>
-                  {t('identity.structure.create')}
-                </Button>
-              </FormActions>
-            }
-          >
-            <form
-              class="flex flex-col gap-3.5"
-              onSubmit={(e) => {
-                e.preventDefault()
-                void submitUnit()
-              }}
-            >
-              <FormField label={t('identity.structure.name')} required>
-                <Input value={newName()} onChange={setNewName} placeholder={t('identity.structure.name_placeholder')} />
-              </FormField>
-              <FormField label={t('identity.structure.field.type')} required>
-                <Select
-                  value={newType()}
-                  options={ORG_UNIT_TYPES.map((u) => ({ value: u.value, label: t(u.key) }))}
-                  onChange={setNewType}
-                />
-              </FormField>
-              <FormField label={t('identity.structure.parent')} hint={t('identity.structure.parent_hint')}>
-                <Select
-                  value={newParentId()}
-                  placeholder={t('identity.structure.root')}
-                  options={flatUnits().map((u) => ({
-                    value: u.id,
-                    label: `${'  '.repeat(u.depth)}${u.name} (${formatUnitType(u.type, t)})`,
-                  }))}
-                  onChange={setNewParentId}
-                />
-              </FormField>
-            </form>
-          </Modal>
-        </Show>
-      }>
-        <Alert variant="danger">{identity.error}</Alert>
-      </Show>
+          {showModal ? (
+            <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-black/50 p-4">
+              <div className="flex max-h-[90vh] w-full max-w-xl flex-col bg-[var(--kg-surface)] shadow-lg">
+                <header className="flex items-center justify-between border-b border-[var(--kg-border)] px-5 py-4">
+                  <h2 className="text-xl font-normal text-[var(--kg-text)]">
+                    {t('identity.structure.add_title')}
+                  </h2>
+                  <button
+                    type="button"
+                    className="border-0 bg-transparent text-2xl leading-none text-[var(--kg-text-secondary)]"
+                    onClick={() => setShowModal(false)}
+                  >
+                    ×
+                  </button>
+                </header>
+                <div className="p-5">
+                  <form
+                    className="flex flex-col gap-3.5"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      void submitUnit()
+                    }}
+                  >
+                    <div className="flex flex-col gap-1">
+                      <Label>
+                        {t('identity.structure.name')}
+                        <span className="text-[var(--kg-danger)]"> *</span>
+                      </Label>
+                      <Input
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder={t('identity.structure.name_placeholder')}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label>
+                        {t('identity.structure.field.type')}
+                        <span className="text-[var(--kg-danger)]"> *</span>
+                      </Label>
+                      <Select value={newType} onValueChange={setNewType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ORG_UNIT_TYPES.map((u) => (
+                            <SelectItem key={u.value} value={u.value}>
+                              {t(u.key)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label>{t('identity.structure.parent')}</Label>
+                      <Select
+                        value={newParentId || '__root__'}
+                        onValueChange={(v) => setNewParentId(v === '__root__' ? '' : v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('identity.structure.root')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__root__">{t('identity.structure.root')}</SelectItem>
+                          {flatUnits.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {`${'  '.repeat(u.depth)}${u.name} (${formatUnitType(u.type, t)})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xxs font-light text-[var(--kg-text-muted)]">
+                        {t('identity.structure.parent_hint')}
+                      </p>
+                    </div>
+                    <FormActions>
+                      <Button variant="ghost" type="button" onClick={() => setShowModal(false)}>
+                        {t('identity.common.cancel')}
+                      </Button>
+                      <Button type="submit" disabled={loading}>
+                        {loading ? '…' : t('identity.structure.create')}
+                      </Button>
+                    </FormActions>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
 
       <KAppStatus />
 
@@ -223,6 +287,6 @@ export default function Structure() {
         .detail-list dd { margin: 0; color: var(--kg-text); }
         .detail-list .mono { font-family: var(--kg-font-mono); font-size: 0.8125rem; word-break: break-all; }
       `}</style>
-    </Show>
+    </>
   )
 }

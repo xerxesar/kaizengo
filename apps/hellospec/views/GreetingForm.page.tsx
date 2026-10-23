@@ -1,8 +1,9 @@
-import { createSignal } from 'solid-js'
-import { KAppStatus, KForm, KFormField, KTable, t } from '@kaizengo/sdk-solid/ui'
+import { useState } from 'react'
+import { t } from '@/lib'
+import { KAppStatus, KForm, KFormField, KTable } from '@/k'
 
 export default function GreetingForm() {
-  const [refreshToken, setRefreshToken] = createSignal(0)
+  const [refreshToken, setRefreshToken] = useState(0)
 
   function onFormSuccess() {
     setRefreshToken((n) => n + 1)
@@ -10,19 +11,23 @@ export default function GreetingForm() {
 
   return (
     <>
-      <p class="mb-4 max-w-2xl text-sm opacity-85">{t('hellospec.acl_hint')}</p>
+      <p className="mb-4 max-w-2xl text-sm opacity-85">{t('hellospec.acl_hint')}</p>
 
-      <KForm model="hellospec.greeting" onsuccess={onFormSuccess}>
-        <KFormField field="message" label={t('hellospec.create')} placeholder={t('hellospec.new_placeholder')} />
+      <KForm command="hellospec.postGreeting" onsuccess={onFormSuccess}>
+        <KFormField
+          field="message"
+          label={t('hellospec.create')}
+          placeholder={t('hellospec.new_placeholder')}
+        />
         <KFormField field="mood" label={t('hellospec.mood')} />
         <KFormField field="internalNote" label={t('hellospec.internal_note')} />
       </KForm>
 
       <KTable
-        model="hellospec.greeting"
+        query="hellospec.greetings"
         emptyMessage={t('hellospec.empty')}
-        class="mt-4"
-        refreshToken={refreshToken()}
+        className="mt-4"
+        refreshToken={refreshToken}
       />
 
       <KAppStatus />

@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js'
-import { listModelRecords } from '@kaizengo/sdk-solid/ui'
+import { useSyncExternalStore } from 'react'
+import { listModelRecords } from '@/lib'
 import { fetchOrganizations, type Organization } from './graphql'
 
 type MeResponse = { me: { roles: string[] } }
@@ -19,16 +19,43 @@ async function gqlFetch<T>(query: string, variables?: Record<string, unknown>): 
   return body.data as T
 }
 
-const [ready, setReady] = createSignal(false)
-const [loading, setLoading] = createSignal(true)
-const [error, setError] = createSignal('')
-const [orgs, setOrgs] = createSignal<Organization[]>([])
-const [selectedOrg, setSelectedOrg] = createSignal<Organization | null>(null)
-const [isAdmin, setIsAdmin] = createSignal(false)
-const [userCount, setUserCount] = createSignal(0)
-const [unitCount, setUnitCount] = createSignal(0)
+type IdentitySnapshot = {
+  ready: boolean
+  loading: boolean
+  error: string
+  orgs: Organization[]
+  selectedOrg: Organization | null
+  isAdmin: boolean
+  userCount: number
+  unitCount: number
+}
 
-let initPromise: Promise<void> | null = null
+let snapshot: IdentitySnapshot = {
+  ready: false,
+  loading: true,
+  error: '',
+  orgs: [],
+  selectedOrg: null,
+  isAdmin: false,
+  userCount: 0,
+  unitCount: 0,
+}
+
+const listeners = new Set<() => void>()
+
+function emit() {
+  for (const listener of listeners) listener()
+}
+
+function setSnapshot( partial: Partial<IdentitySnapshot>) {
+  snapshot = { ...snapshot, ...partial }
+  emit()
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
 
 export async function refreshStats(_orgId: string) {
   try {
@@ -36,35 +63,37 @@ export async function refreshStats(_orgId: string) {
       listModelRecords('identity', 'user', ['id']),
       listModelRecords('identity', 'org_unit', ['id']),
     ])
-    setUserCount(users.length)
-    setUnitCount(units.length)
+    setSnapshot({ userCount: users.length, unitCount: units.length })
   } catch {
     /* views show their own errors */
   }
 }
 
+let initPromise: Promise<void> | null = null
+
 export async function initIdentity() {
-  if (ready()) return
+  if (snapshot.ready) return
   if (initPromise) return initPromise
 
   initPromise = (async () => {
-    setLoading(true)
-    setError('')
+    setSnapshot({ loading: true, error: '' })
     try {
       const [orgData, meData] = await Promise.all([
         fetchOrganizations(),
         gqlFetch<MeResponse>('query { me { roles } }'),
       ])
       const list = orgData.organizations
-      setOrgs(list)
-      setSelectedOrg(list[0] ?? null)
-      setIsAdmin(meData.me.roles.includes('admin'))
+      setSnapshot({
+        orgs: list,
+        selectedOrg: list[0] ?? null,
+        isAdmin: meData.me.roles.includes('admin'),
+        ready: true,
+      })
       if (list[0]) await refreshStats(list[0].id)
-      setReady(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setSnapshot({ error: e instanceof Error ? e.message : String(e) })
     } finally {
-      setLoading(false)
+      setSnapshot({ loading: false })
     }
   })()
 
@@ -72,48 +101,57 @@ export async function initIdentity() {
 }
 
 export function selectOrg(orgId: string) {
-  const org = orgs().find((o) => o.id === orgId) ?? null
-  setSelectedOrg(org)
+  const org = snapshot.orgs.find((o) => o.id === orgId) ?? null
+  setSnapshot({ selectedOrg: org })
   if (org) void refreshStats(org.id)
 }
 
 export function updateSelectedOrg(org: Organization) {
-  setSelectedOrg(org)
-  setOrgs((prev) => prev.map((o) => (o.id === org.id ? org : o)))
+  setSnapshot({
+    selectedOrg: org,
+    orgs: snapshot.orgs.map((o) => (o.id === org.id ? org : o)),
+  })
 }
 
 export function identityState() {
   return {
     get ready() {
-      return ready()
+      return snapshot.ready
     },
     get loading() {
-      return loading()
+      return snapshot.loading
     },
     get error() {
-      return error()
+      return snapshot.error
     },
     get orgs() {
-      return orgs()
+      return snapshot.orgs
     },
     get selectedOrg() {
-      return selectedOrg()
+      return snapshot.selectedOrg
     },
     get isAdmin() {
-      return isAdmin()
+      return snapshot.isAdmin
     },
     get userCount() {
-      return userCount()
+      return snapshot.userCount
     },
     get unitCount() {
-      return unitCount()
+      return snapshot.unitCount
     },
     set error(v: string) {
-      setError(v)
+      setSnapshot({ error: v })
     },
     onStats(counts: { users?: number; units?: number }) {
-      if (counts.users !== undefined) setUserCount(counts.users)
-      if (counts.units !== undefined) setUnitCount(counts.units)
+      setSnapshot({
+        ...(counts.users !== undefined ? { userCount: counts.users } : {}),
+        ...(counts.units !== undefined ? { unitCount: counts.units } : {}),
+      })
     },
   }
+}
+
+/** Subscribe to identity store for React re-renders. */
+export function useIdentityState() {
+  return useSyncExternalStore(subscribe, () => snapshot, () => snapshot)
 }

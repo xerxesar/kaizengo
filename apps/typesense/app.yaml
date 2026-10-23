@@ -5,7 +5,7 @@ depends:
   - core
 provides:
   - platform.search.backend
-spa: true
+spa: false
 i18n: true
 extends:
   - point: model.*.*.afterCreate
@@ -23,7 +23,7 @@ extends:
 exports:
   components:
     - id: platform.SearchBar
-      module: "@kaizengo/sdk-solid/search/SearchBar.tsx"
+      module: "@apps/core/spa/src/lib/search/SearchBar.tsx"
     - id: typesense.SearchSettings
       module: "@apps/typesense/views/SearchSettings.page.tsx"
   views:

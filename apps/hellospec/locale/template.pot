@@ -6,6 +6,10 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: views/GreetingList.page.tsx
+msgid "appman.empty"
+msgstr ""
+
 #: views/GreetingForm.page.tsx
 msgid "hellospec.acl_hint"
 msgstr ""
@@ -18,7 +22,7 @@ msgstr ""
 msgid "hellospec.created"
 msgstr ""
 
-#: app.yaml views/GreetingForm.page.tsx views/GreetingList.page.tsx
+#: app.yaml views/GreetingForm.page.tsx
 msgid "hellospec.empty"
 msgstr ""
 
@@ -32,6 +36,10 @@ msgstr ""
 
 #: app.yaml
 msgid "hellospec.enum.greeting.mood.neutral"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.error.greeting.internal"
 msgstr ""
 
 #: app.yaml

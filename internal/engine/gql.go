@@ -1,0 +1,720 @@
+package engine
+
+import (
+	"fmt"
+	"strings"
+
+	"kaizengo/internal/module"
+	"kaizengo/packages/sdk-go/acl"
+	"kaizengo/packages/sdk-go/appspec"
+	"kaizengo/internal/extension"
+	sdkgql "kaizengo/internal/gql"
+	"kaizengo/packages/sdk-go/views"
+
+	"github.com/graphql-go/graphql"
+)
+
+// RegisterCatalogQueries registers standard {app}Ping / Views / Menus / ViewSlots
+// queries from the app spec. Used by the engine and by hybrid apps (e.g. auth).
+func RegisterCatalogQueries(host *module.Host, spec appspec.AppSpec) {
+	registerBasics(host, spec)
+}
+
+// RegisterPing adds the standard {app}Ping health query (ACL-guarded via identity.query.{app}Ping).
+func RegisterPing(host *module.Host, spec appspec.AppSpec) {
+	app := spec.Name
+	queryName := camel(app) + "Ping"
+	resource := acl.QueryResource(app, queryName)
+	host.GQL.RegisterQuery(queryName, &graphql.Field{
+		Type: graphql.NewNonNull(graphql.String),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			if _, err := sdkgql.RequireAction(host, acl.ServiceName, p, resource, acl.ActRead); err != nil {
+				return nil, err
+			}
+			return app + " ok", nil
+		},
+	})
+}
+
+func registerBasics(host *module.Host, spec appspec.AppSpec) {
+	RegisterPing(host, spec)
+
+	viewType := newViewType(pascal(spec.Name) + "View")
+	host.GQL.RegisterQuery(camel(spec.Name)+"Views", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(viewType))),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			if _, err := sdkgql.RequirePrincipal(p); err != nil {
+				return nil, err
+			}
+			return viewCatalog(spec), nil
+		},
+	})
+
+	menuType := newMenuType(pascal(spec.Name) + "Menu")
+	host.GQL.RegisterQuery(camel(spec.Name)+"Menus", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(menuType))),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			if _, err := sdkgql.RequirePrincipal(p); err != nil {
+				return nil, err
+			}
+			menus := menuCatalog(spec)
+			return FilterMenuCatalog(p.Context, host, spec.Name, menus)
+		},
+	})
+
+	slotType := newViewSlotType(pascal(spec.Name) + "ViewSlot")
+	host.GQL.RegisterQuery(camel(spec.Name)+"ViewSlots", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(slotType))),
+		Args: graphql.FieldConfigArgument{
+			"view": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+		},
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			if _, err := sdkgql.RequirePrincipal(p); err != nil {
+				return nil, err
+			}
+			view, _ := p.Args["view"].(string)
+			return extension.ViewSlotsFor(spec.Name, view), nil
+		},
+	})
+}
+
+func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService) {
+	obj := newRecordType(spec, svc)
+	// Models are not client ACL resources; enforcement stays inside modelService.
+	// GraphQL only requires a session.
+	listFieldName := listName(spec, svc.model)
+	crud := sdkgql.CRUDSpec{
+		ListName: listFieldName,
+		ListField: &graphql.Field{
+			Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(obj))),
+			Args: listPageArgs(),
+			Resolve: func(p graphql.ResolveParams) (any, error) {
+				pr, err := sdkgql.RequirePrincipal(p)
+				if err != nil {
+					return nil, err
+				}
+				page, err := svc.ListPage(p.Context, pr.OrgID, parseListPageOpts(p.Args))
+				if err != nil {
+					return nil, err
+				}
+				if page.Items == nil {
+					page.Items = []Record{}
+				}
+				return page.Items, nil
+			},
+		},
+		GetName: getName(spec, svc.model),
+		GetField: &graphql.Field{
+			Type: obj,
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.ID)},
+			},
+			Resolve: func(p graphql.ResolveParams) (any, error) {
+				pr, err := sdkgql.RequirePrincipal(p)
+				if err != nil {
+					return nil, err
+				}
+				id, _ := p.Args["id"].(string)
+				return svc.Get(p.Context, pr.OrgID, id)
+			},
+		},
+	}
+	if !svc.model.Internal {
+		crud.CreateName = createName(spec, svc.model)
+		crud.CreateField = &graphql.Field{
+			Type: graphql.NewNonNull(obj),
+			Args: fieldArgs(svc.model, true),
+			Resolve: func(p graphql.ResolveParams) (any, error) {
+				pr, err := sdkgql.RequirePrincipal(p)
+				if err != nil {
+					return nil, err
+				}
+				return svc.Create(p.Context, pr.OrgID, pr.UserID, p.Args)
+			},
+		}
+		crud.UpdateName = updateName(spec, svc.model)
+		crud.UpdateField = &graphql.Field{
+			Type: graphql.NewNonNull(obj),
+			Args: withIDArgs(fieldArgs(svc.model, false)),
+			Resolve: func(p graphql.ResolveParams) (any, error) {
+				pr, err := sdkgql.RequirePrincipal(p)
+				if err != nil {
+					return nil, err
+				}
+				id, _ := p.Args["id"].(string)
+				fields := map[string]any{}
+				for k, v := range p.Args {
+					if k == "id" {
+						continue
+					}
+					fields[k] = v
+				}
+				return svc.Update(p.Context, pr.OrgID, id, fields)
+			},
+		}
+		crud.DeleteName = deleteName(spec, svc.model)
+		crud.DeleteField = &graphql.Field{
+			Type: graphql.NewNonNull(graphql.Boolean),
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.ID)},
+			},
+			Resolve: func(p graphql.ResolveParams) (any, error) {
+				pr, err := sdkgql.RequirePrincipal(p)
+				if err != nil {
+					return nil, err
+				}
+				id, _ := p.Args["id"].(string)
+				if err := svc.Delete(p.Context, pr.OrgID, id); err != nil {
+					return nil, err
+				}
+				return true, nil
+			},
+		}
+	}
+	sdkgql.RegisterCRUD(host.GQL, crud)
+	host.GQL.RegisterQuery(listFieldName+"Count", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.Int),
+		Args: listFilterArgs(),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			pr, err := sdkgql.RequirePrincipal(p)
+			if err != nil {
+				return nil, err
+			}
+			return svc.CountOpts(p.Context, pr.OrgID, parseListPageOpts(p.Args))
+		},
+	})
+	host.GQL.RegisterQuery(listFieldName+"Groups", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(groupBucketType(spec.Name)))),
+		Args: listPageArgs(),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			pr, err := sdkgql.RequirePrincipal(p)
+			if err != nil {
+				return nil, err
+			}
+			return svc.Groups(p.Context, pr.OrgID, parseListPageOpts(p.Args))
+		},
+	})
+}
+
+func fieldArgs(model appspec.ModelSpec, requiredOnly bool) graphql.FieldConfigArgument {
+	args := graphql.FieldConfigArgument{}
+	for _, f := range model.Fields {
+		if f.Readonly || !f.Stored() {
+			continue
+		}
+		gqlType := gqlInputType(f)
+		if requiredOnly {
+			if f.Required && f.Default == nil {
+				args[f.Name] = &graphql.ArgumentConfig{Type: graphql.NewNonNull(gqlType)}
+			} else {
+				args[f.Name] = &graphql.ArgumentConfig{Type: gqlType}
+			}
+		} else {
+			args[f.Name] = &graphql.ArgumentConfig{Type: gqlType}
+		}
+	}
+	return args
+}
+
+func withIDArgs(args graphql.FieldConfigArgument) graphql.FieldConfigArgument {
+	out := graphql.FieldConfigArgument{
+		"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.ID)},
+	}
+	for k, v := range args {
+		out[k] = v
+	}
+	return out
+}
+
+func gqlInputType(f appspec.FieldSpec) graphql.Output {
+	switch f.CanonicalType() {
+	case appspec.TypeInt:
+		return graphql.Int
+	case appspec.TypeNumber:
+		return graphql.Float
+	case appspec.TypeBool:
+		return graphql.Boolean
+	case appspec.TypeMany2One:
+		return graphql.ID
+	case appspec.TypeMany2Many, appspec.TypeOne2Many:
+		return graphql.NewList(graphql.NewNonNull(graphql.ID))
+	default:
+		return graphql.String
+	}
+}
+
+func newRecordType(spec appspec.AppSpec, svc *modelService) *graphql.Object {
+	model := svc.model
+	fields := graphql.Fields{
+		"id":        &graphql.Field{Type: graphql.NewNonNull(graphql.ID), Resolve: mapField("id")},
+		"orgId":     &graphql.Field{Type: graphql.NewNonNull(graphql.ID), Resolve: mapField("orgId")},
+		"authorId":  &graphql.Field{Type: graphql.NewNonNull(graphql.ID), Resolve: mapField("authorId")},
+		"deleted":   &graphql.Field{Type: graphql.NewNonNull(graphql.Boolean), Resolve: mapField("deleted")},
+		"createdAt": &graphql.Field{Type: graphql.NewNonNull(graphql.String), Resolve: mapField("createdAt")},
+		"updatedAt": &graphql.Field{Type: graphql.NewNonNull(graphql.String), Resolve: mapField("updatedAt")},
+	}
+	for _, f := range model.Fields {
+		fields[f.Name] = recordField(spec, svc, f)
+	}
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name:   typeName(spec, model),
+		Fields: fields,
+	})
+}
+
+func recordField(spec appspec.AppSpec, svc *modelService, f appspec.FieldSpec) *graphql.Field {
+	gqlType := gqlInputType(f)
+	if f.Required || f.CanonicalType() == appspec.TypeOne2Many || f.CanonicalType() == appspec.TypeMany2Many {
+		gqlType = graphql.NewNonNull(gqlType)
+	}
+	if f.CanonicalType() == appspec.TypeOne2Many {
+		return &graphql.Field{
+			Type: gqlType,
+			Resolve: func(p graphql.ResolveParams) (any, error) {
+				return resolveOne2Many(p, spec, svc, f)
+			},
+		}
+	}
+	return &graphql.Field{
+		Type:    gqlType,
+		Resolve: mapField(f.Name),
+	}
+}
+
+func resolveOne2Many(p graphql.ResolveParams, spec appspec.AppSpec, svc *modelService, f appspec.FieldSpec) (any, error) {
+	rec, ok := p.Source.(Record)
+	if !ok {
+		if m, ok := p.Source.(map[string]any); ok {
+			rec = Record(m)
+		} else {
+			return []string{}, nil
+		}
+	}
+	ref, ok := f.ResolveRelation(spec.Name)
+	if !ok || svc == nil {
+		return []string{}, nil
+	}
+	orgID := str(rec["orgId"])
+	id := str(rec["id"])
+	var (
+		rows []Record
+		err  error
+	)
+	if ref.App == spec.Name && svc.registry != nil {
+		rows, err = svc.registry.ListBy(p.Context, orgID, ref.Model, f.Inverse, id)
+	} else if svc.host != nil {
+		other, lookupErr := ModelsFromHost(svc.host, ref.App)
+		if lookupErr != nil {
+			return nil, lookupErr
+		}
+		rows, err = other.ListBy(p.Context, orgID, ref.Model, f.Inverse, id)
+	}
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, str(row["id"]))
+	}
+	return ids, nil
+}
+
+func mapField(key string) graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (any, error) {
+		rec, ok := p.Source.(Record)
+		if !ok {
+			if m, ok := p.Source.(map[string]any); ok {
+				rec = Record(m)
+			} else {
+				return nil, fmt.Errorf("unexpected source type %T", p.Source)
+			}
+		}
+		return rec[key], nil
+	}
+}
+
+func viewCatalog(spec appspec.AppSpec) []views.View {
+	out := make([]views.View, 0, (len(spec.Models)+len(registeredModels(spec.Name)))*2)
+	seen := map[string]struct{}{}
+	for _, m := range spec.Models {
+		list := buildListView(spec, m)
+		if rm, ok := registeredModelByName(spec.Name, m.Name); ok {
+			if len(rm.ListColumns) > 0 {
+				list = buildListViewFromRegistered(rm)
+				applyCQRSBindings(&list, spec, m.Name)
+			}
+		}
+		out = append(out, list)
+		includeForm := (!m.Internal || spec.HasCQRS()) && !m.Virtual
+		if includeForm {
+			form := buildFormView(spec, m)
+			if rm, ok := registeredModelByName(spec.Name, m.Name); ok {
+				if len(rm.Fields) > 0 {
+					form = buildFormViewFromRegistered(rm)
+					applyCQRSBindings(&form, spec, m.Name)
+				}
+			}
+			out = append(out, form)
+		}
+		seen[m.Name] = struct{}{}
+	}
+	for _, m := range registeredModels(spec.Name) {
+		if _, ok := seen[m.Name]; ok {
+			continue
+		}
+		out = append(out, buildListViewFromRegistered(m), buildFormViewFromRegistered(m))
+	}
+	return out
+}
+
+func applyCQRSBindings(v *views.View, spec appspec.AppSpec, model string) {
+	if v == nil || !spec.HasCQRS() {
+		return
+	}
+	list, get, create, update, del := cqrsBindingsForModel(spec, model)
+	v.ListQuery, v.GetQuery = list, get
+	v.CreateCommand, v.UpdateCommand, v.DeleteCommand = create, update, del
+}
+
+func filterPresetsFromModel(m appspec.ModelSpec) []views.FilterPreset {
+	if len(m.Filters) == 0 {
+		return nil
+	}
+	out := make([]views.FilterPreset, 0, len(m.Filters))
+	for _, p := range m.Filters {
+		domain, err := appspec.EncodeFilterDomain(p.Domain)
+		if err != nil {
+			continue
+		}
+		out = append(out, views.FilterPreset{
+			ID:       p.ID,
+			Label:    p.Label,
+			LabelKey: p.LabelKey,
+			Domain:   domain,
+			Q:        p.Q,
+			SearchIn: append([]string{}, p.SearchIn...),
+			GroupBy:  append([]string{}, p.GroupBy...),
+		})
+	}
+	return out
+}
+
+func chartPresetsFromModel(m appspec.ModelSpec) []views.ChartPreset {
+	if len(m.Charts) == 0 {
+		return nil
+	}
+	out := make([]views.ChartPreset, 0, len(m.Charts))
+	for _, p := range m.Charts {
+		chartType := strings.TrimSpace(p.Type)
+		if chartType == "" {
+			chartType = "bar"
+		}
+		types := append([]string{}, p.Types...)
+		if len(types) == 0 {
+			types = []string{"bar", "line", "area", "pie", "doughnut"}
+		}
+		measure := strings.TrimSpace(p.Measure)
+		if measure == "" {
+			if strings.TrimSpace(p.YField) != "" {
+				measure = "sum"
+			} else {
+				measure = "count"
+			}
+		}
+		out = append(out, views.ChartPreset{
+			ID:          p.ID,
+			Label:       p.Label,
+			LabelKey:    p.LabelKey,
+			Type:        chartType,
+			Types:       types,
+			XField:      p.XField,
+			YField:      p.YField,
+			SeriesField: p.SeriesField,
+			Measure:     measure,
+		})
+	}
+	return out
+}
+
+func modelListViewName(model string) string {
+	return pascal(model) + "List"
+}
+
+func modelFormViewName(model string) string {
+	return pascal(model) + "Form"
+}
+
+func buildListView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
+	item := views.View{
+		Name:          modelListViewName(m.Name),
+		Model:         m.Name,
+		Kind:          views.ListView,
+		FilterPresets: filterPresetsFromModel(m),
+		ChartPresets:  chartPresetsFromModel(m),
+	}
+	for _, f := range m.Fields {
+		if f.CanonicalType() == appspec.TypeOne2Many {
+			continue
+		}
+		item.Columns = append(item.Columns, views.Column{Key: f.Name, Label: pascal(f.Name)})
+		item.Fields = append(item.Fields, views.Field{
+			Key: f.Name, Label: pascal(f.Name), Type: f.CanonicalType(), Required: f.Required,
+			Relation: f.Relation, Inverse: f.Inverse, Values: append([]string{}, f.Values...),
+		})
+	}
+	if !m.Virtual {
+		item.Columns = append(item.Columns, views.Column{Key: "updatedAt", Label: "Updated", Width: "12rem"})
+	}
+	applyCQRSBindings(&item, spec, m.Name)
+	return item
+}
+
+func buildFormView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
+	item := views.View{
+		Name:  modelFormViewName(m.Name),
+		Model: m.Name,
+		Kind:  views.FormView,
+	}
+	for _, f := range m.Fields {
+		if f.CanonicalType() == appspec.TypeOne2Many {
+			continue
+		}
+		item.Fields = append(item.Fields, views.Field{
+			Key: f.Name, Label: pascal(f.Name), Type: f.CanonicalType(), Required: f.Required,
+			Relation: f.Relation, Inverse: f.Inverse, Values: append([]string{}, f.Values...),
+		})
+	}
+	applyCQRSBindings(&item, spec, m.Name)
+	return item
+}
+
+func newViewType(name string) *graphql.Object {
+	columnType := graphql.NewObject(graphql.ObjectConfig{
+		Name: name + "Column",
+		Fields: graphql.Fields{
+			"key":    &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"label":  &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"width":  &graphql.Field{Type: graphql.String},
+			"align":  &graphql.Field{Type: graphql.String},
+			"hidden": &graphql.Field{Type: graphql.Boolean},
+		},
+	})
+	fieldType := graphql.NewObject(graphql.ObjectConfig{
+		Name: name + "Field",
+		Fields: graphql.Fields{
+			"key":      &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"label":    &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"type":     &graphql.Field{Type: graphql.String},
+			"required": &graphql.Field{Type: graphql.Boolean},
+			"relation": &graphql.Field{Type: graphql.String},
+			"inverse":  &graphql.Field{Type: graphql.String},
+			"values":   &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
+		},
+	})
+	filterPresetType := graphql.NewObject(graphql.ObjectConfig{
+		Name: name + "FilterPreset",
+		Fields: graphql.Fields{
+			"id":       &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"label":    &graphql.Field{Type: graphql.String},
+			"labelKey": &graphql.Field{Type: graphql.String},
+			"domain":   &graphql.Field{Type: graphql.String},
+			"q":        &graphql.Field{Type: graphql.String},
+			"searchIn": &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
+			"groupBy":  &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
+		},
+	})
+	chartPresetType := graphql.NewObject(graphql.ObjectConfig{
+		Name: name + "ChartPreset",
+		Fields: graphql.Fields{
+			"id":          &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"label":       &graphql.Field{Type: graphql.String},
+			"labelKey":    &graphql.Field{Type: graphql.String},
+			"type":        &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"types":       &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
+			"xField":      &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"yField":      &graphql.Field{Type: graphql.String},
+			"seriesField": &graphql.Field{Type: graphql.String},
+			"measure":     &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: name,
+		Fields: graphql.Fields{
+			"name": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).Name, nil
+				},
+			},
+			"model": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).Model, nil
+				},
+			},
+			"kind": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return string(p.Source.(views.View).Kind), nil
+				},
+			},
+			"columns": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(columnType)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).Columns, nil
+				},
+			},
+			"fields": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(fieldType)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).Fields, nil
+				},
+			},
+			"filterPresets": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(filterPresetType)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).FilterPresets, nil
+				},
+			},
+			"chartPresets": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(chartPresetType)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).ChartPresets, nil
+				},
+			},
+			"listQuery": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).ListQuery, nil
+				},
+			},
+			"getQuery": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).GetQuery, nil
+				},
+			},
+			"createCommand": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).CreateCommand, nil
+				},
+			},
+			"updateCommand": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).UpdateCommand, nil
+				},
+			},
+			"deleteCommand": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).DeleteCommand, nil
+				},
+			},
+		},
+	})
+}
+
+func newMenuType(name string) *graphql.Object {
+	menuType := graphql.NewObject(graphql.ObjectConfig{Name: name, Fields: graphql.Fields{}})
+	menuType.AddFieldConfig("id", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.String),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).ID, nil
+		},
+	})
+	menuType.AddFieldConfig("label", &graphql.Field{
+		Type: graphql.NewNonNull(graphql.String),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).Label, nil
+		},
+	})
+	menuType.AddFieldConfig("labelKey", &graphql.Field{
+		Type: graphql.String,
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).LabelKey, nil
+		},
+	})
+	menuType.AddFieldConfig("view", &graphql.Field{
+		Type: graphql.String,
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).View, nil
+		},
+	})
+	menuType.AddFieldConfig("route", &graphql.Field{
+		Type: graphql.String,
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).Route, nil
+		},
+	})
+	menuType.AddFieldConfig("component", &graphql.Field{
+		Type: graphql.String,
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).Component, nil
+		},
+	})
+	menuType.AddFieldConfig("sourceApp", &graphql.Field{
+		Type: graphql.String,
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).SourceApp, nil
+		},
+	})
+	menuType.AddFieldConfig("children", &graphql.Field{
+		Type: graphql.NewList(graphql.NewNonNull(menuType)),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).Children, nil
+		},
+	})
+	return menuType
+}
+
+func newViewSlotType(name string) *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: name,
+		Fields: graphql.Fields{
+			"slot": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(extension.ViewSlot).Slot, nil
+				},
+			},
+			"component": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(extension.ViewSlot).Component, nil
+				},
+			},
+			"module": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(extension.ViewSlot).Module, nil
+				},
+			},
+			"sourceApp": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(extension.ViewSlot).SourceApp, nil
+				},
+			},
+			"id": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(extension.ViewSlot).ID, nil
+				},
+			},
+			"labelKey": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(extension.ViewSlot).LabelKey, nil
+				},
+			},
+			"label": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(extension.ViewSlot).Label, nil
+				},
+			},
+		},
+	})
+}

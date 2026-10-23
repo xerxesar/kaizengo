@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"kaizengo/internal/auth"
 	"kaizengo/packages/sdk-go/acl"
@@ -25,8 +26,9 @@ const (
 type EntrySpec struct {
 	Name     string
 	Effect   string // allow|deny
+	Kind     string // model|query|command|menu|view|nav|…
 	Resource string
-	Actions  string // JSON array
+	Actions  string // JSON array; empty for call-style kinds
 	Fields   string // JSON or "*"
 	Domain   string // JSON domain
 	Priority int
@@ -37,7 +39,7 @@ type Store interface {
 	ListRoleNames(ctx context.Context, userID, orgID string) ([]string, error)
 	ListEntriesForUser(ctx context.Context, userID, orgID string) ([]acl.Entry, error)
 	EnsureRole(ctx context.Context, orgID, authorID, name, label string) (roleID string, err error)
-	EnsureACL(ctx context.Context, orgID, authorID, roleID, name, effect, resource, actions, fields, domain string, priority int) error
+	EnsureACL(ctx context.Context, orgID, authorID, roleID, name, effect, kind, resource, actions, fields, domain string, priority int) error
 	DisableACLByName(ctx context.Context, orgID, name string) error
 	AssignUserRoleID(ctx context.Context, orgID, authorID, userID, roleID string) error
 	FindRoleID(ctx context.Context, orgID, name string) (string, error)
@@ -165,10 +167,11 @@ func (s *Service) EnsureRole(ctx context.Context, orgID, name, label string) (st
 }
 
 // EnsureACLEntry upserts an acl_entry using JSON-string columns (engine security seed).
-func (s *Service) EnsureACLEntry(ctx context.Context, orgID, roleName, name, effect, resource, actions, fields, domain string, priority int) error {
+func (s *Service) EnsureACLEntry(ctx context.Context, orgID, roleName, name, effect, kind, resource, actions, fields, domain string, priority int) error {
 	return s.EnsureEntry(ctx, orgID, roleName, EntrySpec{
 		Name:     name,
 		Effect:   effect,
+		Kind:     kind,
 		Resource: resource,
 		Actions:  actions,
 		Fields:   fields,
@@ -187,8 +190,14 @@ func (s *Service) EnsureEntry(ctx context.Context, orgID, roleName string, spec 
 	if effect == "" {
 		effect = acl.EffectAllow
 	}
+	kind := strings.TrimSpace(spec.Kind)
+	if kind == "" {
+		kind = string(acl.InferKind(spec.Resource))
+	}
 	actions := spec.Actions
-	if actions == "" {
+	if acl.IsCallStyle(acl.ResourceKind(kind)) {
+		actions = `[]`
+	} else if actions == "" {
 		actions = `["*"]`
 	}
 	fields := spec.Fields
@@ -199,7 +208,7 @@ func (s *Service) EnsureEntry(ctx context.Context, orgID, roleName string, spec 
 	if domain == "" {
 		domain = `[]`
 	}
-	return s.store.EnsureACL(ctx, orgID, seedAuthor, roleID, spec.Name, effect, spec.Resource, actions, fields, domain, spec.Priority)
+	return s.store.EnsureACL(ctx, orgID, seedAuthor, roleID, spec.Name, effect, kind, spec.Resource, actions, fields, domain, spec.Priority)
 }
 
 // DisableEntry deactivates a seeded acl_entry by name (e.g. replace a broad grant).
@@ -243,28 +252,28 @@ func (s *Service) SeedDefaults(ctx context.Context, orgID, adminUserID string) e
 	}
 
 	type seedACL struct {
-		name, effect, resource, actions, fields, domain string
-		priority                                        int
-		roleID                                          string
+		name, effect, kind, resource, actions, fields, domain string
+		priority                                               int
+		roleID                                                 string
 	}
 	seeds := []seedACL{
-		{name: "admin-all", effect: acl.EffectAllow, resource: "*", actions: `["*"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: adminID},
-		// member: identity read
-		{name: "member-identity-user-read", effect: acl.EffectAllow, resource: "identity.user", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
-		{name: "member-identity-organization-read", effect: acl.EffectAllow, resource: "identity.organization", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
-		{name: "member-identity-org-unit-read", effect: acl.EffectAllow, resource: "identity.org_unit", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
-		{name: "member-identity-membership-read", effect: acl.EffectAllow, resource: "identity.membership", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
-		// hellospec policies are seeded by apps/hellospec (own-record + field deny demo)
-		// member: inventory read (app wildcard)
-		{name: "member-inventory-read", effect: acl.EffectAllow, resource: "inventory.*", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
-		// member: appman read
-		{name: "member-appman-read", effect: acl.EffectAllow, resource: "appman", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
-		// member: settings read
-		{name: "member-settings-read", effect: acl.EffectAllow, resource: "settings.*", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
-		{name: "member-permissions-catalog-read", effect: acl.EffectAllow, resource: "permissions.catalog", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
+		{name: "admin-all", effect: acl.EffectAllow, kind: string(acl.KindApp), resource: "*", actions: `["*"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: adminID},
+		{name: "member-identity-user-read", effect: acl.EffectAllow, kind: string(acl.KindModel), resource: "identity.user", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
+		{name: "member-identity-organization-read", effect: acl.EffectAllow, kind: string(acl.KindModel), resource: "identity.organization", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
+		{name: "member-identity-org-unit-read", effect: acl.EffectAllow, kind: string(acl.KindModel), resource: "identity.org_unit", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
+		{name: "member-identity-membership-read", effect: acl.EffectAllow, kind: string(acl.KindModel), resource: "identity.membership", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
+		// hellospec policies are seeded by apps/hellospec (CQRS + field ACL demo)
+		{name: "member-inventory-read", effect: acl.EffectAllow, kind: string(acl.KindModel), resource: "inventory.*", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
+		{name: "member-appman-read", effect: acl.EffectAllow, kind: string(acl.KindApp), resource: "appman", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
+		{name: "member-settings-read", effect: acl.EffectAllow, kind: string(acl.KindModel), resource: "settings.*", actions: `["read"]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
+		{name: "member-permissions-catalog-read", effect: acl.EffectAllow, kind: string(acl.KindQuery), resource: "permissions.catalog", actions: `[]`, fields: `"*"`, domain: `[]`, priority: 0, roleID: memberID},
 	}
 	for _, row := range seeds {
-		if err := s.store.EnsureACL(ctx, orgID, seedAuthor, row.roleID, row.name, row.effect, row.resource, row.actions, row.fields, row.domain, row.priority); err != nil {
+		kind := row.kind
+		if kind == "" {
+			kind = string(acl.InferKind(row.resource))
+		}
+		if err := s.store.EnsureACL(ctx, orgID, seedAuthor, row.roleID, row.name, row.effect, kind, row.resource, row.actions, row.fields, row.domain, row.priority); err != nil {
 			return fmt.Errorf("seed acl %s: %w", row.name, err)
 		}
 	}

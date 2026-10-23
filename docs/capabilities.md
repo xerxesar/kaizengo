@@ -2,7 +2,7 @@
 
 Apps declare what they **provide** (stable surfaces other modules may use) and what they **require** (`uses`). The server validates every `uses` entry at startup against loaded `provides` plus platform built-ins.
 
-See also [extension-platform.md](extension-platform.md) for how capabilities connect to extension points and SDK clients.
+See also [extension-platform.md](extension-platform.md) for how capabilities connect to extension points and SDK clients, and [grpc-plugins.md](grpc-plugins.md) for the planned out-of-process (go-plugin + gRPC) provider path.
 
 ## Declaring capabilities
 
@@ -155,5 +155,6 @@ Implementation: `sdk/appspec.ValidateLoadedCapabilities`.
 
 - [auth.md](auth.md) — sessions and identity
 - [acl.md](acl.md) — unified ACL policies and enforcement
-- [sdk.md](sdk.md) — extension points and engine hooks
+- [Go SDK](internals/go-sdk.md) — extension points and engine hooks
 - [extension-platform.md](extension-platform.md) — full extension platform design
+- [grpc-plugins.md](grpc-plugins.md) — gRPC + go-plugin for out-of-process providers

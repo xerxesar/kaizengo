@@ -22,6 +22,32 @@ func (v AclEntryEffect) Valid() bool {
 	}
 }
 
+// AclEntryKind is the enum for acl_entry.kind.
+type AclEntryKind string
+
+const (
+	AclEntryKindModel    AclEntryKind = "model"
+	AclEntryKindMenu     AclEntryKind = "menu"
+	AclEntryKindView     AclEntryKind = "view"
+	AclEntryKindQuery    AclEntryKind = "query"
+	AclEntryKindCommand  AclEntryKind = "command"
+	AclEntryKindMutation AclEntryKind = "mutation"
+	AclEntryKindEvent    AclEntryKind = "event"
+	AclEntryKindNav      AclEntryKind = "nav"
+	AclEntryKindApp      AclEntryKind = "app"
+	AclEntryKindApi      AclEntryKind = "api"
+)
+
+// Valid reports whether v is a known AclEntryKind value.
+func (v AclEntryKind) Valid() bool {
+	switch v {
+	case AclEntryKindModel, AclEntryKindMenu, AclEntryKindView, AclEntryKindQuery, AclEntryKindCommand, AclEntryKindMutation, AclEntryKindEvent, AclEntryKindNav, AclEntryKindApp, AclEntryKindApi:
+		return true
+	default:
+		return false
+	}
+}
+
 // AclEntry is the generated type for permissions.acl_entry.
 type AclEntry struct {
 	ID        string         `json:"id"`
@@ -34,7 +60,8 @@ type AclEntry struct {
 	RoleId    string         `json:"roleId"`   // required
 	Effect    AclEntryEffect `json:"effect"`   // default=allow, required
 	Resource  string         `json:"resource"` // required
-	Actions   string         `json:"actions"`  // default=["*"], required
+	Kind      AclEntryKind   `json:"kind"`     // required
+	Actions   string         `json:"actions"`  // default=[], required
 	Fields    string         `json:"fields"`   // default="*", required
 	Domain    string         `json:"domain"`   // default=[], required
 	Priority  int            `json:"priority"` // default=0, required

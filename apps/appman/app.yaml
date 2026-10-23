@@ -15,6 +15,92 @@ nav:
   labelKey: nav.appman
   route: appman
   order: 999999999
+
+models:
+  - name: app
+    internal: true
+    virtual: true
+    fields:
+      - name: name
+        type: string
+        required: true
+      - name: title
+        type: string
+        required: true
+      - name: summary
+        type: string
+      - name: version
+        type: string
+      - name: installedVersion
+        type: string
+      - name: installed
+        type: bool
+      - name: loaded
+        type: bool
+      - name: autoInstall
+        type: bool
+      - name: upgrade
+        type: bool
+      - name: status
+        type: enum
+        values: [available, installed, upgrade, system]
+      - name: depends
+        type: string
+    filters:
+      - id: installed
+        labelKey: appman.filter.installed
+        domain:
+          - - status
+            - "="
+            - installed
+      - id: available
+        labelKey: appman.filter.available
+        domain:
+          - - status
+            - "="
+            - available
+      - id: installed_or_available
+        labelKey: appman.filter.installed_or_available
+        domain:
+          - "|"
+          - - status
+            - "="
+            - installed
+          - - status
+            - "="
+            - available
+    charts:
+      - id: by_status
+        labelKey: appman.chart.by_status
+        type: bar
+        types: [bar, line, area, pie, doughnut]
+        xField: status
+        measure: count
+      - id: by_status_radar
+        labelKey: appman.chart.by_status_radar
+        type: radar
+        types: [radar, bar, pie]
+        xField: status
+        measure: count
+
+queries:
+  - name: apps
+    list: app
+
+commands:
+  - name: installApp
+    args:
+      - name: name
+        type: string
+        required: true
+    returns: app
+  - name: upgradeApp
+    args:
+      - name: name
+        type: string
+        required: true
+    returns: app
+
 menus:
   - id: apps
     labelKey: appman.menu.apps

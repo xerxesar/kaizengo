@@ -1,8 +1,8 @@
 {
   "name": "kaizengo",
   "displayName": "KaizenGo",
-  "description": "Navigate KaizenGo app.yaml specs — jump to views, models, apps, locales, and handlers.",
-  "version": "0.1.0",
+  "description": "Navigate KaizenGo specs and complete model names, fields, queries, and commands.",
+  "version": "0.2.0",
   "publisher": "kaizengo",
   "repository": {
     "type": "git",
@@ -16,6 +16,8 @@
   ],
   "activationEvents": [
     "onLanguage:yaml",
+    "onLanguage:go",
+    "onLanguage:typescriptreact",
     "workspaceContains:apps/*/app.yaml"
   ],
   "main": "./out/extension.js",
@@ -25,7 +27,23 @@
         "command": "kaizengo.reindex",
         "title": "KaizenGo: Reindex app.yaml catalog"
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "[go]": {
+        "editor.quickSuggestions": {
+          "other": true,
+          "comments": false,
+          "strings": true
+        }
+      },
+      "[typescriptreact]": {
+        "editor.quickSuggestions": {
+          "other": true,
+          "comments": false,
+          "strings": true
+        }
+      }
+    }
   },
   "scripts": {
     "compile": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --sourcemap",

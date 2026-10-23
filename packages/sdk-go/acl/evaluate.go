@@ -303,7 +303,9 @@ func filterMatch(entries []Entry, resource, action string) []Entry {
 		if !MatchResource(e.Resource, resource) {
 			continue
 		}
-		if !MatchAction(e.Actions, action) {
+		// Call-style resources (query/command/menu/view/nav) are binary allow/deny;
+		// entry actions are ignored.
+		if !IsCallStyle(e.EffectiveKind()) && !MatchAction(e.Actions, action) {
 			continue
 		}
 		out = append(out, e)

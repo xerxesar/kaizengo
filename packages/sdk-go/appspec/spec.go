@@ -23,11 +23,12 @@ type AppSpec struct {
 	EnableAuth       bool
 	EnableI18n       bool
 	EnableSPA        bool
-	EnableEvents     bool
 	AutoInstall      bool // install on first boot; always loaded with the shell
 	Nav              NavSpec
 	Menus            []MenuSpec
 	Models           []ModelSpec
+	Queries          []QuerySpec
+	Commands         []CommandSpec
 	Views            []ViewSpec // discovered from views/*.page.tsx
 	Locales          []LocaleSpec
 	Extends          []ExtendSpec
@@ -37,12 +38,40 @@ type AppSpec struct {
 }
 
 type ModelSpec struct {
-	Name      string
-	Stream    string
-	Aggregate string
-	Internal  bool // create/update/delete only via engine.WithInternal
-	Fields    []FieldSpec
-	Search    *SearchSpec
+	Name     string
+	Internal bool // create/update/delete only via engine.WithInternal
+	Virtual  bool // no Postgres table; list via RegisterModel (code-backed)
+	Fields   []FieldSpec
+	Search   *SearchSpec
+	Filters  []FilterPresetSpec
+	Charts   []ChartPresetSpec
+}
+
+// QuerySpec declares a named read on the public GraphQL surface.
+// Use list/get shorthand for ModelRegistry reads, or omit them and register a Go handler.
+type QuerySpec struct {
+	Name    string
+	List    string // model name → List
+	Get     string // model name → Get by id
+	Args    []FieldSpec
+	Returns string // optional explicit return hint (model, model[], int, bool, string)
+}
+
+// CommandSpec declares a named write/intent on the public GraphQL surface.
+// Use create/update/delete shorthand for ModelRegistry writes, or omit them and register a Go handler.
+type CommandSpec struct {
+	Name    string
+	Create  string // model name → Create
+	Update  string // model name → Update
+	Delete  string // model name → Delete
+	Args    []FieldSpec
+	Returns string
+}
+
+// HasCQRS reports whether the app declares a command/query public API
+// (GraphQL model CRUD is not registered in that mode).
+func (s AppSpec) HasCQRS() bool {
+	return len(s.Queries) > 0 || len(s.Commands) > 0
 }
 
 // SearchSpec declares a search collection for a model.
@@ -136,10 +165,9 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 			return fmt.Errorf("duplicate model name %q", m.Name)
 		}
 		models[m.Name] = struct{}{}
-		if strings.TrimSpace(m.Stream) == "" {
-			return fmt.Errorf("model %q stream is required", m.Name)
-		}
+		fieldSet := map[string]struct{}{}
 		for _, f := range m.Fields {
+			fieldSet[f.Name] = struct{}{}
 			if !fieldNameRe.MatchString(f.Name) {
 				return fmt.Errorf("model %q has invalid field %q", m.Name, f.Name)
 			}
@@ -183,6 +211,15 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 				return fmt.Errorf("model %q field %q is readonly+required but has no default", m.Name, f.Name)
 			}
 		}
+		if err := validateFilterPresets(m.Name, m.Filters, fieldSet); err != nil {
+			return err
+		}
+		if err := validateChartPresets(m.Name, m.Charts, fieldSet); err != nil {
+			return err
+		}
+	}
+	if err := validateQueriesCommands(s, models); err != nil {
+		return err
 	}
 	for _, v := range s.Views {
 		switch v.Type {
@@ -224,6 +261,84 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 	return nil
 }
 
+func validateQueriesCommands(s AppSpec, models map[string]struct{}) error {
+	seen := map[string]struct{}{}
+	checkName := func(kind, name string) error {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return fmt.Errorf("%s: name is required", kind)
+		}
+		if !fieldNameRe.MatchString(name) {
+			return fmt.Errorf("%s %q: invalid name", kind, name)
+		}
+		key := strings.ToLower(name)
+		if _, ok := seen[key]; ok {
+			return fmt.Errorf("duplicate query/command name %q", name)
+		}
+		seen[key] = struct{}{}
+		return nil
+	}
+	for _, q := range s.Queries {
+		if err := checkName("query", q.Name); err != nil {
+			return err
+		}
+		shorthands := 0
+		if strings.TrimSpace(q.List) != "" {
+			shorthands++
+			if _, ok := models[q.List]; !ok {
+				return fmt.Errorf("query %q list: unknown model %q", q.Name, q.List)
+			}
+		}
+		if strings.TrimSpace(q.Get) != "" {
+			shorthands++
+			if _, ok := models[q.Get]; !ok {
+				return fmt.Errorf("query %q get: unknown model %q", q.Name, q.Get)
+			}
+		}
+		if shorthands > 1 {
+			return fmt.Errorf("query %q: set only one of list/get", q.Name)
+		}
+		for _, f := range q.Args {
+			if !fieldNameRe.MatchString(f.Name) {
+				return fmt.Errorf("query %q has invalid arg %q", q.Name, f.Name)
+			}
+		}
+	}
+	for _, c := range s.Commands {
+		if err := checkName("command", c.Name); err != nil {
+			return err
+		}
+		shorthands := 0
+		if strings.TrimSpace(c.Create) != "" {
+			shorthands++
+			if _, ok := models[c.Create]; !ok {
+				return fmt.Errorf("command %q create: unknown model %q", c.Name, c.Create)
+			}
+		}
+		if strings.TrimSpace(c.Update) != "" {
+			shorthands++
+			if _, ok := models[c.Update]; !ok {
+				return fmt.Errorf("command %q update: unknown model %q", c.Name, c.Update)
+			}
+		}
+		if strings.TrimSpace(c.Delete) != "" {
+			shorthands++
+			if _, ok := models[c.Delete]; !ok {
+				return fmt.Errorf("command %q delete: unknown model %q", c.Name, c.Delete)
+			}
+		}
+		if shorthands > 1 {
+			return fmt.Errorf("command %q: set only one of create/update/delete", c.Name)
+		}
+		for _, f := range c.Args {
+			if !fieldNameRe.MatchString(f.Name) {
+				return fmt.Errorf("command %q has invalid arg %q", c.Name, f.Name)
+			}
+		}
+	}
+	return nil
+}
+
 func viewNames(views []ViewSpec) map[string]struct{} {
 	out := make(map[string]struct{}, len(views))
 	for _, v := range views {
@@ -259,7 +374,7 @@ func validateMenus(items []MenuSpec, views map[string]struct{}, seen map[string]
 	return nil
 }
 
-// ApplyDefaults fills schema, resource, streams, and aggregates when omitted.
+// ApplyDefaults fills schema, resource, and field defaults when omitted.
 func (s *AppSpec) ApplyDefaults() {
 	if s.Schema == "" {
 		s.Schema = s.Name
@@ -267,23 +382,17 @@ func (s *AppSpec) ApplyDefaults() {
 	if s.Resource == "" {
 		s.Resource = s.Name
 	}
-	if s.Nav.LabelKey == "" && s.Nav.Label == "" {
-		s.Nav.LabelKey = "nav." + s.Name
-	}
-	if s.Nav.Label == "" && s.Nav.LabelKey == "nav."+s.Name {
-		s.Nav.Label = s.Title
-	}
-	if s.Nav.Route == "" {
-		s.Nav.Route = s.Name
-	}
+	// if s.Nav.LabelKey == "" && s.Nav.Label == "" {
+	// 	s.Nav.LabelKey = "nav." + s.Name
+	// }
+	// if s.Nav.Label == "" && s.Nav.LabelKey == "nav."+s.Name {
+	// 	s.Nav.Label = s.Title
+	// }
+	// if s.Nav.Route == "" {
+	// 	s.Nav.Route = s.Name
+	// }
 	for i := range s.Models {
 		m := &s.Models[i]
-		if m.Stream == "" {
-			m.Stream = s.Name + "." + m.Name
-		}
-		if m.Aggregate == "" {
-			m.Aggregate = pascal(m.Name) + "Aggregate"
-		}
 		for j := range m.Fields {
 			f := &m.Fields[j]
 			if f.Type == "" {
@@ -299,6 +408,26 @@ func (s *AppSpec) ApplyDefaults() {
 			}
 			if f.Type == TypeEnum && f.Default == nil && len(f.Values) > 0 && !f.Required {
 				f.Default = f.Values[0]
+			}
+		}
+	}
+	for i := range s.Queries {
+		for j := range s.Queries[i].Args {
+			f := &s.Queries[i].Args[j]
+			if f.Type == "" {
+				f.Type = TypeString
+			} else {
+				f.Type = CanonicalFieldType(f.Type)
+			}
+		}
+	}
+	for i := range s.Commands {
+		for j := range s.Commands[i].Args {
+			f := &s.Commands[i].Args[j]
+			if f.Type == "" {
+				f.Type = TypeString
+			} else {
+				f.Type = CanonicalFieldType(f.Type)
 			}
 		}
 	}

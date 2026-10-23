@@ -1,6 +1,6 @@
 # Custom pages
 
-`KTable` and `KForm` cover list/create. Write your own Svelte when the screen is a dashboard, a tree, or it must call GraphQL that is not generated CRUD.
+`KTable` and `KForm` cover list/create. Write your own Solid when the screen is a dashboard, a tree, or it must call GraphQL that is not generated CRUD.
 
 Page views still live in the **core** SPA. You do not add a Vite app or a client-side router.
 
@@ -49,87 +49,82 @@ msgstr "Complete all"
 
 `listModelRecords` is the same helper `KTable` uses (session cookie included).
 
-`apps/todo/views/Overview.tsx`:
+`apps/todo/views/Overview.page.tsx`:
 
-```svelte
-<script lang="ts">
-  import { onMount } from 'svelte'
-  import {
-    Alert,
-    Button,
-    KAppStatus,
-    Spinner,
-    StatCard,
-    listModelRecords,
-    t,
-  } from '@kaizengo/sdk-solid/ui'
-  import { completeTodoTasks } from '../lib/graphql'
+```tsx
+import { createSignal, onMount, Show } from 'solid-js'
+import {
+  Alert,
+  Button,
+  KAppStatus,
+  Spinner,
+  StatCard,
+  listModelRecords,
+  t,
+} from '@kaizengo/sdk-solid/ui'
+import { completeTodoTasks } from '../lib/graphql'
 
-  let loading = $state(true)
-  let error = $state('')
-  let total = $state(0)
-  let open = $state(0)
-  let working = $state(false)
+export default function Overview() {
+  const [loading, setLoading] = createSignal(true)
+  const [error, setError] = createSignal('')
+  const [total, setTotal] = createSignal(0)
+  const [open, setOpen] = createSignal(0)
+  const [working, setWorking] = createSignal(false)
 
   async function refresh() {
-    loading = true
-    error = ''
+    setLoading(true)
+    setError('')
     try {
       const rows = await listModelRecords('todo', 'task', ['id', 'title', 'done'])
-      total = rows.length
-      open = rows.filter((r) => r.done !== true).length
+      setTotal(rows.length)
+      setOpen(rows.filter((r) => r.done !== true).length)
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e)
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
-      loading = false
+      setLoading(false)
     }
   }
 
   async function completeAll() {
-    working = true
-    error = ''
+    setWorking(true)
+    setError('')
     try {
       await completeTodoTasks()
       await refresh()
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e)
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
-      working = false
+      setWorking(false)
     }
   }
 
   onMount(() => {
     void refresh()
   })
-</script>
 
-{#if loading}
-  <Spinner />
-{:else}
-  {#if error}
-    <Alert variant="danger" dismissible ondismiss={() => (error = '')}>{error}</Alert>
-  {/if}
+  return (
+    <>
+      <Show when={!loading()} fallback={<Spinner />}>
+        <Show when={error()}>
+          <Alert variant="danger" dismissible onDismiss={() => setError('')}>
+            {error()}
+          </Alert>
+        </Show>
 
-  <div class="stats">
-    <StatCard label={t('todo.stat.open')} value={open} hint={t('todo.stat.open_hint')} />
-    <StatCard label={t('todo.stat.total')} value={total} />
-  </div>
+        <div class="mb-4 grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-4">
+          <StatCard label={t('todo.stat.open')} value={open()} hint={t('todo.stat.open_hint')} />
+          <StatCard label={t('todo.stat.total')} value={total()} />
+        </div>
 
-  <Button disabled={working || open === 0} onclick={() => void completeAll()}>
-    {t('todo.complete_all')}
-  </Button>
-{/if}
+        <Button disabled={working() || open() === 0} onClick={() => void completeAll()}>
+          {t('todo.complete_all')}
+        </Button>
+      </Show>
 
-<KAppStatus />
-
-<style>
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-</style>
+      <KAppStatus />
+    </>
+  )
+}
 ```
 
 Keep `<KAppStatus />` on every page — it is the ping / health strip the shell expects.
@@ -174,7 +169,7 @@ You can drive the open-count StatCard from `todoOpenCount()` instead of filterin
 - One `.page.tsx` file per menu view under `apps/<app>/views/`.
 - Import UI from `@kaizengo/sdk-solid/ui` (`Alert`, `Button`, `Card`, `Page`, `Spinner`, `StatCard`, `TreeView`, …).
 - Navigate with `navigateApp(menuPagePath('todo', 'task_list'))` — do not `window.location` into another app’s HTML.
-- `make dev` hot-reloads Svelte. New Go (`gql.go`, `service.go`) needs a process restart.
+- `make dev` hot-reloads Solid. New Go (`gql.go`, `service.go`) needs a process restart.
 
 ## Larger examples
 

@@ -8,7 +8,7 @@ import (
 
 	idtypes "kaizengo/apps/identity/__types__"
 	iauth "kaizengo/internal/auth"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 
 	"golang.org/x/crypto/bcrypt"
 )

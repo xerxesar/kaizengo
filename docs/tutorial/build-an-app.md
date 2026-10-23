@@ -15,14 +15,17 @@ depends:
   - identity
   - auth
   - permissions
+extensions: true
 uses:
   - identity.users
   - permissions.rbac
 nav:
   labelKey: nav.todo
   route: todo
+  order: 50
 models:
   - name: task
+    internal: true
     fields:
       - name: title
         type: string
@@ -30,6 +33,18 @@ models:
       - name: done
         type: bool
         default: false
+queries:
+  - name: tasks
+    list: task
+  - name: task
+    get: task
+commands:
+  - name: postTask
+    create: task
+  - name: reviseTask
+    update: task
+  - name: discardTask
+    delete: task
 menus:
   - id: tasks
     labelKey: todo.menu.tasks
@@ -46,7 +61,7 @@ locales:
     dir: ltr
 ```
 
-Field types: `string`, `text`, `int`, `number`, `bool`, `enum`, `date`, `datetime`, `json`, plus relations `many2one`, `one2many`, `many2many` (`relation: app.model` or `model`; `one2many` also needs `inverse:`). Aliases like `float`, `integer`, and `fk` work. Enums need `values:`. Validation keys include `minLength`, `maxLength`, `pattern`, `min`, `max`.
+Field types: `string`, `text`, `int`, `number`, `bool`, `enum`, `date`, `datetime`, `json`, plus relations `many2one`, `one2many`, `many2many` (`relation: app.model` or `model`; `one2many` also needs `inverse:`). Aliases like `float`, `integer`, and `fk` work. Enums need `values:`. Validation keys include `minLength`, `maxLength`, `pattern`, `min`, `max`. Models that expose GraphQL should set `internal: true` and declare `queries` / `commands` (see [HelloSpec](../apps.md) / [Go SDK → CQRS](../internals/go-sdk.md)).
 
 ## 2. Module
 
@@ -55,11 +70,11 @@ Field types: `string`, `text`, `int`, `number`, `bool`, `enum`, `date`, `datetim
 ```go
 package todo
 
-//go:generate go run ../../cmd/godino gen-types todo
+//go:generate go run ../../cmd/kaizengo gen-types todo
 
 import (
 	"kaizengo/internal/module"
-	"kaizengo/packages/sdk-go/engine"
+	"kaizengo/internal/engine"
 )
 
 func init() {
@@ -70,20 +85,18 @@ func init() {
 }
 ```
 
-Hooks come in the [next page](hooks.md). For now this one-liner is enough: locales, nav, catalog queries, event store, and GraphQL CRUD all come from the spec.
+Hooks come in the [next page](hooks.md). For now this one-liner is enough: locales, nav, catalog queries, migrations, and the CQRS GraphQL surface all come from the spec.
 
 ## 3. Migrations
 
 Every app gets its own Postgres schema (default: the app name). The engine does **not** generate tables from YAML — you write SQL.
 
-`apps/todo/migrations/001_events.sql` — copy the event store from `apps/hellospec/migrations/001_events.sql` (`streams` and `events`).
-
-`apps/todo/migrations/002_tasks_read.sql`:
+`apps/todo/migrations/001_tasks.sql` — create the model table (schema is created by the platform migrator).
 
 ```sql
--- Read model: todo.task  (table name = {model}s_read)
+-- todo.task  (table name = plural of model)
 
-CREATE TABLE IF NOT EXISTS tasks_read (
+CREATE TABLE IF NOT EXISTS tasks (
     id         TEXT PRIMARY KEY,
     org_id     TEXT NOT NULL,
     author_id  TEXT NOT NULL,
@@ -94,46 +107,61 @@ CREATE TABLE IF NOT EXISTS tasks_read (
     done       BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE INDEX IF NOT EXISTS idx_tasks_read_org ON tasks_read(org_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasks_org ON tasks(org_id, updated_at DESC);
 ```
 
 System columns (`id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_at`) are required. Add one column per model field, snake_case (`done` stays `done`).
 
 ## 4. Views
 
-Views are SolidJS files compiled into the **core** SPA. Pages are `views/<Name>.page.tsx`.
+Views are React files compiled into the **core** SPA. Pages are `views/<Name>.page.tsx`.
 
 `apps/todo/views/TaskList.page.tsx`:
 
-```svelte
-<script lang="ts">
-  import { KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
-</script>
+```tsx
+import { t } from '@/lib'
+import { KTable, KAppStatus } from '@/k'
 
-<KTable model="todo.task" emptyMessage={t('todo.empty')} />
-
-<KAppStatus />
+export default function TaskList() {
+  return (
+    <>
+      <KTable query="todo.tasks" emptyMessage={t('todo.empty')} />
+      <KAppStatus />
+    </>
+  )
+}
 ```
 
 `apps/todo/views/TaskForm.page.tsx`:
 
-```svelte
-<script lang="ts">
-  import { KForm, KFormField, KTable, KAppStatus, t } from '@kaizengo/sdk-solid/ui'
+```tsx
+import { useState } from 'react'
+import { t } from '@/lib'
+import { KForm, KFormField, KTable, KAppStatus } from '@/k'
 
-  let table = $state<{ refresh: () => Promise<void> }>()
-</script>
+export default function TaskForm() {
+  const [refreshToken, setRefreshToken] = useState(0)
 
-<KForm model="todo.task" onsuccess={() => void table?.refresh()}>
-  <KFormField field="title" label={t('todo.create')} placeholder={t('todo.new_placeholder')} />
-</KForm>
+  return (
+    <>
+      <KForm command="todo.postTask" onsuccess={() => setRefreshToken((n) => n + 1)}>
+        <KFormField field="title" label={t('todo.create')} placeholder={t('todo.new_placeholder')} />
+      </KForm>
 
-<KTable bind:this={table} model="todo.task" emptyMessage={t('todo.empty')} class="mt-4" />
+      <KTable
+        query="todo.tasks"
+        emptyMessage={t('todo.empty')}
+        className="mt-4"
+        refreshToken={refreshToken}
+      />
 
-<KAppStatus />
+      <KAppStatus />
+    </>
+  )
+}
 ```
 
-`model="todo.task"` is `{app}.{model}`. The SDK maps that to `todoTasks` / `createTodoTask` and sends the session cookie.
+`query="todo.tasks"` / `command="todo.postTask"` are `{app}.{cqrsName}` — the SDK maps them to GraphQL `todoTasks` / `todoPostTask` via `{app}Views`.
 
 ## 5. Locale
 
@@ -198,9 +226,9 @@ Same layout, generated for you:
 
 ```bash
 make cli
-./bin/kaizengo new-app todo --type svelte --title Todo
+./bin/kaizengo new-app todo --type solid --title Todo
 ```
 
 The scaffold uses an `item` model and `Items` / `NewItem` views. Rename in `app.yaml` and the view files if you want `task` instead.
 
-Next: [add a hook](hooks.md) so titles are trimmed before they hit the event store.
+Next: [add a hook](hooks.md) so titles are trimmed before they are stored.

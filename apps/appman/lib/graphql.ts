@@ -13,7 +13,8 @@ async function gql<T>(query: string, variables?: Record<string, unknown>): Promi
   return body.data as T
 }
 
-export type App = {
+export type AppRow = {
+  id: string
   name: string
   title: string
   summary: string
@@ -23,28 +24,25 @@ export type App = {
   loaded: boolean
   autoInstall: boolean
   upgrade: boolean
-  depends: string[]
+  status: string
+  depends: string
 }
 
 const fields = `
-  name title summary version installedVersion
-  installed loaded autoInstall upgrade depends
+  id name title summary version installedVersion
+  installed loaded autoInstall upgrade status depends
 `
 
-export function fetchApps() {
-  return gql<{ apps: App[] }>(`query { apps { ${fields} } }`).then((d) => d.apps)
-}
-
 export function installApp(name: string) {
-  return gql<{ installApp: App }>(
-    `mutation ($name: String!) { installApp(name: $name) { ${fields} } }`,
+  return gql<{ appmanInstallApp: AppRow }>(
+    `mutation ($name: String!) { appmanInstallApp(name: $name) { ${fields} } }`,
     { name },
-  ).then((d) => d.installApp)
+  ).then((d) => d.appmanInstallApp)
 }
 
 export function upgradeApp(name: string) {
-  return gql<{ upgradeApp: App }>(
-    `mutation ($name: String!) { upgradeApp(name: $name) { ${fields} } }`,
+  return gql<{ appmanUpgradeApp: AppRow }>(
+    `mutation ($name: String!) { appmanUpgradeApp(name: $name) { ${fields} } }`,
     { name },
-  ).then((d) => d.upgradeApp)
+  ).then((d) => d.appmanUpgradeApp)
 }

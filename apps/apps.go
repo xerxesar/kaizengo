@@ -8,7 +8,6 @@ import (
 	_ "kaizengo/apps/core"
 	_ "kaizengo/apps/hellospec"
 	_ "kaizengo/apps/identity"
-	_ "kaizengo/apps/inventory"
 	_ "kaizengo/apps/permissions"
 	_ "kaizengo/apps/settings"
 	_ "kaizengo/apps/typesense"

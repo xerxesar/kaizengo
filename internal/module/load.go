@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/packages/sdk-go/extension"
+	"kaizengo/internal/extension"
 )
 
 // Load sets up and mounts apps from the registry in dependency order.
@@ -28,6 +28,8 @@ func Load(host *Host, reg *Registry, wanted []string) error {
 	if err := appspec.ValidateLoadedCapabilities(names); err != nil {
 		return err
 	}
+
+	extension.ResetLoadState()
 
 	// Register component exports and view slots before wiring yaml extends.
 	for _, name := range names {

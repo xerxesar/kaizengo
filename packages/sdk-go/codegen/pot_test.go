@@ -42,7 +42,8 @@ menus:
 	if err := os.MkdirAll(filepath.Join(dir, "views"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	view := `import { KTable, t } from '@kaizengo/sdk-solid/ui'
+	view := `import { t } from '@/k'
+import { KTable } from '@/k'
 export default function Items() {
   return <KTable model="demo.item" emptyMessage={t('demo.empty.items')} />
 }

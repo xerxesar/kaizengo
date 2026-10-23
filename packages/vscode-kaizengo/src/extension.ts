@@ -3,11 +3,18 @@ import * as vscode from "vscode";
 import { appNameFromFile, findRepoRoot, loadCatalog, type Catalog } from "./catalog";
 import { offsetToPosition, positionToOffset } from "./offsets";
 import { classify, collectSymbols, symbolAt } from "./parse";
+import { complete, type Completion } from "./complete";
 import { resolveDefinition, resolveReferences, type NavTarget, type ResolveContext } from "./resolve";
 
 const selector: vscode.DocumentSelector = [
   { scheme: "file", pattern: "**/app.yaml" },
   { scheme: "file", pattern: "**/apps/*/models/**/*.yaml" },
+];
+
+const completionSelector: vscode.DocumentSelector = [
+  { language: "yaml", scheme: "file", pattern: "**/apps/**/*.{yaml,yml}" },
+  { language: "go", scheme: "file", pattern: "**/*.go" },
+  { language: "typescriptreact", scheme: "file", pattern: "**/apps/**/*.tsx" },
 ];
 
 let catalog: Catalog | undefined;
@@ -48,6 +55,25 @@ function symbolAtPosition(ctx: ResolveContext, pos: vscode.Position) {
 function toPosition(text: string, offset: number): vscode.Position {
   const pos = offsetToPosition(text, offset);
   return new vscode.Position(pos.line, pos.character);
+}
+
+const completionKind: Record<Completion["kind"], vscode.CompletionItemKind> = {
+  model: vscode.CompletionItemKind.Class,
+  field: vscode.CompletionItemKind.Field,
+  query: vscode.CompletionItemKind.Function,
+  command: vscode.CompletionItemKind.Method,
+  type: vscode.CompletionItemKind.Interface,
+  enum: vscode.CompletionItemKind.EnumMember,
+};
+
+function toCompletion(text: string, item: Completion): vscode.CompletionItem {
+  const completion = new vscode.CompletionItem(item.label, completionKind[item.kind]);
+  completion.detail = item.detail;
+  completion.documentation = new vscode.MarkdownString(item.documentation);
+  completion.sortText = item.sort;
+  completion.filterText = item.label;
+  completion.range = new vscode.Range(toPosition(text, item.replace.start), toPosition(text, item.replace.end));
+  return completion;
 }
 
 function toLocation(target: NavTarget): vscode.Location {
@@ -101,6 +127,23 @@ export function activate(context: vscode.ExtensionContext): void {
         return resolveReferences(ctx, sym).map(toLocation);
       },
     }),
+    vscode.languages.registerCompletionItemProvider(
+      completionSelector,
+      {
+        provideCompletionItems(doc, pos) {
+          const cat = catalogFor(doc);
+          if (!cat) return;
+          const text = doc.getText();
+          const offset = positionToOffset(text, pos.line, pos.character);
+          const items = complete({ catalog: cat, file: doc.uri.fsPath, text, offset });
+          if (!items.length) return;
+          return items.map((item) => toCompletion(text, item));
+        },
+      },
+      '"',
+      "'",
+      ".",
+    ),
     vscode.languages.registerHoverProvider(selector, {
       provideHover(doc, pos) {
         const ctx = resolveCtx(doc);
