@@ -84,6 +84,48 @@ msgstr "صفحه بعد"
 msgid "keymap.shell.sign_out"
 msgstr "خروج"
 
+msgid "keymap.shell.command_palette"
+msgstr "پالت فرمان"
+
+msgid "keymap.shell.toggle_terminal"
+msgstr "نمایش/پنهان کردن ترمینال"
+
+msgid "shell.palette.open"
+msgstr "پالت فرمان"
+
+msgid "shell.palette.placeholder"
+msgstr "جستجوی برنامه‌ها، کوئری‌ها، فرمان‌ها… یا یک خط فرمان بنویسید"
+
+msgid "shell.palette.empty"
+msgstr "موردی یافت نشد. برای اجرا در ترمینال Enter را بزنید."
+
+msgid "shell.palette.group_apps"
+msgstr "برنامه‌ها"
+
+msgid "shell.palette.group_queries"
+msgstr "کوئری‌ها"
+
+msgid "shell.palette.group_commands"
+msgstr "فرمان‌ها"
+
+msgid "shell.palette.group_shell"
+msgstr "ترمینال"
+
+msgid "shell.terminal.toggle"
+msgstr "ترمینال"
+
+msgid "shell.terminal.title"
+msgstr "ترمینال"
+
+msgid "shell.terminal.hint"
+msgstr "Tab تکمیل · ↑↓ تاریخچه · Ctrl+L پاک کردن · Esc بستن · <<EOF برای چندخطی"
+
+msgid "shell.terminal.placeholder"
+msgstr "help"
+
+msgid "shell.terminal.close"
+msgstr "بستن ترمینال"
+
 msgid "shell.app_not_found"
 msgstr "برنامه مورد نظر یافت نشد"
 

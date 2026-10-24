@@ -57,6 +57,22 @@ bindings:
     scope: global
     hint: true
 
+  - id: command_palette
+    action: element:command-palette
+    keys: alt+k
+    labelKey: keymap.shell.command_palette
+    scope: global
+    hint: true
+    inForm: true
+
+  - id: toggle_terminal
+    action: element:toggle-terminal
+    keys: alt+t
+    labelKey: keymap.shell.toggle_terminal
+    scope: global
+    hint: true
+    inForm: true
+
   - id: sign_out
     action: element:sign-out
     keys: alt+q

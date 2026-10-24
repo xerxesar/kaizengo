@@ -27,6 +27,12 @@ func RegisterReindexer(app, model string, fn ReindexFunc) {
 	}
 	reindexMu.Lock()
 	defer reindexMu.Unlock()
+	for i, e := range reindexers {
+		if e.app == app && e.model == model {
+			reindexers[i].fn = fn
+			return
+		}
+	}
 	reindexers = append(reindexers, reindexEntry{app: app, model: model, fn: fn})
 }
 

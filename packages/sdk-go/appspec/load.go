@@ -36,7 +36,7 @@ type fileSpec struct {
 	Locales     []fileLocale `yaml:"locales"`
 	Extends     []ExtendSpec `yaml:"extends"`
 	Exports     ExportSpec   `yaml:"exports"`
-	Security    []string     `yaml:"security"` // relative paths to security YAML files
+	Security    yaml.Node    `yaml:"security"` // list of relative security YAML paths, or an inline mapping
 	Keymap      []string     `yaml:"keymap"`   // relative paths to keymap YAML files
 }
 
@@ -119,6 +119,31 @@ func Parse(b []byte) (AppSpec, error) {
 }
 
 func parse(b []byte, appRoot, source string) (AppSpec, error) {
+	spec, err := decode(b, appRoot, source)
+	if err != nil {
+		return AppSpec{}, err
+	}
+	if err := spec.validate(appRoot != ""); err != nil {
+		return AppSpec{}, err
+	}
+	return spec, nil
+}
+
+// ParseLayer decodes a domain layer: an app.yaml document that may only add to
+// a lower layer, so app-level checks (title, model references) are skipped.
+// Merge the result onto its base and Validate the merged spec.
+func ParseLayer(b []byte) (AppSpec, error) {
+	spec, err := decode(b, "", "")
+	if err != nil {
+		return AppSpec{}, err
+	}
+	if !nameRe.MatchString(spec.Name) {
+		return AppSpec{}, fmt.Errorf("invalid app name %q (must match %s)", spec.Name, nameRe.String())
+	}
+	return spec, nil
+}
+
+func decode(b []byte, appRoot, source string) (AppSpec, error) {
 	var raw fileSpec
 	if err := yaml.Unmarshal(b, &raw); err != nil {
 		return AppSpec{}, fmt.Errorf("parse app spec: %w", err)
@@ -201,13 +226,11 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 	}
 	spec.Extends = raw.Extends
 	spec.Exports = raw.Exports
-	if len(raw.Security) > 0 {
-		sec, err := loadSecurityFiles(raw.Security, appRoot, source)
-		if err != nil {
-			return AppSpec{}, err
-		}
-		spec.Security = sec
+	sec, err := resolveSecurity(&raw.Security, appRoot, source)
+	if err != nil {
+		return AppSpec{}, err
 	}
+	spec.Security = sec
 	if len(raw.Keymap) > 0 {
 		km, err := loadKeymapFiles(raw.Keymap, appRoot, source)
 		if err != nil {
@@ -216,9 +239,6 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 		spec.Keymap = km
 	}
 	spec.ApplyDefaults()
-	if err := spec.validate(appRoot != ""); err != nil {
-		return AppSpec{}, err
-	}
 	return spec, nil
 }
 
@@ -253,6 +273,35 @@ func loadKeymapFiles(refs []string, appRoot, source string) (KeymapSpec, error) 
 		mergeKeymap(&merged, frag)
 	}
 	return merged, nil
+}
+
+// resolveSecurity accepts security: as a list of include paths (file specs) or
+// as an inline mapping (dynamic domain documents have no files).
+func resolveSecurity(node *yaml.Node, appRoot, source string) (SecuritySpec, error) {
+	if node == nil || node.Kind == 0 || isNullNode(node) {
+		return SecuritySpec{}, nil
+	}
+	switch node.Kind {
+	case yaml.SequenceNode:
+		var refs []string
+		if err := node.Decode(&refs); err != nil {
+			return SecuritySpec{}, fmt.Errorf("security: %w", err)
+		}
+		if len(refs) == 0 {
+			return SecuritySpec{}, nil
+		}
+		return loadSecurityFiles(refs, appRoot, source)
+	case yaml.MappingNode:
+		var frag fileSecurity
+		if err := node.Decode(&frag); err != nil {
+			return SecuritySpec{}, fmt.Errorf("security: %w", err)
+		}
+		var merged SecuritySpec
+		mergeSecurity(&merged, frag)
+		return merged, nil
+	default:
+		return SecuritySpec{}, fmt.Errorf("security: expected a list of files or an inline mapping")
+	}
 }
 
 func loadSecurityFiles(refs []string, appRoot, source string) (SecuritySpec, error) {

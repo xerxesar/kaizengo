@@ -15,6 +15,7 @@ Start with **Tutorial → Develop a Kaizen app**.
 
 | Section | Contents |
 |---------|----------|
+| [Architecture](architecture.md) | 3+1 layers, GraphQL vs gRPC, CLI, dynamic domain |
 | [Development](development/index.md) | Workflow, platform APIs, auth, ACL, GraphQL, apps, CLI |
 | [Reference](internals/index.md) | Internals, [Go SDK](internals/go-sdk.md), [Solid SDK](internals/solid-sdk.md) |
 | [Installation](installation.md) | Prerequisites, clone, install tooling |
@@ -23,8 +24,8 @@ Start with **Tutorial → Develop a Kaizen app**.
 | [Apps system](apps.md) | Architecture, lifecycle, registering apps |
 | [Capabilities](capabilities.md) | `provides` / `uses` contracts and identity SDK |
 | [Extension platform plan](extension-platform.md) | Capabilities, global hooks, SDK components — roadmap |
-| [gRPC plugins](grpc-plugins.md) | East–west capabilities via hashicorp/go-plugin + gRPC |
-| [CLI](cli.md) | `kaizengo new-app` bootstrapper |
+| [External Go apps](grpc-plugins.md) | Domain, hooks, handlers via hashicorp/go-plugin + gRPC |
+| [CLI](cli.md) | Runtime CLI (web terminal, `kaizen`) and `kaizengo` scaffolding |
 | [GraphQL](graphql.md) | Runtime field registry, auth-aware clients |
 
 ## Quick start

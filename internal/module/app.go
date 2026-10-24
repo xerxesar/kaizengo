@@ -3,6 +3,7 @@ package module
 import (
 	"context"
 	"log/slog"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -13,11 +14,12 @@ type Host struct {
 	Log    *slog.Logger
 	Loaded []Manifest
 
-	services map[string]any
-	nav      []NavEntry
-	GQL      *GraphQLRegistry
-	startup  []func(context.Context) error
-	shutdown []func(context.Context) error
+	servicesMu sync.RWMutex
+	services   map[string]any
+	nav        []NavEntry
+	GQL        *GraphQLRegistry
+	startup    []func(context.Context) error
+	shutdown   []func(context.Context) error
 }
 
 func NewHost(router *chi.Mux, log *slog.Logger) *Host {
@@ -44,11 +46,22 @@ func (h *Host) OnStop(fn func(context.Context) error) {
 
 // Provide registers a named service for other apps.
 func (h *Host) Provide(name string, svc any) {
+	h.servicesMu.Lock()
+	defer h.servicesMu.Unlock()
 	h.services[name] = svc
+}
+
+// Unprovide removes a named service (dynamic apps on delete).
+func (h *Host) Unprovide(name string) {
+	h.servicesMu.Lock()
+	defer h.servicesMu.Unlock()
+	delete(h.services, name)
 }
 
 // Lookup returns a service registered with Provide.
 func (h *Host) Lookup(name string) (any, bool) {
+	h.servicesMu.RLock()
+	defer h.servicesMu.RUnlock()
 	svc, ok := h.services[name]
 	return svc, ok
 }

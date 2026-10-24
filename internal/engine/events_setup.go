@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"kaizengo/internal/module"
 	"kaizengo/internal/platform/postgres"
@@ -14,9 +15,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// ModelRegistry exposes CRUD for models declared in app.yaml.
+// ModelRegistry exposes CRUD for models declared in app.yaml. Its services are
+// swapped in place when the app's domain is remounted, so holders of the
+// registry always see the current models.
 type ModelRegistry struct {
+	mu     sync.RWMutex
 	byName map[string]*modelService
+}
+
+func (r *ModelRegistry) swap(byName map[string]*modelService) map[string]*modelService {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	prev := r.byName
+	r.byName = byName
+	return prev
 }
 
 func (r *ModelRegistry) Create(ctx context.Context, orgID, authorID, model string, fields map[string]any) (Record, error) {
@@ -131,10 +143,12 @@ func (r *ModelRegistry) ListAll(ctx context.Context, model string) ([]Record, er
 }
 
 func (r *ModelRegistry) require(model string) (*modelService, error) {
-	if r == nil || r.byName == nil {
+	if r == nil {
 		return nil, fmt.Errorf("model registry not initialized")
 	}
+	r.mu.RLock()
 	svc, ok := r.byName[model]
+	r.mu.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("unknown model %q", model)
 	}
@@ -153,23 +167,40 @@ type EventsSetup struct {
 // SetupEvents uses the platform Postgres connector, applies apps/<app>/migrations,
 // and registers model CRUD for the app schema.
 func SetupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks *HookRegistry) (*EventsSetup, error) {
+	return setupEvents(host, appName, spec, hooks, nil, nil)
+}
+
+// setupEvents builds model services for spec. ddl lists the tables and columns
+// to create (additive). With reg set, the services of an already set-up app are
+// replaced in place and migrations are not re-run.
+func setupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks *HookRegistry, ddl []tableDDL, reg *ModelRegistry) (*EventsSetup, error) {
 	db, err := postgres.FromHost(host)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", appName, err)
 	}
 	schema := app.Env(schemaEnv(appName), spec.Schema)
 	ctx := context.Background()
-	store, err := app.SchemaStoreFromHost(ctx, host, schema)
-	if err != nil {
-		return nil, fmt.Errorf("%s postgres schema %q: %w", appName, schema, err)
-	}
 	spec.Schema = schema
 
-	if err := app.ApplyMigrationsFromDir(ctx, store, appName, schema); err != nil {
-		return nil, err
+	if reg == nil {
+		store, err := app.SchemaStoreFromHost(ctx, host, schema)
+		if err != nil {
+			return nil, fmt.Errorf("%s postgres schema %q: %w", appName, schema, err)
+		}
+		if err := app.ApplyMigrationsFromDir(ctx, store, appName, schema); err != nil {
+			return nil, err
+		}
+	}
+	if len(ddl) > 0 {
+		if err := ensureTables(ctx, db.Pool(), schema, ddl); err != nil {
+			return nil, fmt.Errorf("%s schema: %w", appName, err)
+		}
 	}
 
-	reg := &ModelRegistry{byName: map[string]*modelService{}}
+	if reg == nil {
+		reg = &ModelRegistry{}
+	}
+	services := map[string]*modelService{}
 	for _, model := range spec.Models {
 		if model.Virtual {
 			continue
@@ -177,12 +208,13 @@ func SetupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks 
 		svc := newModelService(db.Pool(), spec, model, hooks)
 		svc.registry = reg
 		svc.host = host
-		reg.byName[model.Name] = svc
+		services[model.Name] = svc
 		if !spec.HasCQRS() {
 			registerModelGQL(host, spec, svc)
 		}
 		search.RegisterReindexer(spec.Name, model.Name, svc.reindexAll)
 	}
+	reg.swap(services)
 
 	return &EventsSetup{Models: reg, Schema: schema, AppName: appName, Pool: db.Pool()}, nil
 }
@@ -194,6 +226,25 @@ func schemaEnv(appName string) string {
 // ModelsKey is the host bag key for an app's ModelRegistry.
 func ModelsKey(appName string) string {
 	return appName + ".models"
+}
+
+// AppKey is the host bag key for an engine *App. Unlike the bare app name it is
+// never shadowed by a service the app provides under its own name (permissions).
+func AppKey(appName string) string {
+	return "engine.app." + appName
+}
+
+// AppFromHost returns the engine app named appName, if it is loaded.
+func AppFromHost(host *module.Host, appName string) (*App, bool) {
+	if host == nil {
+		return nil, false
+	}
+	raw, ok := host.Lookup(AppKey(appName))
+	if !ok {
+		return nil, false
+	}
+	a, ok := raw.(*App)
+	return a, ok && a != nil
 }
 
 // ModelsFromHost returns the ModelRegistry provided during another app's Setup.

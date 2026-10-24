@@ -54,6 +54,24 @@ query { i18n(prefix: "shell.") { locale dir entries { key value } } }
 query { search(q: "hello") { id title snippet } }
 ```
 
+**Platform meta** (runtime domain definitions, catalog, CLI; see [architecture](architecture.md#graphql-platform-meta-surface))
+
+```graphql
+query { platformCatalog(app: "crm") { app kind name field args { name type required } returnFields } }
+query { platformDomains(kind: "dynamic") { app kind revision layerRevision source loaded error } }
+query { platformDomain(app: "identity") { kind spec layer baseRevision layerRevision } }
+query { platformDomainRevisions(app: "identity") { revision layer source changes createdAt } }
+query { platformDomainDiff(spec: "…yaml…") { app changes } }
+mutation { platformApplyDomain(spec: "…yaml…", dryRun: true) { changes domain { revision } } }
+mutation { platformRevertDomain(app: "crm", revision: 2) { changes domain { revision } } }
+mutation { platformDeleteDomain(app: "crm") { changes } }
+query { platformExportDomains }
+mutation { platformImportDomains(bundle: "…yaml…", dryRun: true) { changes domain { app } } }
+mutation { platformShell(line: "query crm.leads") { ok output data } }
+query { platformShellCommands { name usage summary } }
+query { platformPlugins { name version apps hooks handlers } }
+```
+
 **Auth** (`apps/auth`)
 
 ```graphql
@@ -144,6 +162,6 @@ KaizenGo_APPS=core,identity ./bin/server
 
 ## Related
 
-- [grpc-plugins.md](grpc-plugins.md) — east–west capabilities (go-plugin + gRPC)
+- [grpc-plugins.md](grpc-plugins.md) — external Go apps (go-plugin + gRPC)
 - [capabilities.md](capabilities.md) — `provides` / `uses`
 - [extension-platform.md](extension-platform.md) — hooks and composition

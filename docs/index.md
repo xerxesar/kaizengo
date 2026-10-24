@@ -1,6 +1,6 @@
 # KaizenGo
 
-KaizenGo is a modular host for operational software: apps register themselves, share a Solid shell with login, and compose GraphQL from a spec.
+KaizenGo is a modular host for operational software: apps register themselves, share a React shell with login, and compose GraphQL from a spec. Domains can also be defined at runtime from the CLI or by external Go apps — see [Architecture](architecture.md).
 
 This site is the developer documentation. Start with the tutorial if you want to ship an app.
 
@@ -14,7 +14,7 @@ apps/<name>/
   module.go      # engine.New(...) — one-liner for spec apps
   models/        # optional per-model spec.yaml + hooks
   views/         # <Name>.page.tsx in the core shell
-  migrations/    # Postgres event store + read models
+  migrations/    # Postgres tables for the app's models
 ```
 
 The engine turns `app.yaml` into model CRUD, GraphQL, nav, and [ACL checks](acl.md). You write YAML first; Go and Solid only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
@@ -23,6 +23,7 @@ The engine turns `app.yaml` into model CRUD, GraphQL, nav, and [ACL checks](acl.
 
 | Section | Purpose |
 |---------|---------|
+| [Architecture](architecture.md) | 3+1 layers, GraphQL vs gRPC, CLI |
 | [Tutorial](tutorial/index.md) | Build your first app step by step |
 | [Development](development/index.md) | Workflow, platform APIs, auth, ACL, GraphQL, apps |
 | [Reference](internals/index.md) | Internals, Go SDK, Solid SDK |

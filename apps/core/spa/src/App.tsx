@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from 'react-router'
-import { ChevronDownIcon, Eye, EyeOff, LayoutGrid, LayoutGridIcon } from 'lucide-react'
+import { ChevronDownIcon, Eye, EyeOff, LayoutGrid, LayoutGridIcon, Search, SquareTerminal } from 'lucide-react'
 import { motion } from 'motion/react'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -10,9 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { CommandPalette } from '@/components/shell/CommandPalette'
 import { Layout } from '@/components/shell/Layout'
 import { LayoutMain } from '@/components/shell/LayoutMain'
 import { LayoutMenu } from '@/components/shell/LayoutMenu'
+import { Terminal } from '@/components/shell/Terminal'
 import { ViewHost } from '@/components/shell/ViewHost'
 import { AuthProvider } from '@/lib/auth-context'
 import { fetchMe, logout, type AuthUser } from '@/lib/auth'
@@ -25,6 +27,7 @@ import {
 } from '@/lib/db-prefs'
 import { setI18nLocale, syncDocumentLocale, t } from '@/lib'
 import { KeymapProvider } from '@/lib/keymap'
+import { openTerminal } from '@/lib/platform-shell'
 import { getTheme, getThemeMode, themeIconHref, type ThemeId } from '@/lib/theme'
 import type { NavEntry } from '@/lib/nav'
 import { Login } from '@/pages/Login'
@@ -124,6 +127,7 @@ function Shell() {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [appsMenuOpen, setAppsMenuOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const [dbReady, setDbReady] = useState(false)
   const [i18nReady, setI18nReady] = useState(false)
 
@@ -267,6 +271,26 @@ function Shell() {
             </DropdownMenu>
 
             <div className="user-menu">
+              <button
+                type="button"
+                className="shell-tool"
+                data-keymap-id="command-palette"
+                title={t('shell.palette.open')}
+                aria-label={t('shell.palette.open')}
+                onClick={() => setPaletteOpen(true)}
+              >
+                <Search size={16} />
+              </button>
+              <button
+                type="button"
+                className="shell-tool"
+                data-keymap-id="toggle-terminal"
+                title={t('shell.terminal.toggle')}
+                aria-label={t('shell.terminal.toggle')}
+                onClick={() => openTerminal({ toggle: true })}
+              >
+                <SquareTerminal size={16} />
+              </button>
               <span className="user-name">{user.name}</span>
               {user.roles.includes('admin') ? (
                 <span className="admin-badge">{t('shell.admin')}</span>
@@ -313,6 +337,13 @@ function Shell() {
               </motion.div>
             )}
           </div>
+          <Terminal />
+          <CommandPalette
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
+            apps={apps}
+            onNavigate={(route) => navigate(`/${route}`)}
+          />
         </div>
       </KeymapProvider>
     </AuthProvider>

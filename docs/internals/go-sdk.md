@@ -12,7 +12,7 @@ Architecture, boot, and data flows: [Internals](index.md). UI: [Solid SDK](solid
 
 | Path | Purpose |
 |------|---------|
-| `appspec` | Load and validate YAML; capability checks |
+| `appspec` | Load and validate YAML; capability checks; `MarshalDomain` renders a spec back to one inline document |
 | `acl` | Unified ACL evaluator (domains, field masks, Authorizer) |
 | `i18n` | `T` / `Error` facade over platform catalogs |
 | `views` | Menu / view DTOs |

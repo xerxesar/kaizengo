@@ -20,6 +20,8 @@ import (
 	"kaizengo/internal/platform/config"
 	_ "kaizengo/internal/platform/drivers"
 	"kaizengo/internal/platform/postgres"
+	"kaizengo/internal/plugin"
+	"kaizengo/internal/shell"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -99,6 +101,15 @@ func buildPlatform(ctx context.Context, dsn string) (*dbmanager.Platform, error)
 	mgr := engine.NewManager(host, module.Default, store)
 	host.Provide(engine.ManagerKey, mgr)
 
+	// Compiled apps resolve their stored domain layers during Setup.
+	domains, err := app.OpenDomainStore(ctx, db.Pool())
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	doms := engine.NewDomains(host, module.Default, domains)
+	host.Provide(engine.DomainsKey, doms)
+
 	wanted, err := mgr.Wanted(ctx, module.ParseAppList(os.Getenv("KaizenGo_APPS")))
 	if err != nil {
 		db.Close()
@@ -112,6 +123,22 @@ func buildPlatform(ctx context.Context, dsn string) (*dbmanager.Platform, error)
 		_ = module.Shutdown(ctx, host)
 		return nil, err
 	}
+
+	engine.RegisterPlatformAPI(host, doms)
+	shell.Register(host)
+	if err := doms.LoadAll(ctx); err != nil {
+		_ = module.Shutdown(ctx, host)
+		return nil, err
+	}
+
+	plugins := plugin.NewManager(host, doms)
+	host.Provide(plugin.ManagerKey, plugins)
+	plugin.Register(host, plugins)
+	host.OnStop(func(context.Context) error {
+		plugins.Stop()
+		return nil
+	})
+	plugins.Start(ctx, plugin.PathsFromEnv())
 
 	r.Get("/apps", module.AppsHandler(host))
 

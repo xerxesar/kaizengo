@@ -42,5 +42,6 @@ Platform shortcuts are **declarative**. Do not add ad-hoc `keydown` listeners fo
 | `k-search-group` | Group button |
 | `k-page-prev` / `k-page-next` | Pagination |
 | `form-save` | KForm submit |
+| `command-palette` / `toggle-terminal` | Shell bar: runtime CLI palette (`Alt+K`) and terminal (`Alt+T`) |
 
 Reuse these ids — do not invent parallel shortcut systems in views. Prefer `labelKey` with underscores (`keymap.shell.search_focus`); hyphens truncate in pot codegen.

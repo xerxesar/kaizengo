@@ -1,4 +1,4 @@
-.PHONY: spa-build generate build run spa-dev dev tidy cli new-app db-up db-down db-logs docs docs-build vscode-ext vscode-ext-test vscode-ext-vsix
+.PHONY: spa-build generate build run spa-dev dev tidy cli kaizen plugins proto new-app db-up db-down db-logs docs docs-build vscode-ext vscode-ext-test vscode-ext-vsix
 
 SPA_DIR := apps/core/spa
 
@@ -53,6 +53,20 @@ dev: generate
 
 cli:
 	go build -o bin/kaizengo ./cmd/kaizengo
+
+# Runtime CLI (GraphQL client for platformShell).
+kaizen:
+	go build -o bin/kaizen ./cmd/kaizen
+
+# External Go apps (go-plugin). Run the server with KaizenGo_PLUGINS=./bin/plugins/notes.
+plugins:
+	@mkdir -p bin/plugins
+	@for d in plugins/*/; do n=$$(basename $$d); echo "building bin/plugins/$$n"; go build -o bin/plugins/$$n ./$$d || exit 1; done
+
+# Regenerate the plugin gRPC contract (needs protoc, protoc-gen-go, protoc-gen-go-grpc).
+proto:
+	protoc --go_out=. --go_opt=module=kaizengo --go-grpc_out=. --go-grpc_opt=module=kaizengo \
+		packages/sdk-go/plugin/proto/plugin.proto
 
 # Usage: make new-app NAME=notes TYPE=solid EXTRA='--with-graphql'
 new-app: cli

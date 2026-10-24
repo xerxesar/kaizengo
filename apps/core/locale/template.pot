@@ -19,6 +19,10 @@ msgid "core.title"
 msgstr ""
 
 #: keymap.yaml
+msgid "keymap.shell.command_palette"
+msgstr ""
+
+#: keymap.yaml
 msgid "keymap.shell.form"
 msgstr ""
 
@@ -52,6 +56,10 @@ msgstr ""
 
 #: keymap.yaml
 msgid "keymap.shell.toggle_apps"
+msgstr ""
+
+#: keymap.yaml
+msgid "keymap.shell.toggle_terminal"
 msgstr ""
 
 #: spa/src/pages/Login.tsx
@@ -122,12 +130,44 @@ msgstr ""
 msgid "shell.not_found"
 msgstr ""
 
+#: spa/src/components/shell/CommandPalette.tsx
+msgid "shell.palette.empty"
+msgstr ""
+
+#: spa/src/App.tsx
+msgid "shell.palette.open"
+msgstr ""
+
+#: spa/src/components/shell/CommandPalette.tsx
+msgid "shell.palette.placeholder"
+msgstr ""
+
 #: spa/src/App.tsx
 msgid "shell.sign_out"
 msgstr ""
 
 #: views/Home.page.tsx
 msgid "shell.signed_in"
+msgstr ""
+
+#: spa/src/components/shell/Terminal.tsx
+msgid "shell.terminal.close"
+msgstr ""
+
+#: spa/src/components/shell/Terminal.tsx
+msgid "shell.terminal.hint"
+msgstr ""
+
+#: spa/src/components/shell/Terminal.tsx
+msgid "shell.terminal.placeholder"
+msgstr ""
+
+#: spa/src/components/shell/Terminal.tsx
+msgid "shell.terminal.title"
+msgstr ""
+
+#: spa/src/App.tsx
+msgid "shell.terminal.toggle"
 msgstr ""
 
 #: views/Home.page.tsx

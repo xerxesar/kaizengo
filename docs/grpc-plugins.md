@@ -1,238 +1,146 @@
-# Out-of-process extensions (gRPC + go-plugin)
+# External Go apps (gRPC + go-plugin)
 
-**Goal:** Let apps and addons talk across process boundaries with **typed capability contracts**, without replacing GraphQL for the SPA or in-process extension hooks.
+External apps are separate Go binaries that the host launches with [HashiCorp go-plugin](https://github.com/hashicorp/go-plugin) and talks to over [gRPC](https://grpc.io/). They exist for one reason: **Go code** (hooks and handlers) that is not compiled into the host. Everything else an external app needs — domain definitions, data, install, policies — is also reachable over GraphQL, so the CLI can do it too ([Architecture](architecture.md)).
 
-**Transport:** [gRPC](https://grpc.io/) over [HashiCorp go-plugin](https://github.com/hashicorp/go-plugin) (subprocess plugins, net/rpc or gRPC handshake, reattach, negotiated protocol versions).
+| Lane | Audience | Mechanism |
+|------|----------|-----------|
+| North–south | React SPA, in-web CLI, native CLI | GraphQL `/graphql` |
+| In-process east–west | Compiled-in apps | `host.Provide` / `Lookup`, `extension.Register` |
+| Out-of-process east–west | External Go apps | gRPC over go-plugin (`internal/plugin`, `packages/sdk-go/plugin`) |
 
-This is a **roadmap**. Same-process apps (`blank-import` + `host.Provide` / `Lookup`) remain the default until this lands.
+The UI and the CLI never speak gRPC.
 
----
+## What an external app can do
 
-## Why another lane
+1. **Provide domain definitions** — `app.yaml` documents applied through the dynamic-domain path (source `plugin:<name>`). Same validation and additive DDL as `platformApplyDomain`.
+2. **Register Go hooks** — on any model lifecycle point, including wildcards and other apps' models (`model.<app>.<model>.beforeCreate`, `model.*.*.afterUpdate`, …). Before-hooks may change `Fields` or reject the write; after-hooks are fire-and-log.
+3. **Implement handlers** — queries/commands declared without `list`/`get`/`create`/`update`/`delete` shorthand.
+4. **Call platform services from hooks/handlers** through the host broker.
 
-KaizenGo already has three coupling styles:
+## Contract
 
-| Lane | Audience | Mechanism today |
-|------|----------|-----------------|
-| North–south | Browser / Solid SDK | GraphQL `/graphql` |
-| In-process east–west | Other Go packages in the same binary | `host.Provide` / `Lookup`, `extension.Register` |
-| Declared contracts | Startup validation | `provides` / `uses` in `app.yaml` |
+Protobuf: [`packages/sdk-go/plugin/proto/plugin.proto`](https://github.com/xerxesar/kaizengo/blob/main/packages/sdk-go/plugin/proto/plugin.proto) (package `kaizengo.plugin.v1`). Regenerate with `make proto` (needs `protoc`, `protoc-gen-go`, and `protoc-gen-go-grpc` on `PATH`). Fields, records, handler args, and results travel as JSON bytes, so values have the same shape GraphQL clients see. The go-plugin handshake (`plugin.Handshake`, protocol version 1) must match between host and plugin.
 
-`Provide` / `Lookup` only works inside one process. GraphQL is a poor east–west protocol (query strings between services, flat schema, session cookie auth). When an addon must run **out of process** (separate binary, different lifecycle, crash isolation, optional remote host later), we need a real RPC surface.
-
-**gRPC + go-plugin** is that surface. GraphQL stays the SPA / public composition API.
-
-```text
-SPA ──GraphQL──► host (core)
-                   │
-                   ├─ engine CRUD / ACL (local)
-                   ├─ extension.Run (in-process hooks)
-                   └─ go-plugin clients ──gRPC──► plugin processes
-                                                   (capability servers)
+```mermaid
+sequenceDiagram
+  participant Host as host (internal/plugin)
+  participant P as plugin binary
+  Host->>P: launch (go-plugin handshake)
+  Host->>Host: broker.AcceptAndServe(Host service)
+  Host->>P: Describe(host_broker_id)
+  P-->>Host: name, version, domains, hooks, handlers
+  Host->>Host: apply domains, bind hooks as extension handlers
+  Note over Host,P: at request time
+  Host->>P: Hook(point, caller, fields, record)
+  P->>Host: Authorize / GetRecord / ListRecords ...
+  P-->>Host: fields or error
 ```
 
----
+**`Plugin` service** (implemented by the plugin, called by the host)
 
-## Design principles
+| RPC | Purpose |
+|-----|---------|
+| `Describe` | Manifest: name, version, domain documents, hook bindings (`point`, `priority`), handler bindings (`app`, `kind`, `name`) |
+| `Hook` | Run one bound hook; returns replacement `fields` (before-hooks) or an `error` message |
+| `Handle` | Run a query/command handler; returns a JSON-compatible `result` or `error` |
 
-1. **Capabilities stay the names** — `identity.users`, `platform.search.backend`, etc. remain the stable IDs in `provides` / `uses`. gRPC is how a *process* implements or consumes them; GraphQL is how the *browser* consumes a subset.
-2. **One capability ≈ one protobuf service** (versioned), e.g. `kaizengo.identity.users.v1.Users`.
-3. **GraphQL resolvers and plugin servers share domain logic** — adapters only; do not treat GraphQL as the source of truth for cross-app calls.
-4. **UI never speaks gRPC** — Solid keeps `fetch('/graphql', …)` and SDK clients.
-5. **Hooks stay in-process** — `model.*.afterCreate`, ordered multi-handler chains. A plugin that needs to react to mutations either:
-   - registers an in-process shim that RPCs into the plugin, or
-   - implements a **capability** the host calls from a thin hook (preferred for search/audit-style drivers).
-6. **Fail at startup** — missing `uses`, failed plugin handshake, or protocol mismatch aborts load with a clear error (same spirit as capability validation today).
-7. **Contracts over internals** — plugins never import another app’s `service` / `store` packages; only protobuf + host SDK.
+**`Host` service** (implemented by the host, dialed by the plugin through the go-plugin broker)
 
-See also [extension-platform.md](extension-platform.md) and [capabilities.md](capabilities.md).
+| RPC | Purpose |
+|-----|---------|
+| `ApplyDomain` / `GetDomain` | Domain API (same as `platformApplyDomain` / `platformDomain`); a complete document for any app, compiled apps included |
+| `Authorize` | ACL/policy evaluation for a caller (`allowed`, readable/writable fields) |
+| `Principal` | Caller's roles in the org |
+| `GetRecord` / `ListRecords` / `CreateRecord` / `UpdateRecord` / `DeleteRecord` | Business data through the engine (hooks, validation, ACL). Set `system: true` to bypass ACL for trusted background work |
 
----
+Every hook/handler request carries a `Caller` (`org_id`, `user_id`). Plugins pass it back on host calls so ACL is evaluated as that user. Plugins are trusted local binaries started by the host; the broker is not exposed on any network port.
 
-## Why HashiCorp go-plugin
+In the SDK, `HookCtx` and `HandlerCtx` are both a `context.Context` and a `plugin.Call`, so they are passed straight to `Host` methods (`c.Host.ListRecords(c, …)`). `c.Host.AsSystem()` returns a client whose record calls set `system: true`. Host calls are allowed from inside a hook; a before-hook can read other records before deciding.
 
-| Need | go-plugin fit |
-|------|----------------|
-| Spawn addon as child process | Host launches plugin binary; bidirectional gRPC |
-| Version negotiation | Built-in protocol / MagicCookie handshake |
-| Crash isolation | Plugin death doesn’t take down the host (host can restart or fail the capability) |
-| Local-first ops | No separate service mesh required for v1 |
-| Typed API | gRPC + protobuf; go-plugin’s `GRPCPlugin` interface |
-| Same codebase languages | Plugins are Go binaries for v1 (aligned with “Go only” extension non-goal) |
+Log through `plugin.Log` (hclog, JSON on stderr). The host keeps its levels; plain stderr lines are logged at debug level.
 
-**Not** using go-plugin for: browser traffic, GraphQL federation, or replacing `extension.Run` for same-binary addons.
-
----
-
-## Capability mapping
-
-| Capability (yaml) | GraphQL (north–south) | gRPC (east–west) |
-|-------------------|----------------------|------------------|
-| `identity.users` | `identityUsers`, `identityUser`, … | `Users.List`, `Users.Get`, … |
-| `platform.search.backend` | `search` (host field) | `SearchBackend.Query` / `Upsert` / `Delete` |
-| `permissions.rbac` | (indirect via engine ACL) | `Authorizer.Can` / `MustAllow` (optional; may stay in-proc longer) |
-| `appman.apps` | `apps`, `installApp`, … | optional; install lifecycle may stay host-local |
-
-Rules of thumb:
-
-- Publish **capability RPCs other apps need**, not a 1:1 mirror of every engine CRUD field.
-- Spec model CRUD remains GraphQL-facing inside the host; plugins call host APIs only through documented capability services (or stay in-process via hooks).
-
----
-
-## Host responsibilities
-
-Planned host-side pieces (names indicative):
-
-1. **Plugin manager** — discover plugin binaries (config / `KaizenGo_PLUGINS` / appman-installed paths), start via go-plugin, hold clients for process lifetime.
-2. **Capability broker** — resolve `uses: [identity.users]` to either:
-   - in-process `Provide` implementation, or
-   - gRPC client stub from a loaded plugin that `provides` that capability.
-3. **Shared protobuf / SDK** — `packages/sdk-go/proto/…` (or `api/proto`) + generated Go; plugins and host depend on the same module.
-4. **Auth context propagation** — pass org/user/session (or signed internal token) on gRPC metadata for ACL-aware capability calls; do not reuse browser cookies as the plugin protocol.
-5. **Health / shutdown** — graceful stop on host exit; optional restart policy for soft failures.
-
-Apps that remain blank-imported keep working unchanged. Plugins are an **additional** load path.
-
----
-
-## Plugin binary shape (sketch)
-
-```text
-apps/typesense/          # or plugins/typesense/
-  app.yaml               # provides: [platform.search.backend]
-  cmd/plugin/main.go     # go-plugin Serve + gRPC server
-  …
-```
+## Writing an external app
 
 ```go
-// illustrative — not implemented yet
-plugin.Serve(&plugin.ServeConfig{
-	HandshakeConfig: kaizenHandshake,
-	Plugins: map[string]plugin.Plugin{
-		"search": &SearchGRPCPlugin{Impl: typesenseBackend},
-	},
-	GRPCServer: plugin.DefaultGRPCServer,
-})
+package main
+
+import "kaizengo/packages/sdk-go/plugin"
+
+const domain = `
+name: notes
+title: Notes
+summary: Notes managed by an external Go app
+models:
+  - name: note
+    fields:
+      - { name: title, type: string, required: true }
+      - { name: body, type: text }
+queries:
+  - { name: notes, list: note }
+  - name: noteCount
+    returns: int
+commands:
+  - { name: addNote, create: note }
+`
+
+func main() {
+	plugin.Serve(&plugin.App{
+		Name:    "notes-plugin",
+		Version: "0.1.0",
+		Domains: []string{domain},
+		Hooks: []plugin.Hook{{
+			Point: "model.notes.note.beforeCreate",
+			Fn: func(c *plugin.HookCtx) error {
+				c.Fields["title"] = strings.TrimSpace(fmt.Sprint(c.Fields["title"]))
+				return nil
+			},
+		}},
+		Handlers: []plugin.Handler{{
+			App: "notes", Kind: plugin.Query, Name: "noteCount",
+			Fn: func(c *plugin.HandlerCtx) (any, error) {
+				rows, err := c.Host.ListRecords(c, "notes", "note")
+				return len(rows), err
+			},
+		}},
+	})
+}
 ```
 
-Host dials, dispenses the gRPC client, registers it as the provider for `platform.search.backend` before capability validation completes.
+A runnable version lives in [`plugins/notes`](https://github.com/xerxesar/kaizengo/tree/main/plugins/notes). It also rejects duplicate titles from the before-hook, logs every create through a wildcard after-hook, and implements a `pinNote` command that checks `Authorize` before `UpdateRecord`.
 
----
+## Running
 
-## Relationship to extension points
+```bash
+make plugins                                   # → bin/plugins/notes
+KaizenGo_PLUGINS=./bin/plugins/notes ./bin/server
+```
 
-| Concern | Stay | Move / add |
-|---------|------|------------|
-| Ordered `beforeCreate` / `afterCreate` chains | `extension.Run` in-process | — |
-| Wildcard audit / search indexing | In-proc handler **or** thin handler → gRPC capability | Plugin implements `SearchBackend` / `AuditSink` |
-| `host.Provide("permissions")` | Fine for same binary | Broker prefers plugin stub when provider is out-of-proc |
-| Solid `UserPicker` | GraphQL / SDK | Unchanged |
+`KaizenGo_PLUGINS` is a comma-separated list of plugin binaries. On each platform build (database activation) the host:
 
-Do **not** make every hook a gRPC round-trip. Prefer: host emits extension point → one registered driver calls plugin once.
+1. Launches every binary and performs the go-plugin handshake.
+2. Calls `Describe`, applies the plugin's domain documents (a no-op when unchanged), and binds its hooks and handlers.
+3. Unbinds hooks and handlers and kills the plugin processes on platform shutdown.
 
----
+A plugin that fails to start, describe, or apply its domains is logged, unbound, and listed with its `error`; other plugins and the platform keep running. Handlers of a stopped plugin answer with "has no handler".
 
-## Phased plan
+Inspect loaded plugins with the `platformPlugins` GraphQL query (resource `platform.api.plugins`) or `plugins` in the CLI.
 
-### Phase A — Protobuf + in-tree dual serve (foundation)
+```text
+› plugins
+name          version  apps   hooks                                            handlers                                      error
+notes-plugin  0.1.0    notes  model.notes.note.beforeCreate, model.*.*.after…  query notes.noteCount, command notes.pinNote
+```
 
-**Deliverables**
+## Non-goals
 
-- [ ] Proto definitions for 1–2 pilot capabilities (`platform.search.backend`, optionally `identity.users` read APIs)
-- [ ] Codegen in CI / `make proto`
-- [ ] Domain service interface implemented once; GraphQL resolver and a **local** gRPC server both call it (same process, no go-plugin yet)
-- [ ] Doc: capability ↔ RPC method table in [capabilities.md](capabilities.md)
-
-**Exit criteria:** identity or search callable via generated gRPC client against an in-process server; SPA still on GraphQL only.
-
----
-
-### Phase B — go-plugin host + one out-of-process addon
-
-**Deliverables**
-
-- [ ] `internal/plugin` (or `internal/module/plugin`): handshake, dispense, lifecycle
-- [ ] Config to launch plugin binaries; map each to `provides`
-- [ ] Extract Typesense (or a minimal echo/search stub) to a plugin binary implementing `platform.search.backend`
-- [ ] Startup: handshake failure or missing `uses` → clear fatal error
-- [ ] Integration test: host + plugin process, query via GraphQL `search` still works
-
-**Exit criteria:** host binary does not link Typesense driver code; search works through go-plugin gRPC.
-
----
-
-### Phase C — Capability broker replaces ad hoc Lookup for cross-app reads
-
-**Deliverables**
-
-- [ ] Broker API: `MustCapability[T](host, "identity.users")` resolving in-proc or plugin
-- [ ] Migrate selected `Lookup` call sites that cross app boundaries
-- [ ] ACL / org metadata on gRPC context
-- [ ] Appman (or install path) can register plugin artifacts alongside in-tree apps
-
-**Exit criteria:** Notes (or equivalent) can consume `identity.users` via broker without importing identity packages; works with identity in-process **or** as plugin (pilot).
-
----
-
-### Phase D — Hardening (later)
-
-**Deliverables**
-
-- [ ] Protocol version bumps / `identity.users/v2` story aligned with [extension-platform open questions](extension-platform.md#open-questions)
-- [ ] Crash restart policy, metrics, deadline defaults
-- [ ] Optional: plugin checksum / signed artifacts for installed addons
-- [ ] CLI scaffold: `kaizengo new-app … --type plugin`
-
----
-
-## Non-goals (explicit)
-
-- Replacing GraphQL with gRPC for the SPA
+- gRPC for the SPA or the CLI
 - Exposing go-plugin endpoints on the public HTTP port
-- Cross-app SQL / shared DB schemas via plugins
-- Non-Go plugin languages in v1 (go-plugin can do other languages later; not required)
-- Automatic GraphQL federation from plugin schemas
-- Making every `extension.Register` handler a remote call
-
----
-
-## Risks & mitigations
-
-| Risk | Mitigation |
-|------|------------|
-| Latency vs in-proc Lookup | Keep hot paths in-process; plugins for isolation / optional addons first |
-| Duplicate GraphQL + proto drift | Single domain service; CI check resolvers/RPCs against shared types |
-| Auth bugs on metadata | Explicit internal credential; never trust raw browser cookies in plugins |
-| Ops complexity (many child processes) | Start with one pilot plugin; document process model in workflow docs |
-| Handshake / version skew | go-plugin protocol version + capability semver in yaml (`/v2` when needed) |
-
----
-
-## Success metrics
-
-1. At least one real addon (search or audit) runs as a **separate binary** via go-plugin and satisfies a `provides` entry.
-2. SPA and `@kaizengo/sdk-solid/*` require **no** gRPC or plugin awareness.
-3. `uses` / `provides` validation still fails fast whether the provider is blank-imported or a plugin.
-4. Docs alone are enough to scaffold a Go plugin that the host loads.
-
----
-
-## Open questions
-
-1. **Discovery:** env list vs appman-installed plugin dir vs both?
-2. **Identity as plugin:** worth the boundary, or keep identity always in-host and only plugin “sidecar” capabilities (search, audit, notify)?
-3. **Reattach / parent death:** needed for `make dev` hot restart, or always respawn plugins with the host?
-4. **Multi-host later:** does go-plugin local subprocess remain the only mode, or do we later allow dialing a remote gRPC address for the same protos?
-
-Track decisions here as ADR-style bullets when resolved.
-
----
+- Cross-app SQL from plugins (use the `Host` record RPCs)
+- Non-Go plugin languages in v1
 
 ## Related
 
-- [extension-platform.md](extension-platform.md) — capabilities, hooks, SDK roadmap
-- [capabilities.md](capabilities.md) — `provides` / `uses` catalog
-- [graphql.md](graphql.md) — north–south API (unchanged by this plan)
-- [apps.md](apps.md) — in-process lifecycle and Host bag
-- [Go SDK](internals/go-sdk.md) — extension points and services
+- [Architecture](architecture.md) — 3+1 layers, GraphQL vs gRPC
+- [extension-platform.md](extension-platform.md) — in-process extension points
+- [capabilities.md](capabilities.md) — `provides` / `uses`
+- [graphql.md](graphql.md) — north–south API

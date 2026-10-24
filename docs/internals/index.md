@@ -15,15 +15,19 @@ SDK usage recipes: [Go SDK](go-sdk.md) · [React SPA](solid-sdk.md). Day-to-day 
 
 ## Layer map
 
+The product-level model (3+1 layers, GraphQL vs gRPC, CLI) is in [Architecture](../architecture.md). This section maps it onto packages.
+
 ```text
 cmd/server          → process entry, Host, Load, HTTP listen
 internal/module     → App interface, registry, Host bag, GraphQL registry
-internal/engine     → app.yaml → CRUD, GQL, hooks, install manager
+internal/engine     → app.yaml → CRUD, GQL, hooks, install manager, domain layers, platform meta GQL
+internal/shell      → CLI grammar behind platformShell (web terminal, palette, native kaizen)
+internal/plugin     → go-plugin host: external Go apps (domain, hooks, handlers, host services)
 internal/extension  → global lifecycle handlers, exports/extends
 internal/app        → schema migrator, install store, nav helpers
 internal/platform   → i18n, time, config, postgres, search
 internal/auth       → session middleware / principal
-packages/sdk-go     → appspec, acl, i18n, views, codegen (portable contracts)
+packages/sdk-go     → appspec, acl, i18n, views, codegen, plugin (portable contracts + plugin SDK)
 apps/core/spa       → React Vite SPA shell + shared UI (@/lib, @/k, @/components)
 apps/<name>         → app.yaml + module.go + views + migrations
 ```
@@ -43,14 +47,15 @@ apps/<name>         → app.yaml + module.go + views + migrations
 kaizengo/
   cmd/
     server/           # HTTP process: Host, Postgres, auth middleware, Load
-    kaizengo/         # CLI: new-app, gen-types (codegen + .pot)
+    kaizengo/         # dev CLI: new-app, gen-types (codegen + .pot)
+    kaizen/           # runtime CLI: GraphQL client for platformShell
   internal/
     module/           # Register, Host, Load, GQL registry, nav
-    engine/           # Options/New, SetupEvents, modelService, Manager
+    engine/           # Options/New, SetupEvents, modelService, Manager, Domains
+    shell/            # CLI grammar + executor (platformShell)
+    plugin/           # go-plugin host, gRPC broker services
     app/              # locales, installed-apps store, nav helpers
     extension/        # Register / Run / ApplyExports|Extends
-    events/           # Store interfaces
-    app/              # schema migrator, install store
     gql/              # RequireAction / RequirePrincipal
     auth/             # session cookie → Principal
     platform/         # postgres, i18n, time, search, config, drivers
@@ -61,6 +66,7 @@ kaizengo/
       i18n/           # facade over platform catalogs
       views/          # menu/view DTOs
       codegen/        # kaizengo helpers
+      plugin/         # external Go app SDK (Serve, Host client, proto)
   apps/
     apps.go           # blank-imports every bundled app
     core/spa/         # React Vite SPA: components/, lib/, pages/
@@ -153,17 +159,18 @@ flowchart TD
   Norm --> AppBefore[app Before* hooks]
   AppBefore --> ExtBefore[extension Before*]
   ExtBefore --> Val[appspec validate]
-  Val --> Append[event store Append]
-  Append --> Proj[project read model]
-  Proj --> AppAfter[app After* hooks]
+  Val --> Write[SQL insert/update]
+  Write --> AppAfter[app After* hooks]
   AppAfter --> ExtAfter[extension After*]
+  ExtAfter --> Search[search index sync]
 ```
 
 ```text
-normalize → app Before* → extension Before*
-→ validate → append event → project read model
-→ app After* → extension After*
+normalize → app Before* → extension Before* (incl. gRPC plugin hooks)
+→ validate → SQL write → app After* → extension After* → search sync
 ```
+
+There is no event store: records are written directly to the app's Postgres tables. Plugin hooks are extension handlers that call the plugin over gRPC ([gRPC plugins](../grpc-plugins.md)).
 
 ACL for model CRUD is enforced inside `modelService` (`packages/sdk-go/acl` via the `permissions` host service). Details: [Go host](go-sdk.md) · [ACL](../acl.md).
 
@@ -173,11 +180,28 @@ ACL for model CRUD is enforced inside `modelService` (`packages/sdk-go/acl` via 
 
 `engine.New` returns a `module.App`. During `Setup` it:
 
-1. Loads the appspec (`apps/<name>/app.yaml`)
+1. Loads the appspec (`apps/<name>/app.yaml`) as the base layer, records it as a `base` revision when it changed, and merges the stored layer onto it (`Domains.resolveCompiled`)
 2. Loads `.po` catalogs and registers shell nav
-3. Opens the shared Postgres pool and event store (`SetupEvents`)
-4. Registers CRUD GraphQL + `{app}Views` / `{app}Menus`
+3. Opens the shared Postgres pool and applies migrations (`SetupEvents` — legacy name, no event store); tables/columns added by layers get additive DDL
+4. Registers CRUD GraphQL + `{app}Views` / `{app}Menus`, remembering which root fields came from the spec (`App.ownedQueries` / `ownedMutations`)
 5. Provides the model registry on the host (`ModelsKey(appName)`)
+
+Dynamic apps run the same Setup with an empty base (their stored layer is the whole definition) and generated DDL for every model. Applying a layer later calls `App.remount`: the spec-owned fields are swapped, model services are replaced inside the same `ModelRegistry`, and `Options.Setup`/`Mount` are not re-run. See [Architecture → One domain pipeline](../architecture.md#one-domain-pipeline-base-plus-layers).
+
+## Boot order with domain layers and plugins
+
+```text
+engine.NewManager + engine.NewDomains (kaizengo.domain_revisions)
+→ module.Load(compiled-in apps; each Setup resolves base + stored layer) → Manager.SyncLoaded
+→ RegisterPlatformAPI (platformDomain*, platformCatalog) + shell.Register (platformShell*)
+→ Domains.LoadAll (apps without code; errors recorded per app, boot continues)
+→ plugin.NewManager + plugin.Register (platformPlugins) + host.OnStop(Stop)
+→ plugin.Manager.Start (KaizenGo_PLUGINS: handshake → Describe → apply domains → bind handlers and hooks)
+```
+
+All of this runs once per active database (`buildPlatform` in `cmd/server`); a database switch shuts the previous platform down, which unbinds plugin hooks and kills plugin processes.
+
+Engine apps are provided on the host under `engine.AppKey(name)` (`engine.app.<name>`) as well as their bare name; use `engine.AppFromHost`, because an app may provide a service under its own name (`permissions`).
 
 ## Frontend data flow
 

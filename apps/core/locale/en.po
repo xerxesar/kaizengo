@@ -84,6 +84,48 @@ msgstr "Next page"
 msgid "keymap.shell.sign_out"
 msgstr "Sign out"
 
+msgid "keymap.shell.command_palette"
+msgstr "Command palette"
+
+msgid "keymap.shell.toggle_terminal"
+msgstr "Toggle terminal"
+
+msgid "shell.palette.open"
+msgstr "Command palette"
+
+msgid "shell.palette.placeholder"
+msgstr "Search apps, queries, commands… or type a shell line"
+
+msgid "shell.palette.empty"
+msgstr "No matches. Press Enter to run it in the terminal."
+
+msgid "shell.palette.group_apps"
+msgstr "Apps"
+
+msgid "shell.palette.group_queries"
+msgstr "Queries"
+
+msgid "shell.palette.group_commands"
+msgstr "Commands"
+
+msgid "shell.palette.group_shell"
+msgstr "Terminal"
+
+msgid "shell.terminal.toggle"
+msgstr "Terminal"
+
+msgid "shell.terminal.title"
+msgstr "Terminal"
+
+msgid "shell.terminal.hint"
+msgstr "Tab completes · ↑↓ history · Ctrl+L clears · Esc closes · <<EOF for multi-line"
+
+msgid "shell.terminal.placeholder"
+msgstr "help"
+
+msgid "shell.terminal.close"
+msgstr "Close terminal"
+
 msgid "shell.app_not_found"
 msgstr "App not found"
 

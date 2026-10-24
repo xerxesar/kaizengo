@@ -1,0 +1,198 @@
+syntax = "proto3";
+
+// Contract between the KaizenGo host and external Go apps launched with
+// hashicorp/go-plugin. Maps (fields, records, args, results) travel as JSON
+// so values keep the shape GraphQL clients see.
+package kaizengo.plugin.v1;
+
+option go_package = "kaizengo/packages/sdk-go/plugin/proto;pluginpb";
+
+// Caller identifies the user a hook or handler runs for. Pass it back on
+// Host calls so ACL is evaluated as that user.
+message Caller {
+  string org_id = 1;
+  string user_id = 2;
+}
+
+// ---- Plugin service (implemented by the external app) ----
+
+service Plugin {
+  rpc Describe(DescribeRequest) returns (DescribeResponse);
+  rpc Hook(HookRequest) returns (HookResponse);
+  rpc Handle(HandleRequest) returns (HandleResponse);
+}
+
+message DescribeRequest {
+  // Broker id the plugin dials to reach the Host service.
+  uint32 host_broker_id = 1;
+}
+
+message HookBinding {
+  string point = 1;
+  int32 priority = 2;
+}
+
+message HandlerBinding {
+  string app = 1;
+  // "query" or "command"
+  string kind = 2;
+  string name = 3;
+}
+
+message DescribeResponse {
+  string name = 1;
+  string version = 2;
+  // app.yaml documents applied through the dynamic-domain path.
+  repeated string domains = 3;
+  // Indexes into this list are the hook ids used by Hook.
+  repeated HookBinding hooks = 4;
+  // Indexes into this list are the handler ids used by Handle.
+  repeated HandlerBinding handlers = 5;
+}
+
+message HookRequest {
+  int32 hook_id = 1;
+  string point = 2;
+  Caller caller = 3;
+  string app = 4;
+  string model = 5;
+  string record_id = 6;
+  bytes fields_json = 7;
+  bytes record_json = 8;
+}
+
+message HookResponse {
+  // Replacement fields for before-hooks; empty keeps the input.
+  bytes fields_json = 1;
+  string error = 2;
+}
+
+message HandleRequest {
+  int32 handler_id = 1;
+  Caller caller = 2;
+  bytes args_json = 3;
+}
+
+message HandleResponse {
+  bytes result_json = 1;
+  string error = 2;
+}
+
+// ---- Host service (implemented by KaizenGo, dialed through the broker) ----
+
+service Host {
+  rpc ApplyDomain(ApplyDomainRequest) returns (ApplyDomainResponse);
+  rpc GetDomain(GetDomainRequest) returns (GetDomainResponse);
+  rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
+  rpc Principal(PrincipalRequest) returns (PrincipalResponse);
+  rpc GetRecord(GetRecordRequest) returns (RecordResponse);
+  rpc ListRecords(ListRecordsRequest) returns (ListRecordsResponse);
+  rpc CreateRecord(CreateRecordRequest) returns (RecordResponse);
+  rpc UpdateRecord(UpdateRecordRequest) returns (RecordResponse);
+  rpc DeleteRecord(DeleteRecordRequest) returns (DeleteRecordResponse);
+}
+
+message ApplyDomainRequest {
+  string spec = 1;
+  bool dry_run = 2;
+}
+
+message ApplyDomainResponse {
+  string app = 1;
+  int64 revision = 2;
+  repeated string changes = 3;
+}
+
+message GetDomainRequest {
+  string app = 1;
+}
+
+message GetDomainResponse {
+  bool found = 1;
+  string app = 2;
+  string spec = 3;
+  int64 revision = 4;
+  string source = 5;
+  bool loaded = 6;
+  string error = 7;
+}
+
+message AuthorizeRequest {
+  Caller caller = 1;
+  string resource = 2;
+  string action = 3;
+  bytes record_json = 4;
+  repeated string fields = 5;
+}
+
+message AuthorizeResponse {
+  bool allowed = 1;
+  // When *_all is true every field is allowed and the list is empty.
+  bool read_all = 2;
+  repeated string fields_read = 3;
+  bool write_all = 4;
+  repeated string fields_write = 5;
+}
+
+message PrincipalRequest {
+  Caller caller = 1;
+}
+
+message PrincipalResponse {
+  string user_id = 1;
+  string org_id = 2;
+  repeated string roles = 3;
+}
+
+// system = true runs as a trusted internal call: no ACL, internal models
+// writable. Use only for background work the plugin itself is trusted for.
+
+message GetRecordRequest {
+  Caller caller = 1;
+  string app = 2;
+  string model = 3;
+  string id = 4;
+  bool system = 5;
+}
+
+message ListRecordsRequest {
+  Caller caller = 1;
+  string app = 2;
+  string model = 3;
+  bool system = 4;
+}
+
+message CreateRecordRequest {
+  Caller caller = 1;
+  string app = 2;
+  string model = 3;
+  bytes fields_json = 4;
+  bool system = 5;
+}
+
+message UpdateRecordRequest {
+  Caller caller = 1;
+  string app = 2;
+  string model = 3;
+  string id = 4;
+  bytes fields_json = 5;
+  bool system = 6;
+}
+
+message DeleteRecordRequest {
+  Caller caller = 1;
+  string app = 2;
+  string model = 3;
+  string id = 4;
+  bool system = 5;
+}
+
+message RecordResponse {
+  bytes record_json = 1;
+}
+
+message ListRecordsResponse {
+  bytes records_json = 1;
+}
+
+message DeleteRecordResponse {}

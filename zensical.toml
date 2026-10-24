@@ -10,6 +10,7 @@ extra_css = ["stylesheets/fonts.css"]
 
 nav = [
   { "Home" = "index.md" },
+  { "Architecture" = "architecture.md" },
   { "Tutorial" = [
     "tutorial/index.md",
     "tutorial/run-the-platform.md",
@@ -35,7 +36,7 @@ nav = [
     "cli.md",
     "installation.md",
     "extension-platform.md",
-    { "gRPC plugins" = "grpc-plugins.md" },
+    { "External Go apps (gRPC)" = "grpc-plugins.md" },
   ] },
   { "Reference" = [
     "internals/index.md",

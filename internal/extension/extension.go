@@ -23,15 +23,18 @@ type Context struct {
 }
 
 type handler struct {
+	id       uint64
 	pattern  string
 	priority int
 	fn       func(Context) error
 }
 
 var (
-	mu           sync.RWMutex
-	baseHandlers []handler // from init() Register calls — never cleared
-	loadHandlers []handler // from ApplyExtends — cleared on each module.Load
+	mu             sync.RWMutex
+	baseHandlers   []handler // from init() Register calls — never cleared
+	loadHandlers   []handler // from ApplyExtends — cleared on each module.Load
+	scopedHandlers []handler // from RegisterScoped — removed by their owner
+	nextScopedID   uint64
 )
 
 // Register adds a global extension handler for point pattern.
@@ -44,6 +47,29 @@ func Register(pattern string, priority int, fn func(Context) error) {
 	mu.Lock()
 	defer mu.Unlock()
 	baseHandlers = append(baseHandlers, handler{pattern: pattern, priority: priority, fn: fn})
+}
+
+// RegisterScoped adds a handler like Register and returns a func that removes it.
+// External Go apps use it so their hooks disappear when the plugin process stops.
+func RegisterScoped(pattern string, priority int, fn func(Context) error) (remove func()) {
+	if fn == nil {
+		return func() {}
+	}
+	mu.Lock()
+	nextScopedID++
+	id := nextScopedID
+	scopedHandlers = append(scopedHandlers, handler{id: id, pattern: pattern, priority: priority, fn: fn})
+	mu.Unlock()
+	return func() {
+		mu.Lock()
+		defer mu.Unlock()
+		for i, h := range scopedHandlers {
+			if h.id == id {
+				scopedHandlers = append(scopedHandlers[:i:i], scopedHandlers[i+1:]...)
+				return
+			}
+		}
+	}
 }
 
 // registerLoad adds a handler that is cleared by ResetLoadState (yaml extends).
@@ -87,6 +113,7 @@ func matching(point string, ctx Context) []handler {
 	}
 	appendMatching(baseHandlers)
 	appendMatching(loadHandlers)
+	appendMatching(scopedHandlers)
 	sortHandlers(out)
 	return out
 }
