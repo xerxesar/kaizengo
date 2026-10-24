@@ -1,6 +1,6 @@
 # kaizengo docs
 
-Guides for running the project and building apps.
+Guides for running the project and building apps. The site home is [index.md](index.md).
 
 The searchable site is built with [Zensical](https://zensical.org/docs/):
 
@@ -16,17 +16,11 @@ Start with **Tutorial → Develop a Kaizen app**.
 | Section | Contents |
 |---------|----------|
 | [Architecture](architecture.md) | 3+1 layers, GraphQL vs gRPC, CLI, dynamic domain |
-| [Development](development/index.md) | Workflow, platform APIs, auth, ACL, GraphQL, apps, CLI |
-| [Reference](internals/index.md) | Internals, [Go SDK](internals/go-sdk.md), [Solid SDK](internals/solid-sdk.md) |
-| [Installation](installation.md) | Prerequisites, clone, install tooling |
-| [Auth & identity](auth.md) | Sessions, identity app, permissions service |
-| [ACL system](acl.md) | Resource ids, policies, `security.yaml`, enforcement |
-| [Apps system](apps.md) | Architecture, lifecycle, registering apps |
-| [Capabilities](capabilities.md) | `provides` / `uses` contracts and identity SDK |
-| [Extension platform plan](extension-platform.md) | Capabilities, global hooks, SDK components — roadmap |
-| [External Go apps](grpc-plugins.md) | Domain, hooks, handlers via hashicorp/go-plugin + gRPC |
-| [CLI](cli.md) | Runtime CLI (web terminal, `kaizen`) and `kaizengo` scaffolding |
-| [GraphQL](graphql.md) | Runtime field registry, auth-aware clients |
+| [Tutorial](tutorial/index.md) | Run the platform, app anatomy, Todo app, hooks, advanced pages |
+| [Development](development/index.md) | [Installation](installation.md), [workflow](development/workflow.md), [platform APIs](development/platform.md) |
+| [Platform](platform.md) | [Apps](apps.md), [auth](auth.md), [ACL](acl.md), [capabilities](capabilities.md), [GraphQL](graphql.md), [CLI](cli.md), [external Go apps](grpc-plugins.md) |
+| [Reference](internals/index.md) | Internals, [Go SDK](internals/go-sdk.md), [React SPA](internals/solid-sdk.md) |
+| [Extension plan](extension-platform.md) | Capabilities, global hooks, shared UI — roadmap |
 
 ## Quick start
 

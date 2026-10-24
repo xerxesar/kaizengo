@@ -26,23 +26,26 @@ nav = [
   ] },
   { "Development" = [
     "development/index.md",
+    "installation.md",
     { "Workflow" = "development/workflow.md" },
     { "Platform APIs" = "development/platform.md" },
+  ] },
+  { "Platform" = [
+    "platform.md",
+    "apps.md",
     "auth.md",
     "acl.md",
     "capabilities.md",
     "graphql.md",
-    "apps.md",
     "cli.md",
-    "installation.md",
-    "extension-platform.md",
     { "External Go apps (gRPC)" = "grpc-plugins.md" },
   ] },
   { "Reference" = [
     "internals/index.md",
     { "Go SDK" = "internals/go-sdk.md" },
-    { "Solid SDK" = "internals/solid-sdk.md" },
+    { "React SPA" = "internals/solid-sdk.md" },
   ] },
+  { "Extension plan" = "extension-platform.md" },
 ]
 
 [project.theme]

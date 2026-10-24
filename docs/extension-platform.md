@@ -1,5 +1,7 @@
 # Extension platform plan
 
+**Status:** design plan. The running UI is the React SPA in `apps/core/spa` (`@/k`, `@/lib`, `@/components/ui`). Names below that say `@kaizengo/sdk-solid` are this plan’s sketch of that shared UI layer. Shipped behavior is [Platform](platform.md), [capabilities](capabilities.md), and [external Go apps](grpc-plugins.md).
+
 **Goal:** Odoo-like composability (install an addon → behavior changes across apps) **without** Odoo-style `_inherit` (no app patches another app’s code or generated artifacts).
 
 **Strategy:** Apps **publish capabilities**. Addons **register on extension points**. The **SDK** ships reusable components and clients. The **platform** owns cross-cutting drivers (search, audit, …).

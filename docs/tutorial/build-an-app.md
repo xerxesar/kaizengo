@@ -226,7 +226,7 @@ Same layout, generated for you:
 
 ```bash
 make cli
-./bin/kaizengo new-app todo --type solid --title Todo
+./bin/kaizengo new-app todo --title Todo
 ```
 
 The scaffold uses an `item` model and `Items` / `NewItem` views. Rename in `app.yaml` and the view files if you want `task` instead.

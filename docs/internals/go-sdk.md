@@ -4,7 +4,7 @@ How to declare apps, register hooks, and use Go contracts from app code.
 
 The portable SDK lives in `packages/sdk-go` (appspec, acl, i18n, views, codegen). The **engine**, hook runtime, extension registry, and GQL guards live under **`internal/`** — in-tree apps import them today; they are host APIs, not the future remote SDK surface.
 
-Architecture, boot, and data flows: [Internals](index.md). UI: [Solid SDK](solid-sdk.md). Day-to-day workflow: [Development](../development/index.md).
+Architecture, boot, and data flows: [Internals](index.md). UI: [React SPA](solid-sdk.md). Day-to-day workflow: [Development](../development/index.md). Product systems: [Platform](../platform.md).
 
 ## Package map
 
@@ -43,7 +43,7 @@ Import prefix: `kaizengo/internal/…`. **Cycle rule:** `engine` may import `mod
 | Spec-driven app | `kaizengo/internal/engine` + `kaizengo/internal/module` |
 | Cross-app hooks | `kaizengo/internal/extension` |
 
-UI lives in [Solid SDK](solid-sdk.md). Host boot and mutation pipeline: [Internals](index.md).
+UI lives in [React SPA](solid-sdk.md). Host boot and mutation pipeline: [Internals](index.md).
 
 App development is **spec-first**:
 
@@ -141,7 +141,7 @@ The rejected-write message is `{app}.error.{model}.internal`. Inventory uses thi
 | `models[].internal` | No public mutations unless via commands; Go/command writes use `WithInternal` / `WithInternalWrite` |
 | `models[].virtual` | No Postgres table; CQRS `list:` uses `RegisterModel` List (in-memory filter/page). Example: `appman` |
 | `models` + `RegisterModel` | YAML fields/search merged with Go handlers (legacy) |
-| `views/*.page.tsx` | Solid pages menus mount (`view: Name`) |
+| `views/*.page.tsx` | React pages menus mount (`view: Name`) |
 | `nav` | Shell apps dropdown entry (label, route, order) |
 | `menus` | `{app}Menus` in-app navigation tree |
 | app name | `helloPing`, SPA mount, locales |
@@ -353,7 +353,7 @@ SPAs do **not** own menus. The **core** shell loads `{app}Menus`, renders the me
 
 URL shape: `/app/{hostApp}/{page}` (page defaults to menu `id`). Contributed menu items may point at another app’s view via `sourceApp` / `component`.
 
-Helpers: `fetchAppMenus`, `navigateApp`, `contentAppForMenu` from `@kaizengo/sdk-solid/ui`.
+Helpers: `fetchAppMenus`, `navigateApp`, `contentAppForMenu` from `@/lib`.
 
 **Cross-app menu contributions** — addons inject items into another app’s menu tree:
 
@@ -560,27 +560,11 @@ uses:
 
 Full catalog: [capabilities.md](../capabilities.md).
 
-### Frontend SDK (`@kaizengo/sdk-solid`)
+### Frontend
 
-Shared clients and Solid components for capability surfaces. First package: identity.
+App views are React pages compiled into `apps/core/spa`. Import `@/k` for `KTable` / `KForm`, `@/lib` for `t()` and the model client, and `@/components/ui` for primitives. See [React SPA](solid-sdk.md).
 
-```ts
-import { fetchUsers, fetchActiveUsers, UserPicker } from '@kaizengo/sdk-solid/identity'
-```
-
-Add to SPA `package.json`:
-
-```json
-"@kaizengo/sdk-solid": "file:../../../packages/sdk-solid"
-```
-
-Vite alias is configured in `packages/sdk-solid/spa-config/app-vite.ts` (same pattern as `@kaizengo/sdk-solid/ui`).
-
-Search bar (requires `apps/typesense` loaded):
-
-```ts
-import { SearchBar, searchQuery } from '@kaizengo/sdk-solid/search'
-```
+Search in list views is the shell search bar. `apps/typesense` exports it into other apps’ toolbars when that app is loaded (`exports.components` in `apps/typesense/app.yaml`).
 
 ### Yaml `extends` (addon apps)
 
@@ -609,7 +593,7 @@ Addon apps export components and inject them into product app views:
 exports:
   components:
     - id: platform.SearchBar
-      module: "@kaizengo/sdk-solid/search/SearchBar.tsx"
+      module: "@apps/core/spa/src/components/shell/SearchBar.tsx"
     - id: typesense.SearchSettings
       module: "@apps/typesense/views/SearchSettings.page.tsx"
   views:
@@ -690,7 +674,7 @@ Use `kaizengo/internal/gql` for custom GraphQL guards.
 ## Generator
 
 ```bash
-./bin/kaizengo new-app demo --type solid
+./bin/kaizengo new-app demo
 ```
 
 Creates `app.yaml`, engine `module.go`, locales, migrations, and SPA stubs. Add `security:` / `security.yaml` entries for `{app}.{model}` if non-admin roles need access (admin already has `*`). See [ACL system](../acl.md).

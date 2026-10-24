@@ -4,7 +4,7 @@
 
 GraphQL is a **runtime registry** on `host.GQL`. Apps register fields in `Setup`. Core mounts a single `/graphql` handler after all apps have set up — **core does not import other apps**.
 
-This is the **north–south** API (browser / Solid SDK). Cross-app or out-of-process capability calls are a separate lane — planned as gRPC via go-plugin; see [grpc-plugins.md](grpc-plugins.md). Do not use GraphQL as the east–west protocol between services.
+This is the **north–south** API (React SPA, in-web CLI, native CLI). Cross-app calls inside the process use `host.Provide` / `Lookup`. Out-of-process Go apps use gRPC via go-plugin; see [grpc-plugins.md](grpc-plugins.md). Keep GraphQL as the client API.
 
 **CQRS apps** (`queries:` / `commands:` in `app.yaml`) expose only named fields (e.g. `hellospecGreetings`, `hellospecPostGreeting`). Generic `createX` / `listX` model CRUD is omitted. See [Go SDK → CQRS](internals/go-sdk.md).
 
@@ -147,7 +147,7 @@ const { data, errors } = await res.json()
 
 In Vite spa-dev, `/graphql` and `/auth` are proxied to `:8080`.
 
-`@kaizengo/sdk-solid/ui` helpers (`syncDocumentLocale`, `fetchI18n`, etc.) already send credentials. SPA UI strings use compiled `.po` catalogs; `fetchI18n` is optional for GraphQL catalog access.
+`@/lib` helpers (`syncDocumentLocale`, and `fetch` wrappers in app `lib/graphql.ts`) already send credentials. SPA UI strings use compiled `.po` catalogs; the GraphQL `i18n` field is optional for catalog access.
 
 ## Server state
 

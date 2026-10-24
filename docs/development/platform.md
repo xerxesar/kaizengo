@@ -87,10 +87,10 @@ query {
 }
 ```
 
-Frontend (`@kaizengo/sdk-solid/ui`):
+Frontend (`@/lib` in the core SPA):
 
 ```ts
-import { t, setI18nLocale, syncDocumentLocale } from '@kaizengo/sdk-solid/ui'
+import { t, setI18nLocale, syncDocumentLocale } from '@/lib'
 
 // Shell boot — settings locale + <html lang dir>
 const { locale } = await syncDocumentLocale()
@@ -127,7 +127,7 @@ t('clock.title') // from Vite-compiled apps/*/locale/*.po
 | Login / sessions / org users | Use `auth` + `identity` + `internal/auth` ([auth.md](../auth.md)) |
 | Authorize an action | Use `permissions` / `acl.Authorizer` — see [ACL system](../acl.md) |
 | Cross-app behavior (audit, search) | Install an addon app; use [extension points](../extension-platform.md) |
-| Share UI for identity users | `@kaizengo/sdk-solid/identity` ([capabilities.md](../capabilities.md)) |
+| Share identity users with another app | GraphQL `users` / `user` ([capabilities.md](../capabilities.md)) |
 
 ## Extension platform
 

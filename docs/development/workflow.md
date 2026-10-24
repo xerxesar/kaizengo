@@ -119,7 +119,7 @@ Auth details: [auth.md](../auth.md).
 ```text
 cmd/          server + CLI
 apps/         loadable products
-packages/     sdk-go contracts, sdk-solid UI
+packages/     sdk-go contracts (appspec, acl, i18n, plugin)
 internal/     host kernel (engine, module, platform, …)
 ```
 
@@ -136,9 +136,11 @@ make vscode-ext-test     # parse/resolve tests against this repo
 
 Then run **Run KaizenGo Extension** from the debug view (F5). See `packages/vscode-kaizengo/README.md`.
 
-## Adding a Solid app
+## Adding an app
 
-1. `./bin/kaizengo new-app foo --type solid`
+1. `./bin/kaizengo new-app foo`
 2. Ensure `apps/apps.go` blank-imports the new package (CLI usually does this)
 3. `make generate` then restart `make dev`
 4. Add or edit `apps/foo/views/*.page.tsx` — they hot-reload in the core SPA
+
+`--type` defaults to `react`. See [CLI](../cli.md).

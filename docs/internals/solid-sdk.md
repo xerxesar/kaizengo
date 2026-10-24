@@ -123,7 +123,7 @@ useKQuery → KQueryShell (KSearch + KPagination) → KTableView | KKanbanBoard 
 
 - Prefer `query` / `model` props; do not hand-fetch in normal app pages.
 - Presentational escape hatches: `KTableView`, `KKanbanBoard`, or `KCollection` **`items`** mode for ad-hoc client lists. Prefer a **virtual model** + `query=` (see appman) when the data is a platform registry.
-- Agent conventions: root [`AGENTS.md`](../../AGENTS.md) and `.cursor/rules/k-components.mdc`.
+- Agent conventions: repo-root `AGENTS.md` and `.cursor/rules/k-components.mdc`.
 
 ```tsx
 import { KPagination, usePaginationParams } from '@/k'

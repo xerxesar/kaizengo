@@ -1,17 +1,14 @@
 # Development
 
-Practical guides for building apps on KaizenGo: workflow, platform APIs, and product-facing systems (auth, ACL, GraphQL, apps).
+How to work in this repository: install it, run it, and call platform services (time, i18n, settings).
 
-SDK package maps and host mechanics live under **Reference**: [Internals](../internals/index.md) · [Go SDK](../internals/go-sdk.md) · [Solid SDK](../internals/solid-sdk.md).
+Product systems (apps, auth, ACL, GraphQL, the CLI) live under [Platform](../platform.md). Host mechanics and UI contracts live under **Reference**: [Internals](../internals/index.md) · [Go SDK](../internals/go-sdk.md) · [React SPA](../internals/solid-sdk.md).
 
 | Guide | Use when you need to… |
 |-------|------------------------|
+| [Installation](../installation.md) | Clone the repo, install tooling, produce `bin/server` |
 | [Workflow](workflow.md) | Run `make dev`, ports, env vars, Postgres |
 | [Platform APIs](platform.md) | Time, i18n, calendars, settings, fork-vs-patch |
-| [Auth](../auth.md) | Sessions, login, identity |
-| [ACL](../acl.md) | Policies, `security.yaml`, enforcement |
-| [Apps](../apps.md) | Install / load / Host bag |
-| [CLI](../cli.md) | `kaizengo new-app` |
 
 ## Quick orientation
 
@@ -27,6 +24,6 @@ apps/<name>/
 |----------------|--------|
 | Spec contracts | `kaizengo/packages/sdk-go/appspec`, `…/acl`, `…/i18n` |
 | Host APIs (in-tree) | `kaizengo/internal/engine`, `…/extension`, `…/module` |
-| UI | `@kaizengo/sdk-solid/ui`, `…/identity`, `…/search` |
+| UI | `@/k`, `@/lib`, `@/components/ui` in `apps/core/spa` |
 
-→ [Go SDK](../internals/go-sdk.md) · [Solid SDK](../internals/solid-sdk.md) · [Internals](../internals/index.md)
+→ [Go SDK](../internals/go-sdk.md) · [React SPA](../internals/solid-sdk.md) · [Internals](../internals/index.md)

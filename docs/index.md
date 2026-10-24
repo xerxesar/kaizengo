@@ -17,16 +17,18 @@ apps/<name>/
   migrations/    # Postgres tables for the app's models
 ```
 
-The engine turns `app.yaml` into model CRUD, GraphQL, nav, and [ACL checks](acl.md). You write YAML first; Go and Solid only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
+The engine turns `app.yaml` into model CRUD, GraphQL, nav, and [ACL checks](acl.md). You write YAML first; Go and React only where the spec is not enough ([advanced tutorial](tutorial/advanced/index.md)).
 
 ## Docs map
 
 | Section | Purpose |
 |---------|---------|
-| [Architecture](architecture.md) | 3+1 layers, GraphQL vs gRPC, CLI |
-| [Tutorial](tutorial/index.md) | Build your first app step by step |
-| [Development](development/index.md) | Workflow, platform APIs, auth, ACL, GraphQL, apps |
-| [Reference](internals/index.md) | Internals, Go SDK, Solid SDK |
+| [Architecture](architecture.md) | 3+1 layers, GraphQL vs gRPC, CLI, dynamic domain |
+| [Tutorial](tutorial/index.md) | Build a first app on the spec path |
+| [Development](development/index.md) | Install the repo, `make dev`, platform APIs (time, i18n, settings) |
+| [Platform](platform.md) | Apps, auth, ACL, capabilities, GraphQL, CLI, external Go apps |
+| [Reference](internals/index.md) | Internals, Go SDK, React SPA |
+| [Extension plan](extension-platform.md) | Roadmap for cross-app addons |
 
 ## Preview this site
 

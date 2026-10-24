@@ -9,7 +9,7 @@ These are the usual next stops after that.
 - **More fields** — edit `app.yaml`, add a SQL column on the read-model table, run `make generate`.
 - **Enums** — `type: enum` plus `values:`. Generated Go gets a typed string and `Valid()`.
 - **Search** — under the model, set `search.collection` and `search.fields` (see `hellospec`).
-- **i18n** — add `locale/fa.po` (and a `locales:` entry) for RTL; `t('todo.empty')` in Solid and `i18n.T("todo.empty")` in Go share the same catalog.
+- **i18n** — add `locale/fa.po` (and a `locales:` entry) for RTL; `t('todo.empty')` in React and `i18n.T("todo.empty")` in Go share the same catalog.
 
 ## Platform apps you should not reimplement
 
@@ -21,7 +21,7 @@ These are the usual next stops after that.
 | Locale, calendar, shell title | `settings` |
 | Install / upgrade apps | `appman` |
 
-Consume users from GraphQL or `@kaizengo/sdk-solid/identity`, not by importing another app’s Go types.
+Consume users from GraphQL ([capabilities](../capabilities.md)), not by importing another app’s Go types.
 
 ## When to write more Go
 
@@ -29,9 +29,9 @@ The [advanced tutorial](advanced/orm-and-services.md) covers `Setup`, `ModelRegi
 
 Addons that listen to *other* apps use `extension.Register` / `extends:` in `app.yaml` (`apps/audit` logs every model mutation).
 
-## Development ## Development & technical docs reference
+## Where to read next
 
-[Development](../development/index.md) covers platform and SDK **usage**. [Internals](../internals/index.md) explain boot order, the Host bag, and data-flow maps. Deeper package notes: [Go SDK](../internals/go-sdk.md), [Solid SDK](../internals/solid-sdk.md).
+[Development](../development/index.md) covers install and day-to-day workflow. [Platform](../platform.md) covers auth, ACL, GraphQL, and the CLI. [Internals](../internals/index.md) explain boot order, the Host bag, and data-flow maps. Package notes: [Go SDK](../internals/go-sdk.md), [React SPA](../internals/solid-sdk.md).
 
 ## Reference in this repo
 
@@ -41,7 +41,7 @@ Addons that listen to *other* apps use `extension.Register` / `extends:` in `app
 | `apps/identity` | Several models, menus, and views |
 | `apps/auth` | Setup/Mount for login |
 | `internal/engine` | What `engine.New` actually wires |
-| `packages/sdk-solid/ui` | `KTable`, `KForm`, layout, i18n |
+| `apps/core/spa` | React shell: `@/k`, `@/lib`, `@/components/ui` |
 
 ## Load a subset
 

@@ -11,7 +11,7 @@ SDK usage recipes: [Go SDK](go-sdk.md) · [React SPA](solid-sdk.md). Day-to-day 
 | [This page](index.md) | Layer map, project tree, boot & load lifecycle, mutation & UI data flows |
 | [Go SDK](go-sdk.md) | Engine, hooks runtime, extension dispatch, package map |
 | [React SPA](solid-sdk.md) | View registry, Vite aliases, `useKQuery` / K* ↔ GraphQL naming |
-| [`AGENTS.md`](../../AGENTS.md) | AI agent conventions + `.cursor/rules/` |
+| `AGENTS.md` | AI agent conventions + `.cursor/rules/` (repo root, not a site page) |
 
 ## Layer map
 
@@ -231,5 +231,6 @@ There is **one** shell SPA (`apps/core/spa`). Pages under `apps/<name>/views/*.p
 
 ## Related reference
 
+- [Platform](../platform.md) — apps, auth, ACL, GraphQL, CLI
 - [Apps system](../apps.md) — install / upgrade / Host details
 - [Auth](../auth.md) · [ACL](../acl.md) · [GraphQL](../graphql.md) · [Capabilities](../capabilities.md)

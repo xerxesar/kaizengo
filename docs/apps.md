@@ -74,7 +74,7 @@ The core SPA (after login):
 1. `GET /api/apps` → nav catalog (requires session; see [auth.md](auth.md))
 2. On route change → resolve menu view → render matching `apps/<app>/views/<View>.tsx`
 
-All views compile into the single central SPA at `apps/core/spa`. See [Solid SDK](internals/solid-sdk.md).
+All views compile into the single central SPA at `apps/core/spa`. See [React SPA](internals/solid-sdk.md).
 
 ## Creating an app without touching core
 

@@ -1,6 +1,6 @@
 # Custom pages
 
-`KTable` and `KForm` cover list/create. Write your own Solid when the screen is a dashboard, a tree, or it must call GraphQL that is not generated CRUD.
+`KTable` and `KForm` cover list/create. Write your own React page when the screen is a dashboard, a tree, or it must call GraphQL that is not generated CRUD.
 
 Page views still live in the **core** SPA. You do not add a Vite app or a client-side router.
 
@@ -52,24 +52,19 @@ msgstr "Complete all"
 `apps/todo/views/Overview.page.tsx`:
 
 ```tsx
-import { createSignal, onMount, Show } from 'solid-js'
-import {
-  Alert,
-  Button,
-  KAppStatus,
-  Spinner,
-  StatCard,
-  listModelRecords,
-  t,
-} from '@kaizengo/sdk-solid/ui'
+import { useEffect, useState } from 'react'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { listModelRecords, t, StatCard } from '@/lib'
+import { KAppStatus } from '@/k'
 import { completeTodoTasks } from '../lib/graphql'
 
 export default function Overview() {
-  const [loading, setLoading] = createSignal(true)
-  const [error, setError] = createSignal('')
-  const [total, setTotal] = createSignal(0)
-  const [open, setOpen] = createSignal(0)
-  const [working, setWorking] = createSignal(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [total, setTotal] = useState(0)
+  const [open, setOpen] = useState(0)
+  const [working, setWorking] = useState(false)
 
   async function refresh() {
     setLoading(true)
@@ -98,29 +93,25 @@ export default function Overview() {
     }
   }
 
-  onMount(() => {
+  useEffect(() => {
     void refresh()
-  })
+  }, [])
 
   return (
     <>
-      <Show when={!loading()} fallback={<Spinner />}>
-        <Show when={error()}>
-          <Alert variant="danger" dismissible onDismiss={() => setError('')}>
-            {error()}
-          </Alert>
-        </Show>
-
-        <div class="mb-4 grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-4">
-          <StatCard label={t('todo.stat.open')} value={open()} hint={t('todo.stat.open_hint')} />
-          <StatCard label={t('todo.stat.total')} value={total()} />
-        </div>
-
-        <Button disabled={working() || open() === 0} onClick={() => void completeAll()}>
-          {t('todo.complete_all')}
-        </Button>
-      </Show>
-
+      {loading ? <p>{t('todo.empty')}</p> : null}
+      {error ? <Alert variant="danger">{error}</Alert> : null}
+      {!loading ? (
+        <>
+          <div className="mb-4 grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-4">
+            <StatCard label={t('todo.stat.open')} value={open} hint={t('todo.stat.open_hint')} />
+            <StatCard label={t('todo.stat.total')} value={total} />
+          </div>
+          <Button disabled={working || open === 0} onClick={() => void completeAll()}>
+            {t('todo.complete_all')}
+          </Button>
+        </>
+      ) : null}
       <KAppStatus />
     </>
   )
@@ -167,16 +158,16 @@ You can drive the open-count StatCard from `todoOpenCount()` instead of filterin
 ## Layout rules
 
 - One `.page.tsx` file per menu view under `apps/<app>/views/`.
-- Import UI from `@kaizengo/sdk-solid/ui` (`Alert`, `Button`, `Card`, `Page`, `Spinner`, `StatCard`, `TreeView`, …).
-- Navigate with `navigateApp(menuPagePath('todo', 'task_list'))` — do not `window.location` into another app’s HTML.
-- `make dev` hot-reloads Solid. New Go (`gql.go`, `service.go`) needs a process restart.
+- Import `t`, `StatCard`, `listModelRecords`, `navigateApp`, and `menuPagePath` from `@/lib`. Import `KAppStatus` from `@/k`. Import `Alert` and `Button` from `@/components/ui`.
+- Navigate with `navigateApp(menuPagePath('todo', 'task_list'))`.
+- `make dev` hot-reloads React views. New Go (`gql.go`, `service.go`) needs a process restart.
 
 ## Larger examples
 
 | File | What it shows |
 |------|----------------|
-| `apps/identity/views/Overview.tsx` | `listModelRecords` + `StatCard` |
-| `apps/identity/views/Structure.tsx` | Custom query, `TreeView`, modal create |
+| `apps/identity/views/Overview.page.tsx` | `listModelRecords` + `StatCard` |
+| `apps/identity/views/Structure.page.tsx` | Custom query and a tree of org units |
 | `apps/identity/lib/graphql.ts` | `credentials: 'include'` client |
 
 Next: [what to learn after the tutorial](../whats-next.md).

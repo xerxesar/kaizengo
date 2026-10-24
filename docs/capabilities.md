@@ -94,7 +94,7 @@ The Typesense addon:
 
 ## Identity users — GraphQL contract
 
-Apps that `uses: [identity.users]` should consume users via GraphQL or `@kaizengo/sdk-solid/identity`, not by importing another app's Go types.
+Apps that `uses: [identity.users]` should consume users via the GraphQL fields below, from a React view (`@/lib`). Do not import another app's Go types.
 
 ### Query: list org members
 
@@ -129,17 +129,26 @@ query ($id: ID!) {
 }
 ```
 
-### TypeScript client
+### Calling it from a view
+
+Send the session cookie, the same way `apps/identity/lib/graphql.ts` does. There is no separate identity widget package; build the picker from these queries and `@/components/ui`.
 
 ```ts
-import { fetchUsers, fetchActiveUsers, UserPicker } from '@kaizengo/sdk-solid/identity'
-
-const users = await fetchActiveUsers(orgId)
+async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+  const res = await fetch('/graphql', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables }),
+  })
+  if (!res.ok) throw new Error(`GraphQL HTTP ${res.status}`)
+  const body = await res.json()
+  if (body.errors?.length) {
+    throw new Error(body.errors.map((e: { message: string }) => e.message).join(', '))
+  }
+  return body.data as T
+}
 ```
-
-`UserPicker` is a Solid component that loads active users for an org and renders a `@kaizengo/sdk-solid/ui` `Select`. Used in Notes share dialog.
-
-Add `@kaizengo/sdk-solid` to your SPA `package.json` (same pattern as `@kaizengo/sdk-solid/ui`). Vite resolves it via `packages/sdk-solid/spa-config/app-vite.ts`.
 
 ## Validation
 
