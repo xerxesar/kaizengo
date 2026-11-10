@@ -6,10 +6,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// MarshalDomain renders the domain part of spec (models, queries, commands,
-// policies) as one self-contained app.yaml document: models and security are
-// inline, so the output parses back with Parse. UI wiring (nav, menus, views,
-// locales, keymap) and seeded users are left out.
+// MarshalDomain renders the declarative domain as one self-contained app.yaml
+// document. Models, queries, commands, policies, nav, menus, locales, keymap,
+// and seeded users are inline, so the output parses back with Parse. Compiled
+// React pages, Go hook extends, and component/view exports are left out.
 func MarshalDomain(spec AppSpec) ([]byte, error) {
 	doc := outSpec{
 		Name:     spec.Name,
@@ -18,6 +18,10 @@ func MarshalDomain(spec AppSpec) ([]byte, error) {
 		Depends:  spec.Depends,
 		Provides: spec.Provides,
 		Uses:     spec.Uses,
+		Nav:      spec.Nav,
+		Menus:    spec.Menus,
+		Locales:  spec.Locales,
+		Keymap:   spec.Keymap,
 	}
 	if spec.Schema != "" && spec.Schema != spec.Name {
 		doc.Schema = spec.Schema
@@ -30,7 +34,10 @@ func MarshalDomain(spec AppSpec) ([]byte, error) {
 		doc.Extensions = &t
 	}
 	for _, m := range spec.Models {
-		om := outModel{Name: m.Name, Internal: m.Internal, Virtual: m.Virtual, Search: m.Search}
+		om := outModel{
+			Name: m.Name, Internal: m.Internal, Virtual: m.Virtual, Search: m.Search,
+			Filters: m.Filters, Charts: m.Charts, Indexes: m.Indexes,
+		}
 		for _, f := range m.Fields {
 			om.Fields = append(om.Fields, outFieldOf(f))
 		}
@@ -44,9 +51,13 @@ func MarshalDomain(spec AppSpec) ([]byte, error) {
 			Name: c.Name, Create: c.Create, Update: c.Update, Delete: c.Delete, Args: outFields(c.Args), Returns: c.Returns,
 		})
 	}
+	doc.Views = declaredViews(spec.Views)
 	sec := spec.Security
-	if len(sec.Roles)+len(sec.Disable)+len(sec.Entries) > 0 {
-		sd := &outSecurity{Roles: sec.Roles, Disable: sec.Disable}
+	if len(spec.Exports.Menus) > 0 {
+		doc.Exports = &outExports{Menus: spec.Exports.Menus}
+	}
+	if len(sec.Roles)+len(sec.Disable)+len(sec.Entries)+len(sec.Users) > 0 {
+		sd := &outSecurity{Roles: sec.Roles, Disable: sec.Disable, Users: sec.Users}
 		for _, e := range sec.Entries {
 			oe := outEntry{
 				Name: e.Name, Role: e.Role, Effect: e.Effect, Kind: e.Kind, Resource: e.Resource,
@@ -81,18 +92,31 @@ type outSpec struct {
 	Schema     string       `yaml:"schema,omitempty"`
 	Resource   string       `yaml:"resource,omitempty"`
 	Extensions *bool        `yaml:"extensions,omitempty"`
+	Nav        NavSpec      `yaml:"nav,omitempty"`
+	Menus      []MenuSpec   `yaml:"menus,omitempty"`
 	Models     []outModel   `yaml:"models,omitempty"`
 	Queries    []outCQRS    `yaml:"queries,omitempty"`
 	Commands   []outCQRS    `yaml:"commands,omitempty"`
+	Views      []ViewSpec   `yaml:"views,omitempty"`
+	Locales    []LocaleSpec `yaml:"locales,omitempty"`
+	Exports    *outExports  `yaml:"exports,omitempty"`
 	Security   *outSecurity `yaml:"security,omitempty"`
+	Keymap     KeymapSpec   `yaml:"keymap,omitempty"`
+}
+
+type outExports struct {
+	Menus []MenuExtendSpec `yaml:"menus,omitempty"`
 }
 
 type outModel struct {
-	Name     string      `yaml:"name"`
-	Internal bool        `yaml:"internal,omitempty"`
-	Virtual  bool        `yaml:"virtual,omitempty"`
-	Fields   []outField  `yaml:"fields,omitempty"`
-	Search   *SearchSpec `yaml:"search,omitempty"`
+	Name     string             `yaml:"name"`
+	Internal bool               `yaml:"internal,omitempty"`
+	Virtual  bool               `yaml:"virtual,omitempty"`
+	Fields   []outField         `yaml:"fields,omitempty"`
+	Search   *SearchSpec        `yaml:"search,omitempty"`
+	Filters  []FilterPresetSpec `yaml:"filters,omitempty"`
+	Charts   []ChartPresetSpec  `yaml:"charts,omitempty"`
+	Indexes  []IndexSpec        `yaml:"indexes,omitempty"`
 }
 
 type outField struct {
@@ -100,11 +124,17 @@ type outField struct {
 	Type     string       `yaml:"type,omitempty"`
 	Required bool         `yaml:"required,omitempty"`
 	Indexed  bool         `yaml:"indexed,omitempty"`
+	Unique   bool         `yaml:"unique,omitempty"`
 	Readonly bool         `yaml:"readonly,omitempty"`
 	Default  any          `yaml:"default,omitempty"`
 	Values   []string     `yaml:"values,omitempty,flow"`
 	Relation string       `yaml:"relation,omitempty"`
 	Inverse  string       `yaml:"inverse,omitempty"`
+	OnDelete string       `yaml:"onDelete,omitempty"`
+	Compute  string       `yaml:"compute,omitempty"`
+	Related  string       `yaml:"related,omitempty"`
+	Depends  []string     `yaml:"depends,omitempty,flow"`
+	Store    *bool        `yaml:"store,omitempty"`
 	Validate *outValidate `yaml:"validate,omitempty"`
 }
 
@@ -131,6 +161,7 @@ type outSecurity struct {
 	Roles   []SecurityRoleSpec `yaml:"roles,omitempty"`
 	Disable []string           `yaml:"disable,omitempty"`
 	Entries []outEntry         `yaml:"entries,omitempty"`
+	Users   []SecurityUserSpec `yaml:"users,omitempty"`
 }
 
 type outEntry struct {
@@ -155,8 +186,9 @@ func outFields(in []FieldSpec) []outField {
 
 func outFieldOf(f FieldSpec) outField {
 	o := outField{
-		Name: f.Name, Type: f.Type, Required: f.Required, Indexed: f.Indexed, Readonly: f.Readonly,
-		Default: f.Default, Values: f.Values, Relation: f.Relation, Inverse: f.Inverse,
+		Name: f.Name, Type: f.Type, Required: f.Required, Indexed: f.Indexed, Unique: f.Unique, Readonly: f.Readonly,
+		Default: f.Default, Values: f.Values, Relation: f.Relation, Inverse: f.Inverse, OnDelete: f.OnDelete,
+		Compute: f.Compute, Related: f.Related, Depends: f.Depends, Store: f.Store,
 	}
 	v := f.Validate
 	if v.MinLength != 0 || v.MaxLength != 0 || v.Pattern != "" || v.Min != nil || v.Max != nil {

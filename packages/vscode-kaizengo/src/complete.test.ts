@@ -101,6 +101,40 @@ models:
     assert.ok(labels(domain).includes("authorId"));
     assert.ok(labels(domain).includes("message"));
   });
+
+  it("completes view kinds, fields, widgets, and layout ids", () => {
+    const text = hello.text;
+    const file = hello.yamlPath;
+    const kinds = completeAt(file, text, "kind: coll");
+    assert.ok(labels(kinds).includes("collection"));
+    assert.ok(labels(kinds).includes("form"));
+
+    const fields = completeAt(file, text, "field: mes");
+    assert.ok(labels(fields).includes("message"));
+    assert.ok(labels(fields).includes("mood"));
+    assert.ok(labels(fields).includes("updatedAt"));
+
+    const groupBy = completeAt(file, text, "groupBy: [mo");
+    assert.ok(labels(groupBy).includes("mood"));
+
+    const widgets = completeAt(file, text, "widget: text");
+    assert.ok(labels(widgets).includes("textarea"));
+    assert.ok(labels(widgets).includes("relation"));
+
+    const align = completeAt(file, text, "align: le");
+    assert.deepEqual(labels(align), ["left", "center", "right"]);
+
+    const components = completeAt(file, text, "component: fo");
+    assert.deepEqual(labels(components), ["recent", "form"]);
+
+    const views = completeAt(file, text, "view: GreetingL");
+    assert.ok(labels(views).includes("GreetingList"));
+    assert.ok(labels(views).includes("GreetingForm"));
+    assert.ok(labels(views).includes("GreetingBoard"));
+
+    const direction = completeAt(file, text, "layout: col");
+    assert.deepEqual(labels(direction), ["column", "row"]);
+  });
 });
 
 describe("go model completion", () => {
@@ -198,34 +232,40 @@ func post(m *engine.ModelRegistry) {
 });
 
 describe("tsx model completion", () => {
-  const form = path.join(repoRoot, "apps/hellospec/views/GreetingForm.page.tsx");
-  const formText = fs.readFileSync(form, "utf8");
-  const list = path.join(repoRoot, "apps/hellospec/views/GreetingList.page.tsx");
+  const form = path.join(repoRoot, "apps/identity/views/Users.page.tsx");
+  const list = path.join(repoRoot, "apps/appman/views/Index.page.tsx");
   const listText = fs.readFileSync(list, "utf8");
 
   it("completes query and command refs", () => {
-    const queries = completeAt(list, listText, 'query="hellospec.gre');
-    assert.ok(labels(queries).includes("hellospec.greetings"));
+    const queries = completeAt(list, listText, 'query="appman.ap');
+    assert.ok(labels(queries).includes("appman.apps"));
     assert.ok(labels(queries).includes("identity.users"));
-    assert.equal(queries.find((item) => item.label === "hellospec.greetings")?.detail, "list greeting");
+    assert.equal(queries.find((item) => item.label === "appman.apps")?.detail, "list app");
 
-    const commands = completeAt(form, formText, 'command="hellospec.post');
-    assert.ok(labels(commands).includes("hellospec.postGreeting"));
-    assert.equal(commands.find((item) => item.label === "hellospec.postGreeting")?.detail, "create greeting");
+    const formText = `export default function Users() {
+  return <KForm command="identity.post" />;
+}
+`;
+    const commands = completeAt(form, formText, 'command="identity.post');
+    assert.ok(labels(commands).includes("identity.postUser"));
+    assert.equal(commands.find((item) => item.label === "identity.postUser")?.detail, "create user");
   });
 
   it("completes fields from the enclosing command or query", () => {
-    const fields = completeAt(form, formText, 'field="mes');
-    assert.ok(labels(fields).includes("message"));
-    assert.ok(labels(fields).includes("mood"));
-    assert.ok(labels(fields).includes("internalNote"));
-    assert.equal(labels(fields).includes("email"), false);
+    const formText = `export default function Users() {
+  return <KForm command="identity.postUser" field="na" />;
+}
+`;
+    const fields = completeAt(form, formText, 'field="na');
+    assert.ok(labels(fields).includes("name"));
+    assert.ok(labels(fields).includes("email"));
+    assert.equal(labels(fields).includes("mood"), false);
 
-    const group = completeAt(list, listText, 'groupByField="mo');
-    assert.ok(labels(group).includes("mood"));
+    const group = completeAt(list, listText, 'groupByField="sta');
+    assert.ok(labels(group).includes("status"));
     assert.equal(labels(group).includes("slug"), false);
 
-    const i18n = completeAt(form, formText, "t('hellospec.cre");
+    const i18n = completeAt(form, formText + "\nconst label = t('identity.users.cre')\n", "t('identity.users.cre");
     assert.deepEqual(i18n, []);
   });
 

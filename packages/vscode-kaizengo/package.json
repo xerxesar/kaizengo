@@ -1,8 +1,8 @@
 {
   "name": "kaizengo",
   "displayName": "KaizenGo",
-  "description": "Navigate KaizenGo specs and complete model names, fields, queries, and commands.",
-  "version": "0.2.0",
+    "description": "Navigate KaizenGo specs, complete models and view layouts, and open a visual spec view.",
+  "version": "0.3.0",
   "publisher": "kaizengo",
   "repository": {
     "type": "git",
@@ -26,8 +26,23 @@
       {
         "command": "kaizengo.reindex",
         "title": "KaizenGo: Reindex app.yaml catalog"
+      },
+      {
+        "command": "kaizengo.openViewEditor",
+        "title": "Vis",
+        "category": "KaizenGo",
+        "icon": "$(preview)"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "kaizengo.openViewEditor",
+          "when": "resourceFilename == app.yaml",
+          "group": "navigation"
+        }
+      ]
+    },
     "configurationDefaults": {
       "[go]": {
         "editor.quickSuggestions": {

@@ -14,21 +14,25 @@ alwaysApply: false
 
 ## Patterns
 
-```tsx
-import { t } from '@/lib'
-import { KAppStatus, KTable } from '@/k'
+A page that shows collections or forms does not choose columns in React. Declare `path`, `layout`, and `components` in `app.yaml` (see `spec-apps.mdc`) and render the tree:
 
-export default function GreetingList() {
+```tsx
+import { KAppStatus, SpecLayout } from '@/k'
+
+export default function GreetingBoard() {
   return (
     <>
-      <KTable query="hellospec.greetings" paginated searchable emptyMessage={t('hellospec.empty')} />
+      <SpecLayout />
       <KAppStatus />
     </>
   )
 }
 ```
 
-- Prefer `<KTable|KKanban|KCollection query="…" paginated searchable />` over bespoke list chrome.
+Place one component yourself only when the page has other chrome around it: `<SpecScreen id="list" />`. The id matches `components[].id`.
+
+- Dynamic screens with no `path` are rendered by the shell. Do not add a `.page.tsx` for them.
+- Bespoke pages (no model layout) stay custom React and are declared as `path` only.
 - End list/form pages with `<KAppStatus />` when sibling apps do.
 - Styling: CSS variables (`--kg-*`), `cn()` from `@/lib`. Prefer existing tokens over one-off colors.
 - Shell layout is platform-owned — do not wrap every page in custom app chrome.

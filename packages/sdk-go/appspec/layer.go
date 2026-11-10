@@ -5,10 +5,13 @@ import (
 	"reflect"
 )
 
-// Merge stacks layer onto base. A layer may override title and summary and add
-// depends, models, fields, queries, commands, roles, and policy entries.
-// Anything it repeats from base must be identical; base-only parts (nav, menus,
-// views, locales, keymap, filters, charts) always come from base.
+// Merge stacks a legacy overlay onto base. Runtime domain apply now stores full
+// tip snapshots and no longer uses Merge for apply; Merge remains for reading
+// pre-snapshot overlay revisions and for rebasing tooling.
+// A layer may override title, summary, and nav, and add depends, models, fields,
+// queries, commands, menus, locales, keymap bindings, filter and chart presets,
+// indexes, views, roles, policy entries, and users. Anything it repeats from
+// base must be identical. Go hook extends and component exports always come from base.
 func Merge(base, layer AppSpec) (AppSpec, error) {
 	if layer.Name != base.Name {
 		return AppSpec{}, fmt.Errorf("layer is for app %q, not %q", layer.Name, base.Name)
@@ -23,6 +26,9 @@ func Merge(base, layer AppSpec) (AppSpec, error) {
 	out.Depends = union(base.Depends, layer.Depends)
 	out.Provides = union(base.Provides, layer.Provides)
 	out.Uses = union(base.Uses, layer.Uses)
+	if !layer.Nav.IsZero() {
+		out.Nav = layer.Nav
+	}
 
 	out.Models = append([]ModelSpec(nil), base.Models...)
 	index := map[string]int{}
@@ -45,6 +51,16 @@ func Merge(base, layer AppSpec) (AppSpec, error) {
 				return AppSpec{}, fmt.Errorf("model %s: search is defined by the base layer", lm.Name)
 			}
 			m.Search = lm.Search
+		}
+		var err error
+		if m.Filters, err = mergeNamed("filter", m.Filters, lm.Filters, func(f FilterPresetSpec) string { return f.ID }); err != nil {
+			return AppSpec{}, err
+		}
+		if m.Charts, err = mergeNamed("chart", m.Charts, lm.Charts, func(c ChartPresetSpec) string { return c.ID }); err != nil {
+			return AppSpec{}, err
+		}
+		if m.Indexes, err = mergeNamed("index", m.Indexes, lm.Indexes, func(ix IndexSpec) string { return ix.Name }); err != nil {
+			return AppSpec{}, err
 		}
 		fields := append([]FieldSpec(nil), m.Fields...)
 		have := map[string]FieldSpec{}
@@ -78,12 +94,34 @@ func Merge(base, layer AppSpec) (AppSpec, error) {
 	if out.Security.Entries, err = mergeNamed("policy entry", base.Security.Entries, layer.Security.Entries, func(e SecurityEntrySpec) string { return e.Name }); err != nil {
 		return AppSpec{}, err
 	}
+	if out.Security.Users, err = mergeNamed("user", base.Security.Users, layer.Security.Users, func(u SecurityUserSpec) string { return u.Email }); err != nil {
+		return AppSpec{}, err
+	}
 	out.Security.Disable = union(base.Security.Disable, layer.Security.Disable)
+	if out.Menus, err = mergeNamed("menu", base.Menus, layer.Menus, func(m MenuSpec) string { return m.ID }); err != nil {
+		return AppSpec{}, err
+	}
+	if out.Locales, err = mergeNamed("locale", base.Locales, layer.Locales, func(l LocaleSpec) string { return l.ID }); err != nil {
+		return AppSpec{}, err
+	}
+	if out.Keymap.Bindings, err = mergeNamed("keymap binding", base.Keymap.Bindings, layer.Keymap.Bindings, func(b KeymapBindingSpec) string { return b.ID }); err != nil {
+		return AppSpec{}, err
+	}
+	if out.Views, err = mergeNamed("view", base.Views, layer.Views, func(v ViewSpec) string { return v.Name }); err != nil {
+		return AppSpec{}, err
+	}
+	out.Keymap.Disable = union(base.Keymap.Disable, layer.Keymap.Disable)
+	out.Exports.Components = base.Exports.Components
+	out.Exports.Views = base.Exports.Views
+	if out.Exports.Menus, err = mergeNamed("menu export", base.Exports.Menus, layer.Exports.Menus, func(m MenuExtendSpec) string { return m.App + "/" + m.ID }); err != nil {
+		return AppSpec{}, err
+	}
 	return out, nil
 }
 
-// Subtract returns the layer that, merged onto base, yields full. It fails when
-// full drops or changes something base defines.
+// Subtract returns the overlay that, merged onto base, yields full. Used for
+// changelog / rebase helpers — not for storing tip revisions (tips are full
+// snapshots). It fails when full drops or changes something base defines.
 func Subtract(full, base AppSpec) (AppSpec, error) {
 	if full.Name != base.Name {
 		return AppSpec{}, fmt.Errorf("document is for app %q, not %q", full.Name, base.Name)
@@ -104,6 +142,9 @@ func Subtract(full, base AppSpec) (AppSpec, error) {
 	}
 	if layer.Uses, err = extra("uses", full.Uses, base.Uses); err != nil {
 		return AppSpec{}, err
+	}
+	if !reflect.DeepEqual(full.Nav, base.Nav) {
+		layer.Nav = full.Nav
 	}
 
 	fullModels := map[string]ModelSpec{}
@@ -127,6 +168,15 @@ func Subtract(full, base AppSpec) (AppSpec, error) {
 			}
 			lm.Search = fm.Search
 		}
+		if lm.Filters, err = subtractNamed("filter", fm.Filters, bm.Filters, func(f FilterPresetSpec) string { return f.ID }); err != nil {
+			return AppSpec{}, err
+		}
+		if lm.Charts, err = subtractNamed("chart", fm.Charts, bm.Charts, func(c ChartPresetSpec) string { return c.ID }); err != nil {
+			return AppSpec{}, err
+		}
+		if lm.Indexes, err = subtractNamed("index", fm.Indexes, bm.Indexes, func(ix IndexSpec) string { return ix.Name }); err != nil {
+			return AppSpec{}, err
+		}
 		have := map[string]FieldSpec{}
 		for _, f := range fm.Fields {
 			have[f.Name] = f
@@ -147,7 +197,7 @@ func Subtract(full, base AppSpec) (AppSpec, error) {
 				lm.Fields = append(lm.Fields, f)
 			}
 		}
-		if len(lm.Fields) > 0 || lm.Search != nil {
+		if len(lm.Fields) > 0 || lm.Search != nil || len(lm.Filters) > 0 || len(lm.Charts) > 0 || len(lm.Indexes) > 0 {
 			layer.Models = append(layer.Models, lm)
 		}
 	}
@@ -169,7 +219,28 @@ func Subtract(full, base AppSpec) (AppSpec, error) {
 	if layer.Security.Entries, err = subtractNamed("policy entry", full.Security.Entries, base.Security.Entries, func(e SecurityEntrySpec) string { return e.Name }); err != nil {
 		return AppSpec{}, err
 	}
+	if layer.Security.Users, err = subtractNamed("user", full.Security.Users, base.Security.Users, func(u SecurityUserSpec) string { return u.Email }); err != nil {
+		return AppSpec{}, err
+	}
 	if layer.Security.Disable, err = extra("security.disable", full.Security.Disable, base.Security.Disable); err != nil {
+		return AppSpec{}, err
+	}
+	if layer.Menus, err = subtractNamed("menu", full.Menus, base.Menus, func(m MenuSpec) string { return m.ID }); err != nil {
+		return AppSpec{}, err
+	}
+	if layer.Locales, err = subtractNamed("locale", full.Locales, base.Locales, func(l LocaleSpec) string { return l.ID }); err != nil {
+		return AppSpec{}, err
+	}
+	if layer.Keymap.Bindings, err = subtractNamed("keymap binding", full.Keymap.Bindings, base.Keymap.Bindings, func(b KeymapBindingSpec) string { return b.ID }); err != nil {
+		return AppSpec{}, err
+	}
+	if layer.Keymap.Disable, err = extra("keymap.disable", full.Keymap.Disable, base.Keymap.Disable); err != nil {
+		return AppSpec{}, err
+	}
+	if layer.Views, err = subtractNamed("view", declaredViews(full.Views), declaredViews(base.Views), func(v ViewSpec) string { return v.Name }); err != nil {
+		return AppSpec{}, err
+	}
+	if layer.Exports.Menus, err = subtractNamed("menu export", full.Exports.Menus, base.Exports.Menus, func(m MenuExtendSpec) string { return m.App + "/" + m.ID }); err != nil {
 		return AppSpec{}, err
 	}
 	return layer, nil
@@ -177,9 +248,16 @@ func Subtract(full, base AppSpec) (AppSpec, error) {
 
 // EmptyLayer reports whether layer adds nothing.
 func (s AppSpec) EmptyLayer() bool {
-	return s.Title == "" && s.Summary == "" && len(s.Depends)+len(s.Provides)+len(s.Uses) == 0 &&
-		len(s.Models)+len(s.Queries)+len(s.Commands) == 0 &&
-		len(s.Security.Roles)+len(s.Security.Entries)+len(s.Security.Disable) == 0
+	return s.Title == "" && s.Summary == "" && s.Nav.IsZero() &&
+		len(s.Depends)+len(s.Provides)+len(s.Uses) == 0 &&
+		len(s.Models)+len(s.Queries)+len(s.Commands)+len(s.Menus)+len(s.Locales)+len(declaredViews(s.Views)) == 0 &&
+		len(s.Security.Roles)+len(s.Security.Entries)+len(s.Security.Disable)+len(s.Security.Users) == 0 &&
+		s.Keymap.Empty() && len(s.Exports.Menus) == 0
+}
+
+// IsZero reports whether nav carries no shell entry.
+func (n NavSpec) IsZero() bool {
+	return n.Label == "" && n.LabelKey == "" && n.Route == "" && n.Order == 0
 }
 
 func union(base, add []string) []string {

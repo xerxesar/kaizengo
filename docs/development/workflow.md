@@ -127,7 +127,7 @@ Full tree and ownership rules: [Internals → project tree](../internals/index.m
 
 ## VS Code / Cursor extension
 
-`packages/vscode-kaizengo` adds Go to Definition in `app.yaml` and `models/*/spec.yaml` (pages, models, `depends` / `uses`, locales, handlers), and completes model names, fields, queries, and commands in those specs, in Go (`ModelRegistry`, `Hooks`), and in view TSX (`query`, `command`, `field`).
+`packages/vscode-kaizengo` adds Go to Definition in `app.yaml` and `models/*/spec.yaml` (pages, models, views, `depends` / `uses`, locales, handlers), completes model names, fields, queries, commands, and view layout values, and opens a **Vis** panel from the `app.yaml` editor title to inspect and retarget view layouts.
 
 ```bash
 make vscode-ext          # compile

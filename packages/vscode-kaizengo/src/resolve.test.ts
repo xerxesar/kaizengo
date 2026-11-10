@@ -22,21 +22,6 @@ function ctxFor(appName: string): ResolveContext {
   };
 }
 
-function ctxForDoc(appName: string, suffix: string): ResolveContext {
-  const catalog = loadCatalog(repoRoot);
-  const app = catalog.apps.get(appName);
-  assert.ok(app, `app ${appName} not found`);
-  const doc = app.docs.find((d) => d.path.endsWith(suffix));
-  assert.ok(doc, `doc ${suffix} not found in ${appName}`);
-  return {
-    catalog,
-    appName,
-    file: doc.path,
-    text: doc.text,
-    symbols: doc.symbols,
-  };
-}
-
 function atValue(ctx: ResolveContext, path: string, value?: string) {
   const sym = ctx.symbols.find((s) => s.path === path && (value === undefined || s.value === value));
   assert.ok(sym, `missing symbol ${path}${value ? `=${value}` : ""}`);
@@ -62,6 +47,13 @@ describe("classify", () => {
     assert.equal(classify("uses[1]"), "uses");
     assert.equal(classify("models[0]"), "spec-include");
     assert.equal(classify("views[0].name"), "view-name");
+    assert.equal(classify("views[2].path"), "view-path");
+    assert.equal(classify("views[0].components[0].model"), "view-model");
+    assert.equal(classify("views[0].components[0].id"), "screen-component");
+    assert.equal(classify("views[1].layout.items[0].items[0].component"), "layout-component");
+    assert.equal(classify("views[0].components[0].columns[0].field"), "view-field");
+    assert.equal(classify("views[1].components[1].groups[0].fields[0].field"), "view-field");
+    assert.equal(classify("views[0].components[0].groupBy[0]"), "view-field");
     assert.equal(classify("menus[1].children[0].view"), "menu-view");
     assert.equal(classify("models[0].fields[2].relation"), "relation");
     assert.equal(classify("nav.labelKey"), "label-key");
@@ -71,26 +63,24 @@ describe("classify", () => {
   });
 });
 
-describe("parse inventory specs", () => {
-  it("collects depends, model includes, and menus", () => {
-    const text = fs.readFileSync(path.join(repoRoot, "apps/inventory/app.yaml"), "utf8");
+describe("parse permissions specs", () => {
+  it("collects depends, models, and relations", () => {
+    const text = fs.readFileSync(path.join(repoRoot, "apps/permissions/app.yaml"), "utf8");
     const symbols = collectSymbols(text);
-    assert.equal(symbols.find((s) => s.path === "name")?.value, "inventory");
+    assert.equal(symbols.find((s) => s.path === "name")?.value, "permissions");
     assert.ok(symbols.some((s) => s.path === "depends[0]" && s.value === "core"));
-    assert.ok(symbols.some((s) => classify(s.path) === "spec-include" && s.value === "models/product"));
-    const dash = symbols.find((s) => classify(s.path) === "menu-view" && s.value === "Dashboard");
-    assert.ok(dash);
-    assert.equal(symbolAt(symbols, dash.range.start)?.value, "Dashboard");
+    assert.ok(symbols.some((s) => classify(s.path) === "model-name" && s.value === "role"));
+    const rel = symbols.find((s) => classify(s.path) === "relation" && s.value === "role");
+    assert.ok(rel);
+    assert.equal(symbolAt(symbols, rel.range.start)?.value, "role");
   });
 
-  it("indexes model spec.yaml files", () => {
+  it("indexes each app.yaml", () => {
     const catalog = loadCatalog(repoRoot);
-    const app = catalog.apps.get("inventory");
+    const app = catalog.apps.get("permissions");
     assert.ok(app);
-    assert.ok(app.docs.some((d) => d.path.endsWith(path.join("models", "product", "spec.yaml"))));
-    const product = app.docs.find((d) => d.path.endsWith(path.join("models", "product", "spec.yaml")));
-    assert.ok(product?.symbols.some((s) => classify(s.path) === "model-name" && s.value === "product"));
-    assert.ok(product?.symbols.some((s) => classify(s.path) === "relation" && s.value === "product_variant"));
+    assert.ok(app.docs.some((d) => d.path.endsWith("app.yaml")));
+    assert.ok(app.symbols.some((s) => classify(s.path) === "model-name" && s.value === "acl_entry"));
   });
 });
 
@@ -103,13 +93,13 @@ describe("parseRelation", () => {
 
 describe("resolveDefinition", () => {
   it("jumps depends to the target app.yaml", () => {
-    const ctx = ctxFor("inventory");
+    const ctx = ctxFor("permissions");
     const files = filesOf(ctx, "depends[0]", "core");
     assert.ok(files.some((f) => f.endsWith(path.join("apps", "core", "app.yaml"))));
   });
 
   it("jumps uses to provides and platform sources", () => {
-    const ctx = ctxFor("inventory");
+    const ctx = ctxFor("hellospec");
     const rbac = filesOf(ctx, "uses[1]", "permissions.rbac");
     assert.ok(rbac.some((f) => f.endsWith(path.join("apps", "permissions", "app.yaml"))));
 
@@ -118,34 +108,26 @@ describe("resolveDefinition", () => {
     assert.ok(i18n.some((f) => f.endsWith(path.join("internal", "platform", "i18n", "i18n.go"))));
   });
 
-  it("jumps menus and model includes to their files", () => {
-    const ctx = ctxFor("inventory");
-    const menu = filesOf(ctx, "menus[0].view", "Dashboard");
-    assert.ok(menu.some((f) => f.endsWith(path.join("apps", "inventory", "views", "Dashboard.page.tsx"))));
-
-    const spec = filesOf(ctx, "models[4]", "models/product");
-    assert.ok(spec.some((f) => f.endsWith(path.join("apps", "inventory", "models", "product", "spec.yaml"))));
+  it("jumps menus to their pages", () => {
+    const ctx = ctxFor("identity");
+    const menu = filesOf(ctx, "menus[0].view", "Overview");
+    assert.ok(menu.some((f) => f.endsWith(path.join("apps", "identity", "views", "Overview.page.tsx"))));
   });
 
-  it("jumps relation and inverse to the related model field", () => {
-    const ctx = ctxForDoc("inventory", path.join("models", "uom_group", "spec.yaml"));
-    const rel = ctx.symbols.find((s) => classify(s.path) === "relation" && s.value === "uom");
+  it("jumps relation to the related model", () => {
+    const ctx = ctxFor("permissions");
+    const rel = ctx.symbols.find((s) => classify(s.path) === "relation" && s.value === "role");
     assert.ok(rel);
-    const relFiles = resolveDefinition(ctx, rel).map((t) => t.file);
-    assert.ok(relFiles.some((f) => f.endsWith(path.join("models", "uom", "spec.yaml"))));
-
-    const inv = ctx.symbols.find((s) => classify(s.path) === "inverse" && s.value === "groupId");
-    assert.ok(inv);
-    const invHits = resolveDefinition(ctx, inv);
-    assert.ok(invHits.length >= 1);
-    assert.ok(invHits[0].file.endsWith(path.join("models", "uom", "spec.yaml")));
-    const uom = fs.readFileSync(invHits[0].file, "utf8");
-    assert.equal(uom.slice(invHits[0].start, invHits[0].end), "groupId");
+    const hits = resolveDefinition(ctx, rel);
+    assert.ok(hits.some((t) => t.file === ctx.file && ctx.text.slice(t.start, t.end) === "role" && t.start !== rel.range.start));
+    assert.ok(hits.some((f) => f.file.endsWith(path.join("__types__", "role.go"))));
   });
 
   it("jumps model names to generated types", () => {
     const ctx = ctxFor("hellospec");
-    const files = filesOf(ctx, "models[0].name", "greeting");
+    const model = ctx.symbols.find((s) => classify(s.path) === "model-name" && s.value === "greeting");
+    assert.ok(model);
+    const files = resolveDefinition(ctx, model).map((t) => t.file);
     assert.ok(files.some((f) => f.endsWith(path.join("apps", "hellospec", "__types__", "greeting.go"))));
   });
 
@@ -164,7 +146,7 @@ describe("resolveDefinition", () => {
     assert.ok(handler.some((f) => f.endsWith(path.join("apps", "typesense", "module.go"))));
 
     const mod = filesOf(ctx, "exports.components[0].module");
-    assert.ok(mod.some((f) => f.endsWith(path.join("apps", "core", "spa", "src", "lib", "search", "SearchBar.tsx"))));
+    assert.ok(mod.some((f) => f.endsWith(path.join("apps", "core", "spa", "src", "components", "shell", "SearchBar.tsx"))));
 
     const settings = filesOf(ctx, "exports.components[1].module");
     assert.ok(settings.some((f) => f.endsWith(path.join("apps", "typesense", "views", "SearchSettings.page.tsx"))));
@@ -178,6 +160,28 @@ describe("resolveDefinition", () => {
     const files = filesOf(ctx, "name", "hellospec");
     assert.ok(files.some((f) => f.endsWith(path.join("apps", "hellospec", "module.go"))));
   });
+
+  it("jumps view components, fields, and page paths", () => {
+    const ctx = ctxFor("hellospec");
+    const model = filesOf(ctx, "views[0].components[0].model", "greeting");
+    assert.ok(model.some((f) => f.endsWith(path.join("__types__", "greeting.go"))));
+    assert.ok(model.some((f) => f.endsWith(path.join("apps", "hellospec", "app.yaml"))));
+
+    const field = ctx.symbols.find((s) => s.path === "views[0].components[0].columns[0].field");
+    assert.ok(field);
+    const fieldHits = resolveDefinition(ctx, field);
+    assert.equal(ctx.text.slice(fieldHits[0].start, fieldHits[0].end), "message");
+    assert.notEqual(fieldHits[0].start, field.range.start);
+
+    const layout = ctx.symbols.find((s) => classify(s.path) === "layout-component" && s.value === "form");
+    assert.ok(layout);
+    const id = ctx.symbols.find((s) => classify(s.path) === "screen-component" && s.value === "form");
+    assert.ok(id);
+    assert.equal(resolveDefinition(ctx, layout)[0].start, id.range.start);
+
+    const page = filesOf(ctx, "views[2].path", "views/GreetingBoard.page.tsx");
+    assert.ok(page.some((f) => f.endsWith(path.join("views", "GreetingBoard.page.tsx"))));
+  });
 });
 
 describe("resolveReferences", () => {
@@ -186,16 +190,30 @@ describe("resolveReferences", () => {
     const cap = ctx.symbols.find((s) => classify(s.path) === "provides" && s.value === "permissions.rbac");
     assert.ok(cap);
     const refs = resolveReferences(ctx, cap);
-    assert.ok(refs.some((t) => t.file.endsWith(path.join("apps", "inventory", "app.yaml"))));
     assert.ok(refs.some((t) => t.file.endsWith(path.join("apps", "hellospec", "app.yaml"))));
+    assert.ok(refs.some((t) => t.file.endsWith(path.join("apps", "appman", "app.yaml"))));
   });
 
   it("finds relation fields that point at a model", () => {
-    const ctx = ctxForDoc("inventory", path.join("models", "uom", "spec.yaml"));
-    const model = ctx.symbols.find((s) => classify(s.path) === "model-name" && s.value === "uom");
+    const ctx = ctxFor("permissions");
+    const model = ctx.symbols.find((s) => classify(s.path) === "model-name" && s.value === "role");
     assert.ok(model);
     const refs = resolveReferences(ctx, model);
     assert.ok(refs.length > 1);
-    assert.ok(refs.some((t) => t.file !== ctx.file || t.start !== model.range.start));
+    assert.ok(refs.some((t) => classify(ctx.symbols.find((s) => s.range.start === t.start)?.path ?? "") === "relation"));
+  });
+
+  it("finds view models and layout components", () => {
+    const ctx = ctxFor("hellospec");
+    const model = ctx.symbols.find((s) => classify(s.path) === "model-name" && s.value === "greeting");
+    assert.ok(model);
+    const refs = resolveReferences(ctx, model);
+    assert.ok(refs.some((t) => ctx.text.slice(t.start, t.end) === "greeting" && t.start !== model.range.start));
+
+    const layout = ctx.symbols.find((s) => classify(s.path) === "layout-component" && s.value === "recent");
+    assert.ok(layout);
+    const uses = resolveReferences(ctx, layout);
+    assert.ok(uses.some((t) => classify(ctx.symbols.find((s) => s.range.start === t.start)?.path ?? "") === "screen-component"));
+    assert.ok(uses.some((t) => t.start === layout.range.start));
   });
 });

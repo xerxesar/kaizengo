@@ -72,6 +72,7 @@ func diffSpecs(old *appspec.AppSpec, next appspec.AppSpec) ([]string, error) {
 				changes = append(changes, fmt.Sprintf("remove field %s.%s (column kept)", m.Name, f.Name))
 			}
 		}
+		changes = append(changes, diffNames("index "+m.Name, indexKeys(prev.Indexes), indexKeys(m.Indexes))...)
 		if prev.Internal != m.Internal || prev.Virtual != m.Virtual {
 			changes = append(changes, fmt.Sprintf("update model %s flags", m.Name))
 		}
@@ -81,6 +82,7 @@ func diffSpecs(old *appspec.AppSpec, next appspec.AppSpec) ([]string, error) {
 			changes = append(changes, fmt.Sprintf("remove model %s (table kept)", m.Name))
 		}
 	}
+	changes = append(changes, diffNames("view", viewKeys(old.Views), viewKeys(next.Views))...)
 	changes = append(changes, diffNames("query", queryNames(old.Queries), queryNames(next.Queries))...)
 	changes = append(changes, diffNames("command", commandNames(old.Commands), commandNames(next.Commands))...)
 	if len(old.Security.Entries) != len(next.Security.Entries) || len(old.Security.Roles) != len(next.Security.Roles) {
@@ -93,9 +95,48 @@ func diffSpecs(old *appspec.AppSpec, next appspec.AppSpec) ([]string, error) {
 }
 
 func fieldChanged(a, b appspec.FieldSpec) bool {
-	return a.Required != b.Required || a.Readonly != b.Readonly || a.Indexed != b.Indexed ||
+	return a.Required != b.Required || a.Readonly != b.Readonly || a.Indexed != b.Indexed || a.Unique != b.Unique ||
+		a.OnDelete != b.OnDelete ||
 		a.Relation != b.Relation || strings.Join(a.Values, ",") != strings.Join(b.Values, ",") ||
 		fmt.Sprint(a.Default) != fmt.Sprint(b.Default) || validateKey(a.Validate) != validateKey(b.Validate)
+}
+
+func indexKeys(items []appspec.IndexSpec) map[string]string {
+	out := map[string]string{}
+	for _, ix := range items {
+		name := ix.Name
+		if name == "" {
+			name = strings.Join(ix.Fields, ",")
+		}
+		out[name] = fmt.Sprintf("%s|%v|%s", strings.Join(ix.Fields, ","), ix.Unique, ix.Method)
+	}
+	return out
+}
+
+func viewKeys(items []appspec.ViewSpec) map[string]string {
+	out := map[string]string{}
+	for _, v := range items {
+		if strings.TrimSpace(v.Path) != "" {
+			out[v.Name] = "path|" + v.Path
+			continue
+		}
+		if strings.TrimSpace(v.Kind) == "" && v.Type == "page" {
+			out[v.Name] = "page"
+			continue
+		}
+		var parts []string
+		for _, c := range v.Columns {
+			parts = append(parts, "c:"+c.Field)
+		}
+		for _, g := range v.Groups {
+			parts = append(parts, "g:"+g.Label+g.LabelKey)
+			for _, f := range g.Fields {
+				parts = append(parts, f.Field)
+			}
+		}
+		out[v.Name] = fmt.Sprintf("%s|%s|%s|%s", v.Kind, v.Model, strings.Join(v.Views, ","), strings.Join(parts, ","))
+	}
+	return out
 }
 
 func validateKey(v appspec.ValidateSpec) string {

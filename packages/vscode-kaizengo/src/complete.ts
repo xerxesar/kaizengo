@@ -14,7 +14,7 @@ import {
   type ModelIndex,
   type ModelInfo,
 } from "./model-index";
-import { collectSymbols, type YamlSymbol } from "./parse";
+import { collectSymbols, viewOwnerModel, type YamlSymbol } from "./parse";
 import { parseRelation } from "./resolve";
 
 export interface ReplaceSpan {
@@ -223,6 +223,9 @@ function completeYaml(input: CompleteInput, index: ModelIndex, appName: string, 
     return modelItems(index, appName, replace, "bare");
   }
 
+  const viewItems = completeView(path, replace, index, appName, symbols);
+  if (viewItems) return viewItems;
+
   const entry = path.match(/^(entries\[\d+\])/)?.[1];
   if (!entry) return [];
   if (path === `${entry}.resource`) {
@@ -233,6 +236,60 @@ function completeYaml(input: CompleteInput, index: ModelIndex, appName: string, 
   if (/^entries\[\d+\]\.fields(\[\d+\])?$/.test(path)) return fieldItems(resourceModel, replace, true);
   if (/^entries\[\d+\]\.domain\[\d+\]\[0\]$/.test(path)) return fieldItems(resourceModel, replace, true);
   return [];
+}
+
+const VIEW_KINDS = ["collection", "table", "kanban", "chart", "form"];
+const VIEW_WIDGETS = ["input", "textarea", "checkbox", "select", "relation"];
+const VIEW_MODES = ["table", "kanban", "chart", "pivot"];
+const VIEW_ALIGNS = ["left", "center", "right"];
+const VIEW_DIRS = ["column", "row"];
+
+function vocab(labels: string[], replace: ReplaceSpan, detail: string): Completion[] {
+  return labels.map((label, i) => ({
+    label,
+    kind: "enum" as const,
+    detail,
+    documentation: detail,
+    sort: String(i).padStart(2, "0"),
+    replace,
+  }));
+}
+
+function completeView(
+  path: string,
+  replace: ReplaceSpan,
+  index: ModelIndex,
+  appName: string,
+  symbols: YamlSymbol[],
+): Completion[] | undefined {
+  const menuView = /^menus(\[\d+\]\.children)*\[\d+\]\.view$/.test(path);
+  if (!path.startsWith("views[") && !menuView) return undefined;
+  if (menuView) {
+    const names = symbols.filter((s) => /^views\[\d+\]\.name$/.test(s.path)).map((s) => s.value);
+    return vocab(names, replace, "view");
+  }
+  if (/^views\[\d+\](\.components\[\d+\])?\.kind$/.test(path)) return vocab(VIEW_KINDS, replace, "kind");
+  if (/^views\[\d+\](\.components\[\d+\])?\.model$/.test(path)) return modelItems(index, appName, replace, "relation");
+  if (/^views\[\d+\](\.components\[\d+\])?\.defaultView$/.test(path)) return vocab(VIEW_MODES, replace, "view mode");
+  if (/^views\[\d+\](\.components\[\d+\])?\.views(\[\d+\])?$/.test(path)) return vocab(VIEW_MODES, replace, "view mode");
+  if (
+    /^views\[\d+\](\.components\[\d+\])?\.groupBy(\[\d+\])?$/.test(path) ||
+    /^views\[\d+\](\.components\[\d+\])?\.columns\[\d+\]\.field$/.test(path) ||
+    /^views\[\d+\](\.components\[\d+\])?\.groups\[\d+\]\.fields\[\d+\]\.field$/.test(path)
+  ) {
+    return fieldItems(resolveModelRef(index, appName, viewOwnerModel(symbols, path)), replace, true);
+  }
+  if (/\.widget$/.test(path)) return vocab(VIEW_WIDGETS, replace, "widget");
+  if (/\.align$/.test(path)) return vocab(VIEW_ALIGNS, replace, "align");
+  if (path.endsWith(".direction") || /^views\[\d+\]\.layout$/.test(path)) return vocab(VIEW_DIRS, replace, "direction");
+  const component = path.match(/^(views\[\d+\])\.layout(\.items\[\d+\])*\.component$/);
+  if (component) {
+    const ids = symbols
+      .filter((s) => s.path.startsWith(`${component[1]}.components[`) && s.path.endsWith(".id"))
+      .map((s) => s.value);
+    return vocab(ids, replace, "component");
+  }
+  return undefined;
 }
 
 function sym(symbols: YamlSymbol[], path: string): string | undefined {

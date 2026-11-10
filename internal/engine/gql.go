@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"kaizengo/internal/extension"
+	sdkgql "kaizengo/internal/gql"
 	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/acl"
 	"kaizengo/packages/sdk-go/appspec"
-	"kaizengo/internal/extension"
-	sdkgql "kaizengo/internal/gql"
 	"kaizengo/packages/sdk-go/views"
 
 	"github.com/graphql-go/graphql"
@@ -199,7 +199,7 @@ func registerModelGQL(host *module.Host, spec appspec.AppSpec, svc *modelService
 func fieldArgs(model appspec.ModelSpec, requiredOnly bool) graphql.FieldConfigArgument {
 	args := graphql.FieldConfigArgument{}
 	for _, f := range model.Fields {
-		if f.Readonly || !f.Stored() {
+		if f.Readonly || !f.Stored() || f.Computed() {
 			continue
 		}
 		gqlType := gqlInputType(f)
@@ -364,7 +364,7 @@ func viewCatalog(spec appspec.AppSpec) []views.View {
 		}
 		out = append(out, buildListViewFromRegistered(m), buildFormViewFromRegistered(m))
 	}
-	return out
+	return appendDeclaredViews(spec, out)
 }
 
 func applyCQRSBindings(v *views.View, spec appspec.AppSpec, model string) {
@@ -377,11 +377,15 @@ func applyCQRSBindings(v *views.View, spec appspec.AppSpec, model string) {
 }
 
 func filterPresetsFromModel(m appspec.ModelSpec) []views.FilterPreset {
-	if len(m.Filters) == 0 {
+	return filterPresetsFromList(m.Filters)
+}
+
+func filterPresetsFromList(presets []appspec.FilterPresetSpec) []views.FilterPreset {
+	if len(presets) == 0 {
 		return nil
 	}
-	out := make([]views.FilterPreset, 0, len(m.Filters))
-	for _, p := range m.Filters {
+	out := make([]views.FilterPreset, 0, len(presets))
+	for _, p := range presets {
 		domain, err := appspec.EncodeFilterDomain(p.Domain)
 		if err != nil {
 			continue
@@ -476,7 +480,7 @@ func buildFormView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
 		Kind:  views.FormView,
 	}
 	for _, f := range m.Fields {
-		if f.CanonicalType() == appspec.TypeOne2Many {
+		if f.CanonicalType() == appspec.TypeOne2Many || f.Computed() {
 			continue
 		}
 		item.Fields = append(item.Fields, views.Field{
@@ -488,6 +492,44 @@ func buildFormView(spec appspec.AppSpec, m appspec.ModelSpec) views.View {
 	return item
 }
 
+func layoutNodeType(name string) *graphql.Object {
+	node := graphql.NewObject(graphql.ObjectConfig{
+		Name:   name,
+		Fields: graphql.Fields{},
+	})
+	node.AddFieldConfig("direction", &graphql.Field{Type: graphql.String, Resolve: func(p graphql.ResolveParams) (any, error) {
+		if p.Source.(views.LayoutNode).Direction == "" {
+			return nil, nil
+		}
+		return p.Source.(views.LayoutNode).Direction, nil
+	}})
+	node.AddFieldConfig("component", &graphql.Field{Type: graphql.String, Resolve: func(p graphql.ResolveParams) (any, error) {
+		if p.Source.(views.LayoutNode).Component == "" {
+			return nil, nil
+		}
+		return p.Source.(views.LayoutNode).Component, nil
+	}})
+	node.AddFieldConfig("size", &graphql.Field{Type: graphql.String, Resolve: func(p graphql.ResolveParams) (any, error) {
+		if p.Source.(views.LayoutNode).Size == "" {
+			return nil, nil
+		}
+		return p.Source.(views.LayoutNode).Size, nil
+	}})
+	node.AddFieldConfig("span", &graphql.Field{Type: graphql.Int, Resolve: func(p graphql.ResolveParams) (any, error) {
+		if p.Source.(views.LayoutNode).Span == 0 {
+			return nil, nil
+		}
+		return p.Source.(views.LayoutNode).Span, nil
+	}})
+	node.AddFieldConfig("items", &graphql.Field{
+		Type: graphql.NewList(graphql.NewNonNull(node)),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.LayoutNode).Items, nil
+		},
+	})
+	return node
+}
+
 func newViewType(name string) *graphql.Object {
 	columnType := graphql.NewObject(graphql.ObjectConfig{
 		Name: name + "Column",
@@ -497,6 +539,10 @@ func newViewType(name string) *graphql.Object {
 			"width":  &graphql.Field{Type: graphql.String},
 			"align":  &graphql.Field{Type: graphql.String},
 			"hidden": &graphql.Field{Type: graphql.Boolean},
+			"widget": &graphql.Field{Type: graphql.String},
+			"span":   &graphql.Field{Type: graphql.Int},
+			"order":  &graphql.Field{Type: graphql.Int},
+			"group":  &graphql.Field{Type: graphql.String},
 		},
 	})
 	fieldType := graphql.NewObject(graphql.ObjectConfig{
@@ -509,6 +555,12 @@ func newViewType(name string) *graphql.Object {
 			"relation": &graphql.Field{Type: graphql.String},
 			"inverse":  &graphql.Field{Type: graphql.String},
 			"values":   &graphql.Field{Type: graphql.NewList(graphql.NewNonNull(graphql.String))},
+			"span":     &graphql.Field{Type: graphql.Int},
+			"widget":   &graphql.Field{Type: graphql.String},
+			"group":    &graphql.Field{Type: graphql.String},
+			"order":    &graphql.Field{Type: graphql.Int},
+			"width":    &graphql.Field{Type: graphql.String},
+			"align":    &graphql.Field{Type: graphql.String},
 		},
 	})
 	filterPresetType := graphql.NewObject(graphql.ObjectConfig{
@@ -535,6 +587,16 @@ func newViewType(name string) *graphql.Object {
 			"yField":      &graphql.Field{Type: graphql.String},
 			"seriesField": &graphql.Field{Type: graphql.String},
 			"measure":     &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+	groupType := graphql.NewObject(graphql.ObjectConfig{
+		Name: name + "Group",
+		Fields: graphql.Fields{
+			"id":       &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"label":    &graphql.Field{Type: graphql.String},
+			"labelKey": &graphql.Field{Type: graphql.String},
+			"columns":  &graphql.Field{Type: graphql.Int},
+			"order":    &graphql.Field{Type: graphql.Int},
 		},
 	})
 	return graphql.NewObject(graphql.ObjectConfig{
@@ -580,6 +642,48 @@ func newViewType(name string) *graphql.Object {
 				Type: graphql.NewList(graphql.NewNonNull(chartPresetType)),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					return p.Source.(views.View).ChartPresets, nil
+				},
+			},
+			"groups": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(groupType)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).Groups, nil
+				},
+			},
+			"defaultView": &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).DefaultView, nil
+				},
+			},
+			"views": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(graphql.String)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).Views, nil
+				},
+			},
+			"groupBy": &graphql.Field{
+				Type: graphql.NewList(graphql.NewNonNull(graphql.String)),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).GroupBy, nil
+				},
+			},
+			"layout": &graphql.Field{
+				Type:        layoutNodeType(name + "Layout"),
+				Description: "Nested regions for a screen: direction, component, size, span, items",
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					node := p.Source.(views.View).Layout
+					if node == nil {
+						return nil, nil
+					}
+					return *node, nil
+				},
+			},
+			"components": &graphql.Field{
+				Type:        graphql.NewList(graphql.NewNonNull(graphql.String)),
+				Description: "Component ids on a screen view; each is a catalog view named {screen}.{id}",
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return p.Source.(views.View).Components, nil
 				},
 			},
 			"listQuery": &graphql.Field{
@@ -640,6 +744,12 @@ func newMenuType(name string) *graphql.Object {
 		Type: graphql.String,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return p.Source.(views.Menu).View, nil
+		},
+	})
+	menuType.AddFieldConfig("model", &graphql.Field{
+		Type: graphql.String,
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			return p.Source.(views.Menu).Model, nil
 		},
 	})
 	menuType.AddFieldConfig("route", &graphql.Field{

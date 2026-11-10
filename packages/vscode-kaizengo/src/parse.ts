@@ -32,6 +32,11 @@ export type NavKind =
   | "export-app"
   | "export-component-ref"
   | "export-view-ref"
+  | "view-path"
+  | "view-model"
+  | "view-field"
+  | "screen-component"
+  | "layout-component"
   | "none";
 
 export function classify(path: string): NavKind {
@@ -40,6 +45,13 @@ export function classify(path: string): NavKind {
   if (/^uses\[\d+\]$/.test(path)) return "uses";
   if (/^provides\[\d+\]$/.test(path)) return "provides";
   if (/^views\[\d+\]\.name$/.test(path)) return "view-name";
+  if (/^views\[\d+\]\.path$/.test(path)) return "view-path";
+  if (/^views\[\d+\](\.components\[\d+\])?\.model$/.test(path)) return "view-model";
+  if (/^views\[\d+\]\.components\[\d+\]\.id$/.test(path)) return "screen-component";
+  if (/^views\[\d+\]\.layout(\.items\[\d+\])*\.component$/.test(path)) return "layout-component";
+  if (/^views\[\d+\](\.components\[\d+\])?\.columns\[\d+\]\.field$/.test(path)) return "view-field";
+  if (/^views\[\d+\](\.components\[\d+\])?\.groups\[\d+\]\.fields\[\d+\]\.field$/.test(path)) return "view-field";
+  if (/^views\[\d+\](\.components\[\d+\])?\.groupBy\[\d+\]$/.test(path)) return "view-field";
   if (/^models\[\d+\]$/.test(path)) return "spec-include";
   if (/^models\[\d+\]\.name$/.test(path)) return "model-name";
   if (/^models\[\d+\]\.fields\[\d+\]\.relation$/.test(path)) return "relation";
@@ -103,6 +115,18 @@ export function symbolAt(symbols: YamlSymbol[], offset: number): YamlSymbol | un
     }
   }
   return best;
+}
+
+/** Model named by a view or by the component that owns this field path. */
+export function viewOwnerModel(symbols: YamlSymbol[], path: string): string | undefined {
+  const comp = path.match(/^(views\[\d+\]\.components\[\d+\])/);
+  if (comp) {
+    const own = symbols.find((s) => s.path === `${comp[1]}.model`)?.value;
+    if (own) return own;
+  }
+  const view = path.match(/^(views\[\d+\])/);
+  if (!view) return undefined;
+  return symbols.find((s) => s.path === `${view[1]}.model`)?.value;
 }
 
 export function sibling(symbols: YamlSymbol[], path: string, key: string): YamlSymbol | undefined {

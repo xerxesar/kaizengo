@@ -25,15 +25,16 @@ type ViewExtendSpec struct {
 
 // MenuExtendSpec injects a menu item into another app's menus tree.
 type MenuExtendSpec struct {
-	App       string `yaml:"app"`    // target app
-	Parent    string `yaml:"parent"` // optional parent menu id (empty = top-level)
+	App       string `yaml:"app"`              // target app
+	Parent    string `yaml:"parent,omitempty"` // optional parent menu id (empty = top-level)
 	ID        string `yaml:"id"`
-	Label     string `yaml:"label"`
-	LabelKey  string `yaml:"labelKey"`
-	View      string `yaml:"view"`
-	Route     string `yaml:"route"`
-	Order     int    `yaml:"order"`
-	Component string `yaml:"component"` // optional SPA component id
+	Label     string `yaml:"label,omitempty"`
+	LabelKey  string `yaml:"labelKey,omitempty"`
+	View      string `yaml:"view,omitempty"`
+	Model     string `yaml:"model,omitempty"` // generated list; no page file
+	Route     string `yaml:"route,omitempty"`
+	Order     int    `yaml:"order,omitempty"`
+	Component string `yaml:"component,omitempty"` // optional SPA component id
 }
 
 // ExportSpec lists SDK components an app publishes.
@@ -96,8 +97,8 @@ func validateExports(exports ExportSpec) error {
 		if strings.TrimSpace(m.Label) == "" && strings.TrimSpace(m.LabelKey) == "" {
 			return fmt.Errorf("exports.menus %q requires label or labelKey", m.ID)
 		}
-		if strings.TrimSpace(m.View) == "" && strings.TrimSpace(m.Component) == "" {
-			return fmt.Errorf("exports.menus %q requires view or component", m.ID)
+		if strings.TrimSpace(m.View) == "" && strings.TrimSpace(m.Component) == "" && strings.TrimSpace(m.Model) == "" {
+			return fmt.Errorf("exports.menus %q requires view, component, or model", m.ID)
 		}
 	}
 	return nil

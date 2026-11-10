@@ -1,14 +1,14 @@
 import type { MenuItem } from './types'
 
 const menuSelection = `
-  id label labelKey view route component sourceApp
+  id label labelKey view model route component sourceApp
   children {
-    id label labelKey view route component sourceApp
+    id label labelKey view model route component sourceApp
     children {
-      id label labelKey view route component sourceApp
+      id label labelKey view model route component sourceApp
       children {
-        id label labelKey view route component sourceApp
-        children { id label labelKey view route component sourceApp }
+        id label labelKey view model route component sourceApp
+        children { id label labelKey view model route component sourceApp }
       }
     }
   }

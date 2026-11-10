@@ -29,12 +29,23 @@ func RegisterPlatformAPI(host *module.Host, doms *Domains) {
 	domainType := platformDomainType()
 	revisionType := platformRevisionType()
 	strList := graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(graphql.String)))
+	migrateHintType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "PlatformDomainMigrateHint",
+		Fields: graphql.Fields{
+			"path": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"hint": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"stub": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
 	resultType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "PlatformDomainApplyResult",
 		Fields: graphql.Fields{
-			"domain":  &graphql.Field{Type: graphql.NewNonNull(domainType)},
-			"changes": &graphql.Field{Type: strList},
-			"dryRun":  &graphql.Field{Type: graphql.NewNonNull(graphql.Boolean)},
+			"domain":          &graphql.Field{Type: graphql.NewNonNull(domainType)},
+			"changes":         &graphql.Field{Type: strList},
+			"dryRun":          &graphql.Field{Type: graphql.NewNonNull(graphql.Boolean)},
+			"migrateRequired": &graphql.Field{Type: graphql.NewNonNull(graphql.Boolean)},
+			"migrateHints":    &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(migrateHintType)))},
+			"proposedSpec":    &graphql.Field{Type: graphql.String},
 		},
 	})
 	require := func(p graphql.ResolveParams, action string) error {
@@ -144,8 +155,9 @@ func RegisterPlatformAPI(host *module.Host, doms *Domains) {
 		Type: graphql.NewNonNull(graphql.NewObject(graphql.ObjectConfig{
 			Name: "PlatformDomainDiff",
 			Fields: graphql.Fields{
-				"app":     &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
-				"changes": &graphql.Field{Type: strList},
+				"app":          &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+				"changes":      &graphql.Field{Type: strList},
+				"migrateHints": &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(migrateHintType)))},
 			},
 		})),
 		Args: graphql.FieldConfigArgument{
@@ -156,11 +168,45 @@ func RegisterPlatformAPI(host *module.Host, doms *Domains) {
 				return nil, err
 			}
 			doc, _ := p.Args["spec"].(string)
-			app, changes, err := doms.Diff(p.Context, doc)
+			app, changes, hints, err := doms.DiffWithMigrate(p.Context, doc)
 			if err != nil {
 				return nil, err
 			}
-			return map[string]any{"app": app, "changes": changes}, nil
+			hintMaps := make([]any, 0, len(hints))
+			for _, h := range hints {
+				hintMaps = append(hintMaps, map[string]any{"path": h.Path, "hint": h.Hint, "stub": h.Stub})
+			}
+			return map[string]any{"app": app, "changes": changes, "migrateHints": hintMaps}, nil
+		},
+	})
+
+	host.GQL.RegisterQuery("platformDomainMigratePending", &graphql.Field{
+		Type: graphql.NewObject(graphql.ObjectConfig{
+			Name: "PlatformDomainMigratePending",
+			Fields: graphql.Fields{
+				"app":          &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+				"proposedSpec": &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+				"migrateHints": &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(migrateHintType)))},
+			},
+		}),
+		Description: "Stashed tip proposal that needs a data migration (from a prior apply/add-field that gated on migrate)",
+		Args: graphql.FieldConfigArgument{
+			"app": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+		},
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			if err := require(p, acl.ActRead); err != nil {
+				return nil, err
+			}
+			name := appArg(p)
+			proposed, hints, ok := doms.PendingMigrate(name)
+			if !ok || strings.TrimSpace(proposed) == "" {
+				return nil, nil
+			}
+			hintMaps := make([]any, 0, len(hints))
+			for _, h := range hints {
+				hintMaps = append(hintMaps, map[string]any{"path": h.Path, "hint": h.Hint, "stub": h.Stub})
+			}
+			return map[string]any{"app": name, "proposedSpec": proposed, "migrateHints": hintMaps}, nil
 		},
 	})
 
@@ -187,14 +233,29 @@ func RegisterPlatformAPI(host *module.Host, doms *Domains) {
 
 	host.GQL.RegisterMutation("platformApplyDomain", &graphql.Field{
 		Type:        graphql.NewNonNull(resultType),
-		Description: "Apply a complete domain document for any app; what it adds to a compiled app's base is stored as a new layer revision",
+		Description: "Apply a complete domain document as a new tip revision (full snapshot); overrides compiled-origin entities; soft omits by default",
 		Args: graphql.FieldConfigArgument{
-			"spec":   &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-			"dryRun": &graphql.ArgumentConfig{Type: graphql.Boolean},
+			"spec":      &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+			"dryRun":    &graphql.ArgumentConfig{Type: graphql.Boolean},
+			"force":     &graphql.ArgumentConfig{Type: graphql.Boolean, Description: "DROP removed columns/indexes/junctions; allow type rewrites"},
+			"migratePre":  &graphql.ArgumentConfig{Type: graphql.String, Description: "Data migration SQL before additive DDL (search_path = app schema)"},
+			"migratePost": &graphql.ArgumentConfig{Type: graphql.String, Description: "Data migration SQL after additive DDL"},
+			"migrateSql":  &graphql.ArgumentConfig{Type: graphql.String, Description: "Alias of migratePost (compat)"},
+			"migrateGo":   &graphql.ArgumentConfig{Type: graphql.String, Description: "Registered Go migration name (post phase)"},
+			"noMigrate":   &graphql.ArgumentConfig{Type: graphql.Boolean, Description: "Skip required data-migration prompt"},
 		},
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			doc, _ := p.Args["spec"].(string)
 			dryRun, _ := p.Args["dryRun"].(bool)
+			force, _ := p.Args["force"].(bool)
+			migratePre, _ := p.Args["migratePre"].(string)
+			migratePost, _ := p.Args["migratePost"].(string)
+			migrateSQL, _ := p.Args["migrateSql"].(string)
+			if strings.TrimSpace(migratePost) == "" {
+				migratePost = migrateSQL
+			}
+			migrateGo, _ := p.Args["migrateGo"].(string)
+			noMigrate, _ := p.Args["noMigrate"].(bool)
 			action, err := applyAction(p.Context, doms, doc, dryRun)
 			if err != nil {
 				return nil, err
@@ -202,7 +263,9 @@ func RegisterPlatformAPI(host *module.Host, doms *Domains) {
 			if err := require(p, action); err != nil {
 				return nil, err
 			}
-			res, err := doms.Apply(p.Context, doc, SourceGraphQL, dryRun)
+			res, err := doms.ApplyWith(p.Context, doc, SourceGraphQL, ApplyOptions{
+				DryRun: dryRun, Force: force, MigratePre: migratePre, MigratePost: migratePost, MigrateGo: migrateGo, NoMigrate: noMigrate,
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -212,7 +275,7 @@ func RegisterPlatformAPI(host *module.Host, doms *Domains) {
 
 	host.GQL.RegisterMutation("platformRevertDomain", &graphql.Field{
 		Type:        graphql.NewNonNull(resultType),
-		Description: "Store an app's layer as it was at revision as a new revision and mount it",
+		Description: "Append a new tip equal to the document at revision (append-only history)",
 		Args: graphql.FieldConfigArgument{
 			"app":      &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 			"revision": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
@@ -234,7 +297,7 @@ func RegisterPlatformAPI(host *module.Host, doms *Domains) {
 
 	host.GQL.RegisterMutation("platformDeleteDomain", &graphql.Field{
 		Type:        graphql.NewNonNull(resultType),
-		Description: "Store an empty layer: resets a compiled app to its base, unmounts a dynamic app (data and history kept)",
+		Description: "Soft-clear tip: remounts compiled apps from code, unmounts dynamic apps (data and history kept)",
 		Args: graphql.FieldConfigArgument{
 			"app":    &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 			"dryRun": &graphql.ArgumentConfig{Type: graphql.Boolean},
@@ -252,9 +315,74 @@ func RegisterPlatformAPI(host *module.Host, doms *Domains) {
 		},
 	})
 
+	conflictType := platformConflictType()
+	host.GQL.RegisterQuery("platformDomainConflicts", &graphql.Field{
+		Type:        graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(conflictType))),
+		Description: "Pending rebase conflicts for a compiled app (tip vs incoming code)",
+		Args: graphql.FieldConfigArgument{
+			"app": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+		},
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			if err := require(p, acl.ActRead); err != nil {
+				return nil, err
+			}
+			cs := doms.Conflicts(appArg(p))
+			out := make([]any, 0, len(cs))
+			for _, c := range cs {
+				var anc any
+				if c.Ancestor != "" {
+					anc = c.Ancestor
+				}
+				out = append(out, map[string]any{"path": c.Path, "ancestor": anc, "ours": c.Ours, "theirs": c.Theirs})
+			}
+			return out, nil
+		},
+	})
+
+	resolutionType := graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "PlatformDomainConflictResolution",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"path": &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+			"side": &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String), Description: "ours|theirs"},
+		},
+	})
+	host.GQL.RegisterMutation("platformRebaseDomain", &graphql.Field{
+		Type:        graphql.NewNonNull(resultType),
+		Description: "Three-way merge tip onto pending/current code; force takes code on every conflict; resolutions pick per path",
+		Args: graphql.FieldConfigArgument{
+			"app":          &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+			"force":        &graphql.ArgumentConfig{Type: graphql.Boolean},
+			"dryRun":       &graphql.ArgumentConfig{Type: graphql.Boolean},
+			"resolutions":  &graphql.ArgumentConfig{Type: graphql.NewList(graphql.NewNonNull(resolutionType))},
+		},
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			dryRun, _ := p.Args["dryRun"].(bool)
+			force, _ := p.Args["force"].(bool)
+			if err := require(p, writeAction(dryRun, acl.ActUpdate)); err != nil {
+				return nil, err
+			}
+			resolve := map[string]string{}
+			if raw, ok := p.Args["resolutions"].([]any); ok {
+				for _, item := range raw {
+					m, _ := item.(map[string]any)
+					path, _ := m["path"].(string)
+					side, _ := m["side"].(string)
+					if path != "" && side != "" {
+						resolve[path] = side
+					}
+				}
+			}
+			res, err := doms.RebaseWith(p.Context, appArg(p), RebaseOptions{Force: force, DryRun: dryRun, Resolutions: resolve})
+			if err != nil {
+				return nil, err
+			}
+			return resultMap(*res), nil
+		},
+	})
+
 	host.GQL.RegisterMutation("platformImportDomains", &graphql.Field{
 		Type:        graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(resultType))),
-		Description: "Restore a platformExportDomains bundle; each app's layer becomes a new revision",
+		Description: "Restore a platformExportDomains bundle; each app tip becomes a new revision",
 		Args: graphql.FieldConfigArgument{
 			"bundle": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 			"dryRun": &graphql.ArgumentConfig{Type: graphql.Boolean},
@@ -332,11 +460,11 @@ func platformDomainType() *graphql.Object {
 		Name: "PlatformDomain",
 		Fields: graphql.Fields{
 			"app":           &graphql.Field{Type: str},
-			"kind":          &graphql.Field{Type: str, Description: "compiled (base layer from code) or dynamic (stored layers only)"},
+			"kind":          &graphql.Field{Type: str, Description: "compiled (seeded from code) or dynamic (stored tip only)"},
 			"title":         &graphql.Field{Type: str},
 			"summary":       &graphql.Field{Type: str},
-			"spec":          &graphql.Field{Type: str, Description: "Effective domain document (base plus layer); apply an edited copy"},
-			"layer":         &graphql.Field{Type: str, Description: "Stored layer on top of the base; the whole definition for dynamic apps"},
+			"spec":          &graphql.Field{Type: str, Description: "Tip domain document (full effective snapshot); apply an edited copy"},
+			"layer":         &graphql.Field{Type: str, Description: "Deprecated alias of tip spec"},
 			"revision":      &graphql.Field{Type: integer},
 			"baseRevision":  &graphql.Field{Type: integer},
 			"layerRevision": &graphql.Field{Type: integer},
@@ -344,9 +472,26 @@ func platformDomainType() *graphql.Object {
 			"updatedAt":     &graphql.Field{Type: graphql.String},
 			"loaded":        &graphql.Field{Type: graphql.NewNonNull(graphql.Boolean)},
 			"error":         &graphql.Field{Type: graphql.String},
-			"models":        &graphql.Field{Type: strList},
-			"queries":       &graphql.Field{Type: strList},
-			"commands":      &graphql.Field{Type: strList},
+			"rebaseStatus":    &graphql.Field{Type: graphql.String, Description: "empty | needs_rebase | conflict"},
+			"incoming":        &graphql.Field{Type: graphql.String, Description: "Pending compiled app.yaml when rebase is needed"},
+			"conflictCount":   &graphql.Field{Type: graphql.Int},
+			"migratePending":  &graphql.Field{Type: graphql.NewNonNull(graphql.Boolean), Description: "True when a migrate-required tip proposal is stashed"},
+			"models":          &graphql.Field{Type: strList},
+			"queries":         &graphql.Field{Type: strList},
+			"commands":        &graphql.Field{Type: strList},
+		},
+	})
+}
+
+func platformConflictType() *graphql.Object {
+	str := graphql.NewNonNull(graphql.String)
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: "PlatformDomainConflict",
+		Fields: graphql.Fields{
+			"path":     &graphql.Field{Type: str},
+			"ancestor": &graphql.Field{Type: graphql.String},
+			"ours":     &graphql.Field{Type: str},
+			"theirs":   &graphql.Field{Type: str},
 		},
 	})
 }
@@ -358,8 +503,8 @@ func platformRevisionType() *graphql.Object {
 		Fields: graphql.Fields{
 			"app":       &graphql.Field{Type: str},
 			"revision":  &graphql.Field{Type: graphql.NewNonNull(graphql.Int)},
-			"layer":     &graphql.Field{Type: str, Description: "base (compiled spec from code) or overlay (applied at runtime)"},
-			"spec":      &graphql.Field{Type: str, Description: "Stored document; empty for an overlay that removes the layer"},
+			"layer":     &graphql.Field{Type: str, Description: "revision (snapshot), or legacy base/overlay"},
+			"spec":      &graphql.Field{Type: str, Description: "Stored tip snapshot (full document for revision layer)"},
 			"source":    &graphql.Field{Type: str},
 			"changes":   &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(graphql.String)))},
 			"createdAt": &graphql.Field{Type: str},
@@ -403,17 +548,35 @@ func domainMap(d DomainInfo) map[string]any {
 	if d.Error != "" {
 		errMsg = d.Error
 	}
+	var incoming any
+	if d.Incoming != "" {
+		incoming = d.Incoming
+	}
+	var rebase any
+	if d.RebaseStatus != "" {
+		rebase = d.RebaseStatus
+	}
 	return map[string]any{
 		"app": d.App, "kind": d.Kind, "title": d.Title, "summary": d.Summary,
 		"spec": d.Spec, "layer": d.Layer, "source": d.Source,
 		"revision": int(d.Revision), "baseRevision": int(d.BaseRevision), "layerRevision": int(d.LayerRevision),
 		"updatedAt": updated, "loaded": d.Loaded, "error": errMsg,
+		"rebaseStatus": rebase, "incoming": incoming, "conflictCount": len(d.Conflicts),
+		"migratePending": d.MigratePending,
 		"models": nonNil(d.Models), "queries": nonNil(d.Queries), "commands": nonNil(d.Commands),
 	}
 }
 
 func resultMap(r ApplyResult) map[string]any {
-	return map[string]any{"domain": domainMap(r.Domain), "changes": nonNil(r.Changes), "dryRun": r.DryRun}
+	hints := make([]any, 0, len(r.MigrateHints))
+	for _, h := range r.MigrateHints {
+		hints = append(hints, map[string]any{"path": h.Path, "hint": h.Hint, "stub": h.Stub})
+	}
+	return map[string]any{
+		"domain": domainMap(r.Domain), "changes": nonNil(r.Changes), "dryRun": r.DryRun,
+		"migrateRequired": r.MigrateRequired, "migrateHints": hints,
+		"proposedSpec": r.ProposedSpec,
+	}
 }
 
 func revisionMap(r app.DomainRevision) map[string]any {

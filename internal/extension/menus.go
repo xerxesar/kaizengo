@@ -19,6 +19,7 @@ type MenuContribution struct {
 	Label     string
 	LabelKey  string
 	View      string
+	Model     string
 	Route     string
 	Order     int
 	Component string
@@ -37,7 +38,7 @@ func RegisterMenuContribution(sourceApp string, spec appspec.MenuExtendSpec) {
 	if strings.TrimSpace(spec.Label) == "" && strings.TrimSpace(spec.LabelKey) == "" {
 		return
 	}
-	if spec.View == "" && spec.Component == "" {
+	if spec.View == "" && spec.Component == "" && spec.Model == "" {
 		return
 	}
 	view := strings.TrimSpace(spec.View)
@@ -54,10 +55,27 @@ func RegisterMenuContribution(sourceApp string, spec appspec.MenuExtendSpec) {
 		Label:     strings.TrimSpace(spec.Label),
 		LabelKey:  strings.TrimSpace(spec.LabelKey),
 		View:      view,
+		Model:     strings.TrimSpace(spec.Model),
 		Route:     strings.TrimSpace(spec.Route),
 		Order:     spec.Order,
 		Component: strings.TrimSpace(spec.Component),
 	})
+}
+
+// ReplaceMenuContributions drops every contribution from sourceApp and records specs.
+func ReplaceMenuContributions(sourceApp string, specs []appspec.MenuExtendSpec) {
+	menuMu.Lock()
+	kept := make([]MenuContribution, 0, len(menuContributions))
+	for _, c := range menuContributions {
+		if c.SourceApp != sourceApp {
+			kept = append(kept, c)
+		}
+	}
+	menuContributions = kept
+	menuMu.Unlock()
+	for _, m := range specs {
+		RegisterMenuContribution(sourceApp, m)
+	}
 }
 
 // MenuContributionsFor returns addon menu items targeting app.
@@ -89,6 +107,7 @@ func BuildMenuCatalog(app string, base []appspec.MenuSpec) []views.Menu {
 			Label:     resolveContribLabel(c),
 			LabelKey:  c.LabelKey,
 			View:      c.View,
+			Model:     c.Model,
 			Route:     c.Route,
 			Component: c.Component,
 			SourceApp: c.SourceApp,
@@ -119,6 +138,7 @@ func buildMenusFromSpec(items []appspec.MenuSpec) []views.Menu {
 			Label:    resolveSpecLabel(m),
 			LabelKey: m.LabelKey,
 			View:     m.View,
+			Model:    m.Model,
 			Route:    m.Route,
 		}
 		if item.Route == "" {

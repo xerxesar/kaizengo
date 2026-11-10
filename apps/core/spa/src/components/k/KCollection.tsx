@@ -73,6 +73,19 @@ export type KCollectionSearchConfig = KQuerySearchConfig
 
 const DEFAULT_VIEWS: KCollectionView[] = ['table', 'kanban']
 
+function defaultCollectionCard(item: ModelRecord, columns: Column<ModelRecord>[]) {
+  const keys = columns.map((col) => col.key).filter((key) => key !== 'id').slice(0, 4)
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      {keys.map((key) => (
+        <div key={key} className="truncate text-sm text-[var(--kg-text)]">
+          {String(item[key] ?? '')}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 type SharedProps = {
   view?: KCollectionView
   defaultView?: KCollectionView
@@ -90,7 +103,9 @@ type SharedProps = {
 type QueryProps<T extends Record<string, unknown> = ModelRecord> = SharedProps & {
   query?: string
   model?: string
-  card: (item: T) => ReactNode
+  /** Named spec screen to bind. */
+  screen?: string
+  card?: (item: T) => ReactNode
   paginated?: boolean | KCollectionPaginationConfig
   searchable?: boolean | KCollectionSearchConfig
   /** Kanban column field (defaults to KSearch groupBy[0]). */
@@ -290,11 +305,27 @@ export function KCollection<T extends Record<string, unknown> = ModelRecord>(
 }
 
 function KCollectionQuery<T extends Record<string, unknown> = ModelRecord>(props: QueryProps<T>) {
-  const availableViews = useMemo(
-    () => normalizeViews(props.views),
-    [props.views],
+  const kq = useKQuery({
+    query: props.query,
+    model: props.model,
+    screen: props.screen,
+    paginated: props.paginated,
+    searchable: props.searchable,
+    groupByField: props.groupByField,
+    refreshToken: props.refreshToken,
+    onerror: props.onerror,
+  })
+  const specViews = (kq.view?.views ?? []).filter((item): item is KCollectionView =>
+    item === 'table' || item === 'kanban' || item === 'chart' || item === 'pivot',
   )
-  const defaultView = initialView(availableViews, props.defaultView ?? 'kanban')
+  const availableViews = useMemo(
+    () => normalizeViews(props.views ?? (specViews.length ? specViews : undefined)),
+    [props.views, kq.view?.views],
+  )
+  const specDefault = specViews.includes(kq.view?.defaultView as KCollectionView)
+    ? (kq.view?.defaultView as KCollectionView)
+    : undefined
+  const defaultView = initialView(availableViews, props.defaultView ?? specDefault ?? 'kanban')
   const useUrl = props.view == null && props.url !== false
   const [urlView, setUrlView] = useCollectionViewParam({
     url: useUrl,
@@ -308,16 +339,6 @@ function KCollectionQuery<T extends Record<string, unknown> = ModelRecord>(props
     if (props.view == null) setUrlView(next)
     props.onViewChange?.(next)
   }
-
-  const kq = useKQuery({
-    query: props.query,
-    model: props.model,
-    paginated: props.paginated,
-    searchable: props.searchable,
-    groupByField: props.groupByField,
-    refreshToken: props.refreshToken,
-    onerror: props.onerror,
-  })
 
   const columns = props.columns ?? (kq.columns as Column<T>[])
   const items = kq.items as T[]
@@ -360,7 +381,10 @@ function KCollectionQuery<T extends Record<string, unknown> = ModelRecord>(props
             const field = kq.searchFields.find((f) => f.key === kq.nestedGroupField)
             return field ? `${field.label}: ${value}` : value
           }}
-          card={props.card}
+          card={
+            props.card ??
+            ((item) => defaultCollectionCard(item as ModelRecord, columns as Column<ModelRecord>[]))
+          }
           keyOf={props.keyOf}
         />
       ) : view === 'chart' ? (

@@ -11,10 +11,22 @@ nav:
   labelKey: nav.settings
   route: settings
   order: 1000000000
+views:
+  - name: General
+    path: views/General.page.tsx
+  - name: Domains
+    path: views/Domains.page.tsx
+  - name: Keymap
+    path: views/Keymap.page.tsx
+
 menus:
   - id: general
     labelKey: settings.menu.general
     view: General
+  - id: domains
+    labelKey: settings.menu.domains
+    view: Domains
+    route: domains
   - id: keymap
     labelKey: settings.menu.keymap
     view: Keymap

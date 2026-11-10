@@ -11,6 +11,7 @@ export type Column<T> = {
   width?: string
   align?: 'left' | 'center' | 'right'
   mono?: boolean
+  widget?: string
   render?: (row: T) => string
   cell?: (row: T) => ReactNode
 }
@@ -27,6 +28,7 @@ export type MenuItem = {
   label: string
   labelKey?: string
   view?: string
+  model?: string
   route?: string
   component?: string
   sourceApp?: string

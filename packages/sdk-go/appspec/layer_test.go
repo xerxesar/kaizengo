@@ -77,7 +77,14 @@ func TestLayerRoundTrip(t *testing.T) {
 		t.Fatal("base-only parts must survive the merge")
 	}
 
-	removed, _ := Parse([]byte(strings.Replace(string(doc), "      - name: internalNote\n        type: string\n", "", 1)))
+	removedYAML := strings.Replace(string(doc), "      - name: internalNote\n        type: string\n", "", 1)
+	removedYAML = strings.ReplaceAll(removedYAML, "          - field: internalNote\n            order: 8\n", "")
+	removedYAML = strings.ReplaceAll(removedYAML, "              - field: internalNote\n                span: 2\n                order: 5\n", "")
+	removedYAML = strings.ReplaceAll(removedYAML, "          - field: internalNote\n            order: 3\n", "")
+	removed, err := Parse([]byte(removedYAML))
+	if err != nil {
+		t.Fatalf("parse removed field: %v", err)
+	}
 	if _, err := Subtract(removed, base); err == nil || !strings.Contains(err.Error(), "internalNote") {
 		t.Fatalf("expected removal error, got %v", err)
 	}

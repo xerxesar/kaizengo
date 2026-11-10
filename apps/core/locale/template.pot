@@ -55,6 +55,10 @@ msgid "keymap.shell.sign_out"
 msgstr ""
 
 #: keymap.yaml
+msgid "keymap.shell.terminal_fullscreen"
+msgstr ""
+
+#: keymap.yaml
 msgid "keymap.shell.toggle_apps"
 msgstr ""
 
@@ -154,12 +158,36 @@ msgstr ""
 msgid "shell.terminal.close"
 msgstr ""
 
+#: spa/src/App.tsx spa/src/components/shell/Terminal.tsx
+msgid "shell.terminal.fullscreen"
+msgstr ""
+
 #: spa/src/components/shell/Terminal.tsx
 msgid "shell.terminal.hint"
 msgstr ""
 
 #: spa/src/components/shell/Terminal.tsx
 msgid "shell.terminal.placeholder"
+msgstr ""
+
+#: spa/src/components/shell/Terminal.tsx
+msgid "shell.terminal.resize"
+msgstr ""
+
+#: spa/src/components/shell/TerminalTedEditor.tsx
+msgid "shell.terminal.ted_apply"
+msgstr ""
+
+#: spa/src/components/shell/TerminalTedEditor.tsx
+msgid "shell.terminal.ted_cancel"
+msgstr ""
+
+#: spa/src/components/shell/TerminalTedEditor.tsx
+msgid "shell.terminal.ted_hint"
+msgstr ""
+
+#: spa/src/components/shell/TerminalTedEditor.tsx
+msgid "shell.terminal.ted_title"
 msgstr ""
 
 #: spa/src/components/shell/Terminal.tsx

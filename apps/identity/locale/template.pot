@@ -14,7 +14,7 @@ msgstr ""
 msgid "identity.create"
 msgstr ""
 
-#: app.yaml views/Users.page.tsx
+#: app.yaml
 msgid "identity.created"
 msgstr ""
 
@@ -366,28 +366,8 @@ msgstr ""
 msgid "identity.user.search"
 msgstr ""
 
-#: views/Users.page.tsx
+#: app.yaml
 msgid "identity.users.create"
-msgstr ""
-
-#: views/Users.page.tsx
-msgid "identity.users.email"
-msgstr ""
-
-#: views/Users.page.tsx
-msgid "identity.users.empty"
-msgstr ""
-
-#: views/Users.page.tsx
-msgid "identity.users.name"
-msgstr ""
-
-#: views/Users.page.tsx
-msgid "identity.users.placeholder.email"
-msgstr ""
-
-#: views/Users.page.tsx
-msgid "identity.users.placeholder.name"
 msgstr ""
 
 #: app.yaml

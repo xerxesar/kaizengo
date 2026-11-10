@@ -1,6 +1,9 @@
 import type { ComponentType } from 'react'
+import { ModelRecordPage } from '@/components/shell/ModelRecordPage'
 import { SearchBar } from '@/components/shell/SearchBar'
 import { registerViewComponent } from '@/lib/view-components'
+// Explicit so a newly added page registers even if the eager glob was scanned earlier.
+import SettingsDomains from '@apps/settings/views/Domains.page.tsx'
 
 type ViewModule = { default: ComponentType }
 
@@ -49,6 +52,7 @@ for (const [path, mod] of Object.entries(appViewModules)) {
   if (!parsed) continue
   viewByKey.set(`${parsed.app}.${parsed.name}`, mod.default)
 }
+viewByKey.set('settings.Domains', SettingsDomains)
 
 const componentExports: Record<string, ComponentType> = {}
 
@@ -75,7 +79,10 @@ export type ViewResolveContext = {
   app: string
   view?: string
   component?: string
+  model?: string
 }
+
+export { registerFieldWidget, resolveFieldWidget } from '@/lib/field-widgets'
 
 export function resolveView(ctx: ViewResolveContext): ComponentType | null {
   const component = ctx.component?.trim()
@@ -87,9 +94,14 @@ export function resolveView(ctx: ViewResolveContext): ComponentType | null {
   const view = ctx.view?.trim()
   const app = ctx.app.trim()
   if (view && app) {
+    // path-backed page (registered from views/*.page.tsx)
     const direct = viewByKey.get(`${app}.${view}`)
     if (direct) return direct
+    // dynamic views: entry (kind/layout) — no page file
+    return ModelRecordPage
   }
+
+  if (ctx.model?.trim()) return ModelRecordPage
 
   if (app && !view) {
     return viewByKey.get(`${app}.Index`) ?? null

@@ -20,17 +20,19 @@ KTable / KKanban / KChart / KPivot / KCollection  → conveniences on top
 - Chrome flags: `paginated` / `searchable` as `true` or config (`url`, `pageSize`, field allowlists, …).
 - URL sync (default on): `KCollection` → `?view=`; `KChart` → `?chart=` / `?chartType=` / draft `chartX|Y|Series|Measure`; `KPivot` → `?pivotRows=` / `?pivotCols=` / `?pivotY=` / `?pivotMeasure=`. Pass `url={false}` to disable.
 
-## Prefer query props
+## Prefer a spec screen
+
+Model lists and forms on a page come from `app.yaml` `components` + `layout`. Render them with `<SpecLayout />` or `<SpecScreen id="…" />` from `@/k`. Do not pass columns, filters, or group-by from the page.
+
+`KTable` / `KCollection` / `KForm` remain the widgets `SpecScreen` mounts. Use them directly only for a one-off that is not a declared component.
 
 ```tsx
-// ✅
-<KTable query="hellospec.greetings" paginated searchable />
-<KKanban query="…" paginated searchable groupByField="mood" card={…} />
-<KCollection query="…" paginated searchable groupByField="status" card={…} />
+// ✅ declared screen
+<SpecLayout />
+<SpecScreen id="list" />
 
-// ❌ items + hand-rolled fetch for normal models
-// ❌ DataTable inside KCollection query mode (use KTableView)
-// ❌ Client search UI when searchable / KSearch applies
+// ❌ columns and filters hardcoded next to a model that already has a view component
+<KTable query="hellospec.greetings" paginated searchable />
 ```
 
 ## Escape hatch

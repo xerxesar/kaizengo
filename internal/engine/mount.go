@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"kaizengo/internal/module"
 	"kaizengo/internal/app"
+	"kaizengo/internal/extension"
+	"kaizengo/internal/module"
 	"kaizengo/packages/sdk-go/appspec"
 )
 
@@ -103,12 +104,10 @@ func (a *App) Setup(host *module.Host) error {
 	// The same registered App is set up again when the platform is rebuilt for another database.
 	a.base, a.spec, a.models = base, spec, nil
 
-	if spec.EnableI18n && len(spec.Locales) > 0 {
+	if !a.opts.managed && spec.EnableI18n && len(spec.Locales) > 0 {
 		app.MustLoadLocales(a.opts.AppName)
 	}
-	if hasNav(spec.Nav) {
-		app.RegisterNavFromSpec(host, a.opts.AppName, spec)
-	}
+	a.syncChrome(host)
 	q0, m0 := host.GQL.FieldNames()
 	events, err := a.mountModels(host, spec)
 	if err != nil {
@@ -183,6 +182,18 @@ func (a *App) remount(host *module.Host, next appspec.AppSpec) error {
 	a.ownedQueries, a.ownedMutations = added(q0, q1), added(m0, m1)
 	a.spec = next
 	return nil
+}
+
+// syncChrome publishes the declarative shell surface of the effective spec:
+// nav, inline locales, and menu exports. Go hooks and compiled pages are untouched.
+func (a *App) syncChrome(host *module.Host) {
+	if hasNav(a.spec.Nav) {
+		app.ReplaceNavFromSpec(host, a.opts.AppName, a.spec)
+	} else if a.opts.managed {
+		host.RemoveNav(a.opts.AppName)
+	}
+	app.RegisterSpecLocales(a.spec)
+	extension.ReplaceMenuContributions(a.spec.Name, a.spec.Exports.Menus)
 }
 
 // handlersFor returns the Go handlers plus a call-time dispatcher (Domains
@@ -272,9 +283,16 @@ func (a *App) schemaEnv() string {
 }
 
 func hasNav(nav appspec.NavSpec) bool {
-	return strings.TrimSpace(nav.Route) != "" ||
-		strings.TrimSpace(nav.LabelKey) != "" ||
-		strings.TrimSpace(nav.Label) != ""
+	return !nav.IsZero()
+}
+
+func hasVirtual(spec appspec.AppSpec) bool {
+	for _, m := range spec.Models {
+		if m.Virtual {
+			return true
+		}
+	}
+	return false
 }
 
 // Mount is a one-liner helper: module.Register(engine.New(engine.Options{AppName: "hello"}))

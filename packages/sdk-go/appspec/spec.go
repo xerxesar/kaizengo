@@ -29,7 +29,7 @@ type AppSpec struct {
 	Models           []ModelSpec
 	Queries          []QuerySpec
 	Commands         []CommandSpec
-	Views            []ViewSpec // discovered from views/*.page.tsx
+	Views            []ViewSpec // yaml views: (path and/or layout) plus discovered pages
 	Locales          []LocaleSpec
 	Extends          []ExtendSpec
 	Exports          ExportSpec
@@ -45,6 +45,7 @@ type ModelSpec struct {
 	Search   *SearchSpec
 	Filters  []FilterPresetSpec
 	Charts   []ChartPresetSpec
+	Indexes  []IndexSpec
 }
 
 // QuerySpec declares a named read on the public GraphQL surface.
@@ -85,11 +86,17 @@ type FieldSpec struct {
 	Type     string       `yaml:"type"` // see CanonicalFieldType
 	Required bool         `yaml:"required"`
 	Indexed  bool         `yaml:"indexed"`
+	Unique   bool         `yaml:"unique,omitempty"`
 	Readonly bool         `yaml:"readonly"`
 	Default  any          `yaml:"default"`
-	Values   []string     `yaml:"values"`   // required when type is enum
-	Relation string       `yaml:"relation"` // app.model or model (relation types)
-	Inverse  string       `yaml:"inverse"`  // one2many: field name on the related model
+	Values   []string     `yaml:"values"`             // required when type is enum
+	Relation string       `yaml:"relation"`           // app.model or model (relation types)
+	Inverse  string       `yaml:"inverse"`            // one2many: field name on the related model
+	OnDelete string       `yaml:"onDelete,omitempty"` // many2one: restrict | set null | cascade
+	Compute  string       `yaml:"compute,omitempty"`  // expression, or "hook" for Hooks.Compute
+	Related  string       `yaml:"related,omitempty"`  // many2one path, e.g. topicId.name
+	Depends  []string     `yaml:"depends,omitempty"`  // fields that feed compute / related
+	Store    *bool        `yaml:"store,omitempty"`    // computed fields default to stored
 	Validate ValidateSpec `yaml:"validate"`
 }
 
@@ -112,41 +119,93 @@ type ValidateSpec struct {
 	Max       *int   `yaml:"max"`
 }
 
+// ViewComponentSpec is one collection or form placed on a screen.
+// SpecScreen id matches ID. Span and size apply when layout is only a direction.
+type ViewComponentSpec struct {
+	ID          string             `yaml:"id"`
+	Kind        string             `yaml:"kind"` // collection | table | kanban | chart | form
+	Model       string             `yaml:"model"`
+	DefaultView string             `yaml:"defaultView,omitempty"`
+	Views       []string           `yaml:"views,omitempty"`
+	GroupBy     []string           `yaml:"groupBy,omitempty"`
+	Columns     []ViewColumnSpec   `yaml:"columns,omitempty"`
+	Groups      []ViewGroupSpec    `yaml:"groups,omitempty"`
+	Filters     []FilterPresetSpec `yaml:"filters,omitempty"`
+	Span        int                `yaml:"span,omitempty"`
+	Size        string             `yaml:"size,omitempty"`
+}
+
+// Layout is the catalog view for this component: "{page}.{id}".
+func (c ViewComponentSpec) Layout(page string) ViewSpec {
+	return ViewSpec{
+		Name: page + "." + c.ID, Kind: c.Kind, Model: c.Model,
+		DefaultView: c.DefaultView, Views: c.Views, GroupBy: c.GroupBy,
+		Columns: c.Columns, Groups: c.Groups, Filters: c.Filters,
+	}
+}
+
+// ViewSpec is a menu-mountable view. Path mounts a compiled React page.
+// Kind plus columns, groups, filters, and groupBy is one editable layout.
+// A page lists several of those under components; each SpecScreen id binds to one.
 type ViewSpec struct {
-	Name string
-	Type string // page — discovered from views/<Name>.page.tsx
+	Name        string              `yaml:"name"`
+	Path        string              `yaml:"path,omitempty"` // views/Name.page.tsx — compiled page
+	Type        string              `yaml:"type,omitempty"` // page — discovered or path-backed
+	Kind        string              `yaml:"kind,omitempty"` // collection | table | kanban | chart | form
+	Model       string              `yaml:"model,omitempty"`
+	DefaultView string              `yaml:"defaultView,omitempty"`
+	Views       []string            `yaml:"views,omitempty"` // collection modes: table | kanban | …
+	GroupBy     []string            `yaml:"groupBy,omitempty"`
+	Columns     []ViewColumnSpec    `yaml:"columns,omitempty"`
+	Groups      []ViewGroupSpec     `yaml:"groups,omitempty"`
+	Filters     []FilterPresetSpec  `yaml:"filters,omitempty"` // when set, replaces the model's presets for this screen
+	Layout      ViewLayoutSpec      `yaml:"layout,omitempty"`  // direction, or a nested tree of regions
+	Components  []ViewComponentSpec `yaml:"components,omitempty"`
+}
+
+// ViewLayoutSpec places components. A scalar (`column` or `row`) stacks every
+// component. A mapping nests rows and columns; each node is a component or a region.
+type ViewLayoutSpec struct {
+	Direction string           `yaml:"direction,omitempty"` // column | row
+	Component string           `yaml:"component,omitempty"` // components[].id
+	Size      string           `yaml:"size,omitempty"`      // track size: 1fr, 2fr, 20rem, 40%
+	Span      int              `yaml:"span,omitempty"`      // track weight when size is empty
+	Items     []ViewLayoutSpec `yaml:"items,omitempty"`
 }
 
 // NavSpec configures the shell apps dropdown entry for this module.
 type NavSpec struct {
-	Label    string `yaml:"label"`
-	LabelKey string `yaml:"labelKey"`
-	Route    string `yaml:"route"`
-	Order    int    `yaml:"order"`
+	Label    string `yaml:"label,omitempty"`
+	LabelKey string `yaml:"labelKey,omitempty"`
+	Route    string `yaml:"route,omitempty"`
+	Order    int    `yaml:"order,omitempty"`
 }
 
 // MenuSpec declares in-app navigation (Odoo-style menuitems).
 type MenuSpec struct {
 	ID       string     `yaml:"id"`
-	Label    string     `yaml:"label"`
-	LabelKey string     `yaml:"labelKey"`
-	View     string     `yaml:"view"`
-	Route    string     `yaml:"route"`
-	Order    int        `yaml:"order"`
-	Children []MenuSpec `yaml:"children"`
+	Label    string     `yaml:"label,omitempty"`
+	LabelKey string     `yaml:"labelKey,omitempty"`
+	View     string     `yaml:"view,omitempty"`  // views: entry (path page or dynamic layout)
+	Model    string     `yaml:"model,omitempty"` // generated list for this model (no views: entry)
+	Route    string     `yaml:"route,omitempty"`
+	Order    int        `yaml:"order,omitempty"`
+	Children []MenuSpec `yaml:"children,omitempty"`
 }
 
 type LocaleSpec struct {
-	ID   string
-	Name string
-	Dir  string // ltr|rtl
+	ID       string            `yaml:"id"`
+	Name     string            `yaml:"name,omitempty"`
+	Dir      string            `yaml:"dir,omitempty"` // ltr|rtl
+	Messages map[string]string `yaml:"messages,omitempty"`
 }
 
 func (s AppSpec) Validate() error {
-	return s.validate(false)
+	return s.validate("")
 }
 
-func (s AppSpec) validate(pagesFromDisk bool) error {
+func (s AppSpec) validate(appRoot string) error {
+	pagesFromDisk := appRoot != ""
 	if !nameRe.MatchString(s.Name) {
 		return fmt.Errorf("invalid app name %q (must match %s)", s.Name, nameRe.String())
 	}
@@ -166,8 +225,10 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 		}
 		models[m.Name] = struct{}{}
 		fieldSet := map[string]struct{}{}
+		fieldSpecs := map[string]FieldSpec{}
 		for _, f := range m.Fields {
 			fieldSet[f.Name] = struct{}{}
+			fieldSpecs[f.Name] = f
 			if !fieldNameRe.MatchString(f.Name) {
 				return fmt.Errorf("model %q has invalid field %q", m.Name, f.Name)
 			}
@@ -207,9 +268,15 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 					}
 				}
 			}
-			if f.Readonly && f.Required && f.Default == nil {
+			if f.Readonly && f.Required && f.Default == nil && !f.Computed() {
 				return fmt.Errorf("model %q field %q is readonly+required but has no default", m.Name, f.Name)
 			}
+			if err := validateFieldStorage(m.Name, f); err != nil {
+				return err
+			}
+		}
+		if err := validateComputes(s, m, fieldSpecs); err != nil {
+			return err
 		}
 		if err := validateFilterPresets(m.Name, m.Filters, fieldSet); err != nil {
 			return err
@@ -217,17 +284,22 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 		if err := validateChartPresets(m.Name, m.Charts, fieldSet); err != nil {
 			return err
 		}
+		if err := validateIndexes(m.Name, m.Indexes, fieldSpecs); err != nil {
+			return err
+		}
+	}
+	if err := validateInverses(s); err != nil {
+		return err
+	}
+	modelSpecs := map[string]ModelSpec{}
+	for _, m := range s.Models {
+		modelSpecs[m.Name] = m
+	}
+	if err := validateViews(s.Views, modelSpecs, appRoot); err != nil {
+		return err
 	}
 	if err := validateQueriesCommands(s, models); err != nil {
 		return err
-	}
-	for _, v := range s.Views {
-		switch v.Type {
-		case "", "page":
-			// Discovered from views/*.page.tsx — menus mount that file.
-		default:
-			return fmt.Errorf("view %q has unsupported type %q (pages are views/*.page.tsx; list/form views are generated from models)", v.Name, v.Type)
-		}
 	}
 	for _, l := range s.Locales {
 		if l.ID == "" {
@@ -237,7 +309,7 @@ func (s AppSpec) validate(pagesFromDisk bool) error {
 			return fmt.Errorf("locale %q has invalid dir %q", l.ID, l.Dir)
 		}
 	}
-	if err := validateMenus(s.Menus, viewNames(s.Views), map[string]struct{}{}, pagesFromDisk); err != nil {
+	if err := validateMenus(s.Menus, viewNames(s.Views), pageViewNames(s.Views), models, map[string]struct{}{}, pagesFromDisk); err != nil {
 		return err
 	}
 	if err := validateCapabilityNames("provides", s.Provides); err != nil {
@@ -339,15 +411,7 @@ func validateQueriesCommands(s AppSpec, models map[string]struct{}) error {
 	return nil
 }
 
-func viewNames(views []ViewSpec) map[string]struct{} {
-	out := make(map[string]struct{}, len(views))
-	for _, v := range views {
-		out[v.Name] = struct{}{}
-	}
-	return out
-}
-
-func validateMenus(items []MenuSpec, views map[string]struct{}, seen map[string]struct{}, requirePages bool) error {
+func validateMenus(items []MenuSpec, views, pages, models, seen map[string]struct{}, requirePages bool) error {
 	for _, m := range items {
 		if !nameRe.MatchString(m.ID) {
 			return fmt.Errorf("menu %q has invalid id (must match %s)", m.ID, nameRe.String())
@@ -359,15 +423,40 @@ func validateMenus(items []MenuSpec, views map[string]struct{}, seen map[string]
 		if strings.TrimSpace(m.Label) == "" && strings.TrimSpace(m.LabelKey) == "" {
 			return fmt.Errorf("menu %q requires label or labelKey", m.ID)
 		}
-		if m.View != "" && requirePages {
+		if m.View != "" {
 			if _, ok := views[m.View]; !ok {
-				return fmt.Errorf("menu %q references unknown page %q (expected views/%s%s)", m.ID, m.View, m.View, PageSuffix)
+				return fmt.Errorf("menu %q references unknown view %q", m.ID, m.View)
+			}
+			if requirePages {
+				if _, ok := pages[m.View]; ok {
+					// path / discovered page — file already validated when loading
+				} else if _, ok := views[m.View]; !ok {
+					return fmt.Errorf("menu %q references unknown page %q (expected views/%s%s)", m.ID, m.View, m.View, PageSuffix)
+				}
 			}
 		}
-		if m.View == "" && len(m.Children) == 0 {
-			return fmt.Errorf("menu %q must set view and/or children", m.ID)
+		if m.Model != "" {
+			if !nameRe.MatchString(m.Model) {
+				return fmt.Errorf("menu %q has invalid model %q", m.ID, m.Model)
+			}
+			if _, ok := models[m.Model]; !ok {
+				return fmt.Errorf("menu %q references unknown model %q", m.ID, m.Model)
+			}
 		}
-		if err := validateMenus(m.Children, views, seen, requirePages); err != nil {
+		targets := 0
+		if m.View != "" {
+			targets++
+		}
+		if m.Model != "" {
+			targets++
+		}
+		if targets > 1 {
+			return fmt.Errorf("menu %q must set only one of view or model", m.ID)
+		}
+		if targets == 0 && len(m.Children) == 0 {
+			return fmt.Errorf("menu %q must set view, model, or children", m.ID)
+		}
+		if err := validateMenus(m.Children, views, pages, models, seen, requirePages); err != nil {
 			return err
 		}
 	}
@@ -409,7 +498,20 @@ func (s *AppSpec) ApplyDefaults() {
 			if f.Type == TypeEnum && f.Default == nil && len(f.Values) > 0 && !f.Required {
 				f.Default = f.Values[0]
 			}
+			if strings.TrimSpace(f.OnDelete) != "" {
+				f.OnDelete = canonicalOnDelete(f.OnDelete)
+			}
+			f.Compute = strings.TrimSpace(f.Compute)
+			f.Related = strings.TrimSpace(f.Related)
+			if f.Computed() && f.Store == nil {
+				stored := true
+				f.Store = &stored
+			}
+			if len(f.Depends) == 0 {
+				f.Depends = inferDepends(*f)
+			}
 		}
+		m.fillIndexes()
 	}
 	for i := range s.Queries {
 		for j := range s.Queries[i].Args {

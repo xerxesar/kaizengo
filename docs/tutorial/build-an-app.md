@@ -61,7 +61,7 @@ locales:
     dir: ltr
 ```
 
-Field types: `string`, `text`, `int`, `number`, `bool`, `enum`, `date`, `datetime`, `json`, plus relations `many2one`, `one2many`, `many2many` (`relation: app.model` or `model`; `one2many` also needs `inverse:`). Aliases like `float`, `integer`, and `fk` work. Enums need `values:`. Validation keys include `minLength`, `maxLength`, `pattern`, `min`, `max`. Models that expose GraphQL should set `internal: true` and declare `queries` / `commands` (see [HelloSpec](../apps.md) / [Go SDK → CQRS](../internals/go-sdk.md)).
+Field types: `string`, `text`, `int`, `number`, `bool`, `enum`, `date`, `datetime`, `json`, plus relations `many2one`, `one2many`, `many2many` (`relation: app.model` or `model`; `one2many` also needs `inverse:`). Aliases like `float`, `integer`, and `fk` work. Enums need `values:`. Validation keys include `minLength`, `maxLength`, `pattern`, `min`, `max`. A field can also be computed (`compute:`, or `related: topicId.name`); see [Go SDK → fields](../internals/go-sdk.md) and the hellospec greeting. Models that expose GraphQL should set `internal: true` and declare `queries` / `commands` (see [HelloSpec](../apps.md) / [Go SDK → CQRS](../internals/go-sdk.md)).
 
 ## 2. Module
 

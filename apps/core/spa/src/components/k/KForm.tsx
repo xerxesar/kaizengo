@@ -5,7 +5,15 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { resolveFieldWidget } from '@/lib/field-widgets'
 import { KEYMAP_ID_ATTR } from '@/lib/keymap/types'
 import { fieldLabelClass } from '@/lib/styles/classes'
 import { getI18n } from '@/lib/i18n-context'
@@ -22,6 +30,7 @@ import {
   updateModelRecord,
   type ModelField,
   type ModelView,
+  type ModelViewGroup,
 } from '@/lib/model-client'
 import { KFormCtx } from './kform-context'
 import type { KFormFieldContext } from './kform-types'
@@ -47,6 +56,7 @@ export function KForm(props: Props) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [fields, setFields] = useState<ModelField[]>([])
+  const [groups, setGroups] = useState<ModelViewGroup[]>([])
   const [draft, setDraft] = useState<Record<string, unknown>>({})
   const [boundApp, setBoundApp] = useState('')
   const [boundModel, setBoundModel] = useState('')
@@ -204,6 +214,7 @@ export function KForm(props: Props) {
       setCreateCommand(view.createCommand?.trim() || undefined)
       setUpdateCommand(view.updateCommand?.trim() || undefined)
       setFields(view.fields ?? [])
+      setGroups(view.groups ?? [])
       await fetchViewSlots(app, view.name)
 
       if (editing) {
@@ -264,10 +275,27 @@ export function KForm(props: Props) {
 
   function renderDefaultField(fieldDef: ModelField, index: number) {
     const type = (fieldDef.type ?? 'string').toLowerCase()
+    const widget = fieldDef.widget?.trim() ?? ''
     const value = draft[fieldDef.key]
     const placeholder = fieldPlaceholder(fieldDef, index)
+    const Custom = resolveFieldWidget(widget)
+    if (Custom) {
+      return (
+        <Custom
+          value={value}
+          record={draft}
+          field={{
+            key: fieldDef.key,
+            label: fieldLabel(fieldDef, index),
+            type: fieldDef.type,
+            values: fieldDef.values,
+          }}
+          onChange={(next) => setFieldValue(fieldDef.key, next)}
+        />
+      )
+    }
 
-    if (type === 'bool') {
+    if (widget === 'checkbox' || (!widget && type === 'bool')) {
       return (
         <label className="inline-flex cursor-pointer items-center gap-2">
           <Checkbox
@@ -279,13 +307,31 @@ export function KForm(props: Props) {
       )
     }
 
-    if (['text', 'html', 'json'].includes(type)) {
+    if (widget === 'textarea' || (!widget && ['text', 'html', 'json'].includes(type))) {
       return (
         <Textarea
           value={String(value ?? '')}
           placeholder={placeholder}
           onChange={(e) => setFieldValue(fieldDef.key, e.target.value)}
         />
+      )
+    }
+
+    if (widget === 'select' || (!widget && (fieldDef.values?.length ?? 0) > 0)) {
+      const current = String(value ?? '')
+      return (
+        <Select value={current || undefined} onValueChange={(next) => setFieldValue(fieldDef.key, next)}>
+          <SelectTrigger aria-label={fieldLabel(fieldDef, index)}>
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            {(fieldDef.values ?? []).map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )
     }
 
@@ -304,6 +350,84 @@ export function KForm(props: Props) {
         value={String(value ?? '')}
         onChange={(e) => setFieldValue(fieldDef.key, e.target.value)}
       />
+    )
+  }
+
+  function renderSpecFields() {
+    const ordered = [...fields].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    const indexOf = new Map(fields.map((field, index) => [field.key, index]))
+
+    function box(fieldDef: ModelField, columns: number) {
+      const index = indexOf.get(fieldDef.key) ?? 0
+      const span = Math.max(1, Math.min(fieldDef.span ?? 1, columns))
+      const ctx: KFormFieldContext = {
+        field: fieldDef,
+        index,
+        draft,
+        label: fieldLabel(fieldDef, index),
+        placeholder: fieldPlaceholder(fieldDef, index),
+        default: () => renderDefaultField(fieldDef, index),
+        setValue: (value) => setFieldValue(fieldDef.key, value),
+      }
+      return (
+        <div
+          key={fieldDef.key}
+          className="flex min-w-0 flex-col gap-1"
+          style={{ gridColumn: `span ${span}`, width: fieldDef.width || undefined }}
+        >
+          {props.field ? (
+            props.field(ctx)
+          ) : (
+            <>
+              <Label className={fieldLabelClass}>
+                {ctx.label}
+                {fieldDef.required ? <span className="text-[var(--kg-danger)]"> *</span> : null}
+              </Label>
+              {ctx.default()}
+            </>
+          )}
+        </div>
+      )
+    }
+
+    function grid(items: ModelField[], columns: number) {
+      const cols = Math.max(1, columns)
+      return (
+        <div
+          className="grid w-full gap-5"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        >
+          {items.map((fieldDef) => box(fieldDef, cols))}
+        </div>
+      )
+    }
+
+    const orderedGroups = [...groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    if (!orderedGroups.length) return grid(ordered, 2)
+
+    const used = new Set<string>()
+    return (
+      <div className="flex w-full flex-col gap-6">
+        {orderedGroups.map((group) => {
+          const items = ordered.filter((field) => (field.group ?? '') === group.id)
+          items.forEach((field) => used.add(field.key))
+          const titleKey = group.labelKey?.trim()
+          const translated = titleKey ? i18n.t(titleKey) : ''
+          const title = translated && translated !== titleKey ? translated : group.label || titleKey
+          return (
+            <section key={group.id} className="flex w-full flex-col gap-3">
+              {title ? <h3 className="text-sm font-semibold text-[var(--kg-text)]">{title}</h3> : null}
+              {grid(items, group.columns && group.columns > 0 ? group.columns : 1)}
+            </section>
+          )
+        })}
+        {ordered.some((field) => !used.has(field.key))
+          ? grid(
+              ordered.filter((field) => !used.has(field.key)),
+              2,
+            )
+          : null}
+      </div>
     )
   }
 
@@ -344,33 +468,11 @@ export function KForm(props: Props) {
           </div>
         ) : (
           <form ref={formRef} onSubmit={submit}>
-            <div className="flex flex-wrap items-start gap-5">
-              {props.children ??
-                fields.map((fieldDef, index) => {
-                  const ctx: KFormFieldContext = {
-                    field: fieldDef,
-                    index,
-                    draft,
-                    label: fieldLabel(fieldDef, index),
-                    placeholder: fieldPlaceholder(fieldDef, index),
-                    default: () => renderDefaultField(fieldDef, index),
-                    setValue: (value) => setFieldValue(fieldDef.key, value),
-                  }
-                  return props.field ? (
-                    <div key={fieldDef.key}>{props.field(ctx)}</div>
-                  ) : (
-                    <div key={fieldDef.key} className="flex min-w-[12rem] flex-1 flex-col gap-1">
-                      <Label className={fieldLabelClass}>
-                        {ctx.label}
-                        {fieldDef.required ? (
-                          <span className="text-[var(--kg-danger)]"> *</span>
-                        ) : null}
-                      </Label>
-                      {ctx.default()}
-                    </div>
-                  )
-                })}
-            </div>
+            {props.children ? (
+              <div className="flex flex-wrap items-start gap-5">{props.children}</div>
+            ) : (
+              renderSpecFields()
+            )}
             <div className="mt-2 flex flex-wrap items-center">
               <Button
                 type="submit"

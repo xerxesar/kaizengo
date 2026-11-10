@@ -11,12 +11,12 @@ import (
 // FilterPresetSpec declares a named list filter preset for KSearch (app.yaml models[].filters).
 type FilterPresetSpec struct {
 	ID       string   `yaml:"id"`
-	Label    string   `yaml:"label"`
-	LabelKey string   `yaml:"labelKey"`
-	Domain   any      `yaml:"domain"`
-	Q        string   `yaml:"q"`
-	SearchIn []string `yaml:"searchIn"`
-	GroupBy  []string `yaml:"groupBy"`
+	Label    string   `yaml:"label,omitempty"`
+	LabelKey string   `yaml:"labelKey,omitempty"`
+	Domain   any      `yaml:"domain,omitempty"`
+	Q        string   `yaml:"q,omitempty"`
+	SearchIn []string `yaml:"searchIn,omitempty"`
+	GroupBy  []string `yaml:"groupBy,omitempty"`
 }
 
 // EncodeFilterDomain JSON-encodes a YAML-loaded domain for GraphQL / list queries.

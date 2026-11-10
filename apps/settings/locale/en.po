@@ -32,3 +32,108 @@ msgstr "General"
 
 msgid "settings.menu.keymap"
 msgstr "Keyboard shortcuts"
+
+msgid "settings.menu.domains"
+msgstr "Domains"
+
+msgid "settings.domains.title"
+msgstr "Domains"
+
+msgid "settings.domains.subtitle"
+msgstr "Resolve tip-vs-code conflicts and data migrations for app domains"
+
+msgid "settings.domains.app"
+msgstr "App"
+
+msgid "settings.domains.tab_overview"
+msgstr "Overview"
+
+msgid "settings.domains.tab_conflicts"
+msgstr "Conflicts"
+
+msgid "settings.domains.tab_migrate"
+msgstr "Data migrate"
+
+msgid "settings.domains.kind"
+msgstr "Kind"
+
+msgid "settings.domains.revision"
+msgstr "Revision"
+
+msgid "settings.domains.rebase"
+msgstr "Rebase status"
+
+msgid "settings.domains.resolve_conflicts"
+msgstr "Resolve conflicts"
+
+msgid "settings.domains.resolve_migrate"
+msgstr "Resolve data migrate"
+
+msgid "settings.domains.no_conflicts"
+msgstr "No pending conflicts for this app"
+
+msgid "settings.domains.ancestor"
+msgstr "Ancestor"
+
+msgid "settings.domains.ours"
+msgstr "Tip (ours)"
+
+msgid "settings.domains.theirs"
+msgstr "Code (theirs)"
+
+msgid "settings.domains.apply_resolutions"
+msgstr "Apply resolutions"
+
+msgid "settings.domains.take_all_code"
+msgstr "Take code on all"
+
+msgid "settings.domains.rebased"
+msgstr "Rebased onto code"
+
+msgid "settings.domains.still_conflicts"
+msgstr "Conflicts remain — pick a side for each path"
+
+msgid "settings.domains.proposed_spec"
+msgstr "Proposed tip YAML"
+
+msgid "settings.domains.analyze"
+msgstr "Analyze migrate needs"
+
+msgid "settings.domains.action_rename"
+msgstr "Rename (pre)"
+
+msgid "settings.domains.action_backfill"
+msgstr "Backfill (post)"
+
+msgid "settings.domains.action_skip"
+msgstr "Skip"
+
+msgid "settings.domains.action_custom"
+msgstr "Custom SQL"
+
+msgid "settings.domains.show_advanced"
+msgstr "Show advanced SQL"
+
+msgid "settings.domains.hide_advanced"
+msgstr "Hide advanced SQL"
+
+msgid "settings.domains.migrate_pre"
+msgstr "Migrate pre (before DDL)"
+
+msgid "settings.domains.migrate_post"
+msgstr "Migrate post (after DDL)"
+
+msgid "settings.domains.apply_with_migrate"
+msgstr "Apply with migrate"
+
+msgid "settings.domains.apply_no_migrate"
+msgstr "Apply with --no-migrate"
+
+msgid "settings.domains.need_spec"
+msgstr "Paste a proposed tip YAML first"
+
+msgid "settings.domains.still_migrate"
+msgstr "Migration still required — adjust guided actions or SQL"
+
+msgid "settings.domains.applied"
+msgstr "Domain tip applied"

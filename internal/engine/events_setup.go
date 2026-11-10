@@ -191,10 +191,8 @@ func setupEvents(host *module.Host, appName string, spec appspec.AppSpec, hooks 
 			return nil, err
 		}
 	}
-	if len(ddl) > 0 {
-		if err := ensureTables(ctx, db.Pool(), schema, ddl); err != nil {
-			return nil, fmt.Errorf("%s schema: %w", appName, err)
-		}
+	if err := ensureSchema(ctx, db.Pool(), schema, spec, ddl); err != nil {
+		return nil, fmt.Errorf("%s schema: %w", appName, err)
 	}
 
 	if reg == nil {

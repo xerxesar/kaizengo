@@ -20,7 +20,7 @@ import {
   usePaginationParams,
   type PaginationParamsOptions,
 } from './pagination'
-import { encodeDomain } from './search/types'
+import { encodeDomain, type Domain } from './search/types'
 import { fetchDefaultSearchTemplate, listSearchTemplates } from './search/templates'
 import { useKSearchParams } from './search/params'
 import type { SearchField, SearchTemplate } from './search/types'
@@ -64,6 +64,8 @@ export type UseKQueryOptions = {
    * Defaults to search.groupBy[0] when searchable; override with an explicit field.
    */
   groupByField?: string
+  /** Named spec screen (list view) to bind instead of the generated list. */
+  screen?: string
   /** Extra GraphQL selection keys beyond view columns. */
   fields?: string[]
   refreshToken?: number
@@ -109,6 +111,22 @@ export type UseKQueryResult = {
   refreshTemplates: () => Promise<void>
 }
 
+function knownFieldKeys(view: ModelView, extra: string[]): Set<string> {
+  return new Set(
+    [
+      ...(view.fields ?? []).map((field) => field.key),
+      ...(view.columns ?? []).map((column) => column.key),
+      ...extra,
+    ]
+      .map((key) => key.trim())
+      .filter(Boolean),
+  )
+}
+
+function domainUsesKnownFields(domain: Domain, known: Set<string>): boolean {
+  return domain.every((node) => typeof node === 'string' || known.has(String(node[0] ?? '')))
+}
+
 function hasListStateInUrl(): boolean {
   const p = new URLSearchParams(window.location.search)
   return ['q', 'searchIn', 'domain', 'groupBy', 'page', 'pageSize'].some((k) => p.has(k))
@@ -151,13 +169,14 @@ function formatCell(key: string, value: unknown): string {
 }
 
 function buildColumns(
-  keys: { key: string; label: string; width?: string; align?: string }[],
+  keys: { key: string; label: string; width?: string; align?: string; widget?: string | null }[],
 ): Column<ModelRecord>[] {
   return keys.map((col) => ({
     key: col.key,
     label: col.label,
     width: col.width,
     align: (col.align as 'left' | 'center' | 'right' | undefined) ?? 'left',
+    widget: col.widget?.trim() || undefined,
     render: (row: ModelRecord) => formatCell(col.key, row[col.key]),
   }))
 }
@@ -165,12 +184,15 @@ function buildColumns(
 async function resolveListView(
   query?: string,
   model?: string,
+  screen?: string,
 ): Promise<{ app: string; view: ModelView }> {
   const queryRef = query?.trim()
+  const screenName = screen?.trim()
   if (queryRef) {
     const { app, field } = resolveCqrsRef(queryRef)
     const views = await fetchModelViews(app)
-    const view = listViewForQuery(views, field)
+    const named = screenName ? views.find((item) => item.name === screenName) ?? null : null
+    const view = named ?? listViewForQuery(views, field)
     if (!view?.columns?.length) {
       throw new Error(`no list view bound to query ${queryRef} (${field})`)
     }
@@ -181,7 +203,8 @@ async function resolveListView(
   if (modelRef) {
     const { app, name } = parseNamespace(modelRef)
     const views = await fetchModelViews(app)
-    const view = listViewForModel(views, name)
+    const named = screenName ? views.find((item) => item.name === screenName) ?? null : null
+    const view = named ?? listViewForModel(views, name)
     if (!view?.columns?.length) {
       throw new Error(`no list view found for model ${modelRef}`)
     }
@@ -274,7 +297,7 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
     setError('')
     setLoading(true)
     try {
-      const resolved = await resolveListView(options.query, options.model)
+      const resolved = await resolveListView(options.query, options.model, options.screen)
       const { app: nextApp, view: nextView } = resolved
       setApp(nextApp)
       setModel(nextView.model)
@@ -306,10 +329,46 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
             }
             searchGroupByRef.current = tpl.groupBy
           }
+          const specGroup = (nextView.groupBy ?? []).map((field) => field.trim()).filter(Boolean)
+          if (specGroup.length && searchGroupByRef.current.length === 0) {
+            search.setGroupBy(specGroup)
+            searchGroupByRef.current = specGroup
+            listFilterOptsRef.current = { ...listFilterOptsRef.current, groupBy: specGroup }
+          }
         }
       }
 
-      const activeGroupBy = searchGroupByRef.current
+      const known = knownFieldKeys(nextView, [
+        ...(options.fields ?? []),
+        options.groupByField ?? '',
+      ])
+      if (searching && known.size > 0) {
+        const groupBy = searchGroupByRef.current.filter((key) => known.has(key))
+        const searchIn = (listFilterOptsRef.current.searchIn ?? []).filter((key) => known.has(key))
+        const domainOk = domainUsesKnownFields(search.domain, known)
+        const changed =
+          groupBy.length !== searchGroupByRef.current.length ||
+          searchIn.length !== (listFilterOptsRef.current.searchIn ?? []).length ||
+          !domainOk
+        if (changed) {
+          search.setState({
+            groupBy,
+            searchIn,
+            domain: domainOk ? search.domain : [],
+          })
+          searchGroupByRef.current = groupBy
+          listFilterOptsRef.current = {
+            ...listFilterOptsRef.current,
+            groupBy: groupBy.length ? groupBy : undefined,
+            searchIn: searchIn.length ? searchIn : undefined,
+            domain: domainOk ? listFilterOptsRef.current.domain : undefined,
+          }
+        }
+      }
+
+      const activeGroupBy = searchGroupByRef.current.filter(
+        (key) => known.size === 0 || known.has(key),
+      )
       const fieldKeySet = new Set([
         ...(nextView.columns ?? []).map((c) => c.key),
         ...(options.fields ?? []),
@@ -366,6 +425,7 @@ export function useKQuery(options: UseKQueryOptions): UseKQueryResult {
     enabled,
     options.query,
     options.model,
+    options.screen,
     options.fields,
     columnField,
     Boolean(paging),

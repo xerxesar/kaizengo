@@ -41,7 +41,7 @@ entries:
     kind: model
     resource: hellospec.greeting
     actions: [read]
-    fields: [message, mood]
+    fields: [message, mood, topicId, tagIds, label, length, shout, topicName, preview]
 
   - name: hellospec-member-create
     role: member
@@ -49,7 +49,7 @@ entries:
     kind: model
     resource: hellospec.greeting
     actions: [create]
-    fields: [message, mood, internalNote]
+    fields: [message, mood, internalNote, topicId, tagIds]
 
   - name: hellospec-member-update-own
     role: member
@@ -57,7 +57,7 @@ entries:
     kind: model
     resource: hellospec.greeting
     actions: [update]
-    fields: [message, mood]
+    fields: [message, mood, topicId, tagIds]
     domain: [[authorId, "=", "$user.id"]]
 
   - name: hellospec-member-delete-own
@@ -88,6 +88,82 @@ entries:
     fields: [internalNote]
     domain: [[authorId, "=", "$user.id"]]
     priority: 1001
+
+  - name: hellospec-member-query-topics
+    role: member
+    effect: allow
+    kind: query
+    resource: hellospec.query.hellospecTopics
+
+  - name: hellospec-member-query-topic
+    role: member
+    effect: allow
+    kind: query
+    resource: hellospec.query.hellospecTopic
+
+  - name: hellospec-member-cmd-post-topic
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecPostTopic
+
+  - name: hellospec-member-cmd-revise-topic
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecReviseTopic
+
+  - name: hellospec-member-cmd-discard-topic
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecDiscardTopic
+
+  - name: hellospec-member-topic
+    role: member
+    effect: allow
+    kind: model
+    resource: hellospec.topic
+    actions: [read, create, update, delete]
+    fields: "*"
+
+  - name: hellospec-member-query-tags
+    role: member
+    effect: allow
+    kind: query
+    resource: hellospec.query.hellospecTags
+
+  - name: hellospec-member-query-tag
+    role: member
+    effect: allow
+    kind: query
+    resource: hellospec.query.hellospecTag
+
+  - name: hellospec-member-cmd-post-tag
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecPostTag
+
+  - name: hellospec-member-cmd-revise-tag
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecReviseTag
+
+  - name: hellospec-member-cmd-discard-tag
+    role: member
+    effect: allow
+    kind: command
+    resource: hellospec.command.hellospecDiscardTag
+
+  - name: hellospec-member-tag
+    role: member
+    effect: allow
+    kind: model
+    resource: hellospec.tag
+    actions: [read, create, update, delete]
+    fields: "*"
 
 users:
   - email: jahan.doran@acme.example

@@ -32,3 +32,12 @@ msgstr "عمومی"
 
 msgid "settings.menu.keymap"
 msgstr "میانبرهای صفحه‌کلید"
+
+msgid "settings.menu.domains"
+msgstr "دامنه‌ها"
+
+msgid "settings.domains.title"
+msgstr "دامنه‌ها"
+
+msgid "settings.domains.subtitle"
+msgstr "رفع تعارض tip با کد و مهاجرت داده برای دامنه‌های اپ"

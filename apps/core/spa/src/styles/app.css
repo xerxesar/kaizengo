@@ -142,13 +142,31 @@ main {
   z-index: 8500;
   display: flex;
   flex-direction: column;
-  height: min(42vh, 28rem);
+  height: var(--kg-terminal-h, min(42vh, 28rem));
   background: var(--kg-shell-bg);
   color: var(--kg-shell-text);
   border-top: 2px solid var(--kg-primary);
   font-family: var(--kg-font-mono);
   font-size: 0.8125rem;
   letter-spacing: 0;
+  /* anchor the drag-resize hit target */
+  --kg-terminal-resize-anchor: 1;
+}
+
+.kg-terminal-fullscreen {
+  inset: 0;
+  height: 100%;
+  border-top: 0;
+}
+
+.kg-terminal-resize {
+  position: absolute;
+  inset-inline: 0;
+  top: -3px;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 1;
+  touch-action: none;
 }
 
 .kg-terminal-bar {
@@ -175,10 +193,12 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
+.kg-terminal-icon,
 .kg-terminal-close {
-  margin-inline-start: auto;
   display: inline-flex;
   padding: var(--kg-space-02);
   border: 0;
@@ -187,8 +207,69 @@ main {
   cursor: pointer;
 }
 
+.kg-terminal-close {
+  margin-inline-start: 0;
+}
+
+.kg-terminal-icon:hover,
 .kg-terminal-close:hover {
   background: var(--kg-shell-hover);
+}
+
+.kg-terminal-ted {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.kg-terminal-ted-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--kg-space-03);
+  flex-wrap: wrap;
+  padding: var(--kg-space-02) var(--kg-space-05);
+  border-bottom: 1px solid var(--kg-shell-border);
+  flex-shrink: 0;
+}
+
+.kg-terminal-ted-title {
+  font-family: var(--kg-font);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.kg-terminal-ted-cmd {
+  font-size: 0.75rem;
+  color: var(--kg-primary);
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kg-terminal-ted-hint {
+  color: var(--kg-shell-text-muted);
+  font-size: 0.7rem;
+  flex: 1;
+  min-width: 8rem;
+}
+
+.kg-terminal-ted-actions {
+  display: flex;
+  gap: var(--kg-space-02);
+  margin-inline-start: auto;
+}
+
+.kg-terminal-ted-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kg-terminal-ted-editor .cm-editor {
+  height: 100%;
 }
 
 .kg-terminal-scroll {

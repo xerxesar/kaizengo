@@ -34,4 +34,11 @@ type Greeting struct {
 	Message      string       `json:"message"` // required
 	Mood         GreetingMood `json:"mood"`    // default=happy, required
 	InternalNote string       `json:"internalNote"`
+	TopicId      string       `json:"topicId"`
+	TagIds       []string     `json:"tagIds"`
+	Length       int          `json:"length"`    // computed
+	Label        string       `json:"label"`     // computed
+	TopicName    string       `json:"topicName"` // computed
+	Shout        string       `json:"shout"`     // computed
+	Preview      string       `json:"preview"`   // computed
 }

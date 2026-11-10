@@ -14,4 +14,11 @@ export type Greeting = {
   message: string // required
   mood: GreetingMood // default=happy, required
   internalNote: string | null
+  topicId: string | null
+  tagIds: string[]
+  length: number | null // computed
+  label: string | null // computed
+  topicName: string | null // computed
+  shout: string | null // computed
+  preview: string | null // computed
 }

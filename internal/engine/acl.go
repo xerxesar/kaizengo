@@ -8,6 +8,7 @@ import (
 
 	"kaizengo/internal/auth"
 	"kaizengo/packages/sdk-go/acl"
+	"kaizengo/packages/sdk-go/appspec"
 )
 
 // modelResource is the default ACL resource id for a spec model: "{app}.{model}".
@@ -92,6 +93,9 @@ func (s *modelService) enforceWrite(ctx context.Context, orgID string, action st
 }
 
 func (s *modelService) colQuote(field string) (string, bool) {
+	if f, ok := s.fieldBy(field); ok && f.CanonicalType() == appspec.TypeMany2Many {
+		return "m2mfilter_" + colName(f.Name), true
+	}
 	col, err := s.columnFor(field)
 	if err != nil {
 		return "", false
@@ -136,7 +140,7 @@ func (s *modelService) listWithACL(ctx context.Context, orgID string) ([]Record,
 	sql := fmt.Sprintf(`SELECT %s FROM %s WHERE org_id = $1 AND deleted = false`, s.selectList(), s.qtable())
 	args := []any{orgID}
 	if frag.Clause != "" {
-		sql += " AND (" + frag.Clause + ")"
+		sql += " AND (" + s.rewriteRelationSQL(frag.Clause) + ")"
 		args = append(args, frag.Args...)
 	}
 	sql += " ORDER BY updated_at DESC"
@@ -146,12 +150,22 @@ func (s *modelService) listWithACL(ctx context.Context, orgID string) ([]Record,
 		return s.listPostFilter(ctx, orgID, authz, res, filter, pc)
 	}
 	defer rows.Close()
-	out := []Record{}
+	raw := []Record{}
 	for rows.Next() {
 		rec, err := s.scan(rows)
 		if err != nil {
 			return nil, err
 		}
+		raw = append(raw, rec)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := s.loadMany2Many(ctx, raw); err != nil {
+		return nil, err
+	}
+	out := []Record{}
+	for _, rec := range raw {
 		masked, err := s.maskRead(ctx, orgID, rec)
 		if err != nil {
 			if errors.Is(err, auth.ErrForbidden) {
@@ -161,7 +175,7 @@ func (s *modelService) listWithACL(ctx context.Context, orgID string) ([]Record,
 		}
 		out = append(out, masked)
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func (s *modelService) listPostFilter(ctx context.Context, orgID string, authz acl.Authorizer, res string, filter acl.ListFilter, pc acl.PrincipalContext) ([]Record, error) {
@@ -225,5 +239,11 @@ func (s *modelService) listRaw(ctx context.Context, orgID string) ([]Record, err
 		}
 		out = append(out, rec)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := s.loadMany2Many(ctx, out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }

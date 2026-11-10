@@ -116,6 +116,12 @@ commands:
   - name: discardAclEntry
     delete: acl_entry
 
+views:
+  - name: Access
+    path: views/Access.page.tsx
+  - name: Roles
+    path: views/Roles.page.tsx
+
 exports:
   components:
     - id: permissions.Access

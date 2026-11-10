@@ -72,10 +72,53 @@ func (f FieldSpec) CanonicalType() string {
 	return CanonicalFieldType(f.Type)
 }
 
-// Stored reports whether the field is persisted on the model's read table.
-// one2many is a virtual inverse and has no column.
+// Computed reports a formula field (`compute:`) or a related path (`related:`).
+func (f FieldSpec) Computed() bool {
+	return strings.TrimSpace(f.Compute) != "" || strings.TrimSpace(f.Related) != ""
+}
+
+// HookCompute reports compute: hook — the value comes from Hooks.Compute[name].
+func (f FieldSpec) HookCompute() bool {
+	return strings.EqualFold(strings.TrimSpace(f.Compute), "hook")
+}
+
+// StoreValue reports whether a computed field is written to a column.
+// Non-computed fields are stored according to their type. Omitted `store` on a
+// computed field means stored.
+func (f FieldSpec) StoreValue() bool {
+	if !f.Computed() {
+		return true
+	}
+	if f.Store == nil {
+		return true
+	}
+	return *f.Store
+}
+
+// Stored reports whether the field is persisted (a column, a stored compute, or a many2many junction).
+// one2many is a virtual inverse. store: false computes are filled on read.
 func (f FieldSpec) Stored() bool {
-	return f.CanonicalType() != TypeOne2Many
+	if f.CanonicalType() == TypeOne2Many {
+		return false
+	}
+	if f.Computed() && !f.StoreValue() {
+		return false
+	}
+	return true
+}
+
+// Column reports whether the field has a column on the model table.
+// many2many lives in a junction table; one2many and non-stored computes have no column.
+func (f FieldSpec) Column() bool {
+	if f.Computed() && !f.StoreValue() {
+		return false
+	}
+	switch f.CanonicalType() {
+	case TypeOne2Many, TypeMany2Many:
+		return false
+	default:
+		return true
+	}
 }
 
 // IsRelation reports many2one / one2many / many2many.

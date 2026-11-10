@@ -57,12 +57,12 @@ Hand-written Go is only for rules YAML cannot express (hooks, custom HTTP, aggre
 
 ```text
 apps/hello/
-  app.yaml                 # manifest, menus, locales; models inline or included
+  app.yaml                 # models, screens, menus, locales
   module.go                # engine.New(...)
   models/greeting/         # optional per-model dir
     spec.yaml
     hooks.go
-  views/GreetingList.page.tsx
+  views/*.page.tsx         # optional: hardcoded pages (menu view:)
   locale/*.po
 ```
 
@@ -103,7 +103,7 @@ models:
         required: true
 ```
 
-List and form metadata for `KTable` / `KForm` is **auto-generated from `models`**. Pages are not declared in YAML: any `views/<Name>.page.tsx` file is a menu-mountable page (`view: GreetingList` → `views/GreetingList.page.tsx`). Other `.tsx` files under `views/` are components, not pages.
+List and form layout comes from top-level `views:` (menu `view:`). A view is either a hardcoded page (`path: views/Name.page.tsx` — other fields ignored) or a dynamic layout (`kind:` + `model:` + columns/groups). When `views:` omits a model’s list/form, metadata is still auto-generated from `models`. Other `.tsx` files under `views/` that are not `*.page.tsx` are components, not pages.
 
 Large apps can split models into directories referenced from `app.yaml`:
 
@@ -141,7 +141,7 @@ The rejected-write message is `{app}.error.{model}.internal`. Inventory uses thi
 | `models[].internal` | No public mutations unless via commands; Go/command writes use `WithInternal` / `WithInternalWrite` |
 | `models[].virtual` | No Postgres table; CQRS `list:` uses `RegisterModel` List (in-memory filter/page). Example: `appman` |
 | `models` + `RegisterModel` | YAML fields/search merged with Go handlers (legacy) |
-| `views/*.page.tsx` | React pages menus mount (`view: Name`) |
+| `views:` (+ optional `views/*.page.tsx`) | Menu `view:` → path page or dynamic layout |
 | `nav` | Shell apps dropdown entry (label, route, order) |
 | `menus` | `{app}Menus` in-app navigation tree |
 | app name | `helloPing`, SPA mount, locales |
@@ -247,7 +247,7 @@ Each model becomes two files under `apps/<app>/__types__/`:
 - `<model>.go` (package `types`): system fields `ID`, `OrgID`, `AuthorID`, `Deleted`, `CreatedAt`, `UpdatedAt`, plus declared fields. Enums get a typed string and `Valid()`. Dates are `time.Time`.
 - `<model>.ts`: the same record for the SPA. Field names match the GraphQL JSON names (`internalNote`). Dates are `string`. Optional scalars are `T | null`. Enums are string unions. Relation lists are `string[]`.
 
-Both files start with `// Code generated … DO NOT EDIT`. Import the Go struct as `kaizengo/apps/<app>/__types__`. In a view, import the TypeScript type from `../__types__/<model>` (see `apps/hellospec/lib/graphql.ts`).
+Both files start with `// Code generated … DO NOT EDIT`. Import the Go struct as `kaizengo/apps/<app>/__types__`. In a hardcoded page, import the TypeScript type from `../__types__/<model>`.
 
 It also writes `apps/<app>/locale/template.pot` (and `internal/platform/i18n/locale/template.pot` on a full generate) from `app.yaml` keys plus static `t('…')` / `labelKey` / `emptyKey` in the app sources. Translate in `en.po` / `fa.po`; do not edit the `.pot`.
 
@@ -259,10 +259,16 @@ It also writes `apps/<app>/locale/template.pot` (and `internal/platform/i18n/loc
 | `required` | Must be present on create (unless `default` is set) |
 | `default` | Applied on create when the field is omitted |
 | `readonly` | Omitted from GraphQL create/update args; ignored on update |
+| `compute` | Expression (`len(message)`, `message + " · " + mood`, `lower(message)`) or `hook` |
+| `related` | Copy a column through many2one hops (`topicId.name`) |
+| `depends` | Fields that feed `compute` / `related` (inferred when omitted) |
+| `store` | Persist a computed field. Default is stored. `store: false` is filled on read and has no column |
 | `values` | Allowed values when `type: enum` (or when `values:` is set) |
 | `relation` | Target `model` or `app.model` (required for relation types) |
 | `inverse` | Field name on the related model (`one2many` only) |
-| `indexed` | Hint for SQL indexes in migrations |
+| `indexed` | Btree index on `(org_id, column)`. A `many2one` already has this index |
+| `unique` | Single-column unique index `(org_id, column) WHERE deleted = false` |
+| `onDelete` | `many2one` action: `restrict` (default), `set null`, or `cascade` |
 | `validate` | `minLength`, `maxLength`, `pattern`, `min`, `max` |
 
 Example:
@@ -283,7 +289,23 @@ fields:
   - name: categoryId
     type: many2one
     relation: category
+    onDelete: restrict   # restrict (default) | set null | cascade
+  - name: label
+    type: string
+    compute: slug + " / " + status
+    depends: [slug, status]
+  - name: codeName
+    type: string
+    related: categoryId.name
+  - name: shout
+    type: string
+    compute: hook          # Hooks.Compute["shout"]
+    store: true
 ```
+
+`compute` and `related` are not client input. Stored formulas run after `Before*` hooks and are written with the row. `store: false` is calculated when the row is read. A `compute: hook` field calls `Hooks.Compute[field]`. `depends` orders formulas that read other formulas and is inferred from the expression or the first related hop when omitted. A stored `related` path is copied at write time; renaming the target later does not rewrite existing rows.
+
+`one2many` `inverse` must name a `many2one` on the related model when that model is in the same spec, and that many2one must point back here.
 
 ### Database migrations
 
@@ -301,7 +323,13 @@ Model-backed apps need:
 1. Schema is created by the migrator (`EnsureBootstrap`)
 2. **`00N_<plural>.sql`** — table per spec model (e.g. `greeting` → `greetings`, `acl_entry` → `acl_entries`)
 
-Model tables share standard columns: `id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_at`, plus one column per model field (snake_case). The engine does not generate DDL from `app.yaml`.
+Model tables share standard columns: `id`, `org_id`, `author_id`, `deleted`, `created_at`, `updated_at`, plus one column per model field (snake_case). Compiled apps do not generate DDL from `app.yaml` for their base tables.
+
+Dynamic apps, and columns a domain tip adds, do. `internal/engine/autoschema.go` runs additive DDL by default (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`). With `platformApplyDomain(..., force: true)` / `domain … --force`, removed fields/indexes/junctions are dropped. Each new table also gets an index on `(org_id, updated_at DESC)`. `indexed: true` adds a btree index on `(org_id, column)` named `idx_<table>_<column>`. A `many2one` already receives that index from the relation pass, so `indexed: true` does not add a second one. A second pass (`relationDDL`) runs after every table and column exists.
+
+A `many2one` column the engine creates is `TEXT NULL`, or `TEXT NOT NULL` when `required: true` (empty is stored as `NULL`). It gets a foreign key to the target `(id)` and an index on `(org_id, column)`. `onDelete` is `restrict` unless set to `set null` or `cascade`. `one2many` has no column; the engine ensures the same `(org_id, inverse)` index on the inverse `many2one`. `many2many` has no JSON column. The junction table `"{model}_{field}_rel"` has `org_id`, `left_id`, `right_id`, primary key `(org_id, left_id, right_id)`, foreign keys on both ids, and an index on `(org_id, right_id)`. GraphQL stays `string[]`. An existing `TEXT` many2many column is left in place.
+
+Model `indexes:` declare composite btree indexes, `unique: true` indexes on `(org_id, …) WHERE deleted = false`, or a one-column `hash` / `gin` index (`gin` uses `to_tsvector('simple', column)` because `json` is stored as text). A btree key may be `field:desc`. `include` adds covering columns. `where` is a conjunction of `column = value` (or `<>`) predicates; unique indexes AND it with `deleted = false`. `hash` and `gin` stay a single column. A foreign key is added only when this apply creates the column, so an existing `TEXT NOT NULL DEFAULT ''` column is not rewritten. Soft-removing a field, index, or relation from the tip omits it from the API but keeps the database object; `--force` drops it. Tip revisions may override compiled-origin indexes and views. A unique partial index that compiled migrations already own, such as `organizations.slug`, stays in SQL. Stored computed fields are ordinary columns and can be indexed. `store: false` fields cannot.
 
 Hand-written side tables live in the same `migrations/` folder (see auth `002_auth.sql`). Custom stores use `postgres.FromHost(host).Pool()` or `events.Pool` from `Options.Setup` — never open a separate connection.
 
@@ -321,26 +349,118 @@ If `nav` is omitted, defaults are `labelKey: nav.{name}`, `route: {name}`, `labe
 
 **In-app menus** (`menus`) — Odoo-style tree linking to views:
 
+A menu leaf picks **one** of:
+
+| Key | Meaning |
+|-----|---------|
+| `view:` | Entry under top-level `views:` (path page **or** dynamic layout) |
+| `model:` | Generated list for that model (no `views:` override) |
+
 ```yaml
 menus:
   - id: greetings
-    labelKey: hello.menu.greetings
+    labelKey: hellospec.menu.greetings
     children:
       - id: greeting_list
-        labelKey: hello.menu.list
+        labelKey: hellospec.menu.list
         view: GreetingList
       - id: greeting_new
-        labelKey: hello.menu.new
+        labelKey: hellospec.menu.new
         view: GreetingForm
 ```
 
 Rules:
 - `id` must be unique across the tree
-- leaf items need `view` (or `children` for folders)
-- `view` must match a `views/<Name>.page.tsx` file (for the owning app’s own menus)
+- a leaf sets only one of `view` or `model` (folders use `children`)
+- `view` must name a `views:` entry (path or dynamic)
 - if `menus` is omitted, apps without menus fall back to `views/Index.page.tsx`
 
-GraphQL: `helloMenus { id label view route children { … } }`
+GraphQL: `helloMenus { id label view model route children { … } }`
+
+**Views** (`views`) — every mountable UI surface. A screen lists `components` (each with `id`, `kind`, `model`, and its own columns, groups, filters, and groupBy) and a `layout`. `layout` is a scalar `column` or `row`, or a tree of regions. A region has `direction`, nested `items`, and either a `component` id or more regions. `span` is the track weight (`2` → `2fr`); `size` is an explicit track (`18rem`, `40%`, `1fr`, `auto`). A dynamic screen has no `path` and the shell renders the tree. `path:` mounts a compiled page; `<SpecLayout />` renders that same tree, or `<SpecScreen id="…" />` places one component. A page with no model screen is `path` only. Catalog name of a component is `{view}.{id}`. Do not set `kind` on the view itself. Admins edit components and layout on the tip (`domain set-view`). A layout whose name matches the generated `{Model}List` or `{Model}Form` replaces that catalog entry. Component `filters` replace the model's presets for that screen when set. Built-in widgets: `input`, `textarea`, `checkbox`, `select`, `relation`. Any other `widget` id must be registered with `registerFieldWidget`.
+
+```yaml
+views:
+  - name: GreetingList
+    layout: column
+    components:
+      - id: list
+        kind: collection        # collection | table | kanban | chart | form
+        model: greeting
+        defaultView: table
+        views: [table, kanban]
+        groupBy: [mood]
+        columns:
+          - field: message
+            width: 2fr
+            order: 1
+          - field: mood
+            width: 8rem
+            widget: hellospec.MoodBadge
+  - name: GreetingForm
+    layout:
+      direction: column
+      items:
+        - direction: row
+          items:
+            - component: form
+              span: 2
+            - component: recent
+              span: 1
+              size: 18rem
+    components:
+      - id: form
+        kind: form
+        model: greeting
+        groups:
+          - labelKey: hellospec.menu.group
+            columns: 2
+            fields:
+              - field: message
+                span: 2
+                widget: textarea
+                order: 1
+      - id: recent
+        kind: collection
+        model: greeting
+        columns:
+          - field: message
+            order: 1
+  - name: GreetingBoard
+    path: views/GreetingBoard.page.tsx
+    components:
+      - id: board
+        kind: collection
+        model: greeting
+        groupBy: [mood]
+        columns:
+          - field: message
+            order: 1
+          - field: mood
+            order: 2
+      - id: composer
+        kind: form
+        model: greeting
+        groups:
+          - label: New greeting
+            fields:
+              - field: message
+                widget: textarea
+
+The page renders `<SpecLayout />`. `domain set-view hellospec GreetingBoard` edits those components.
+```
+
+Model indexes:
+
+```yaml
+indexes:
+  - name: greeting_mood
+    fields: [mood:desc, message]
+    include: [label]
+    where: "mood = 'formal'"
+    unique: true
+    method: btree             # btree | hash | gin
+```
 
 SPAs do **not** own menus. The **core** shell loads `{app}Menus`, renders the menubar, and mounts the matching `views/<Name>.page.tsx` from the central bundle:
 
@@ -380,6 +500,7 @@ CRUD mutations run through a fixed pipeline:
 normalize
 → app-local Before*
 → extension.Run(model.<app>.<model>.before*)
+→ stored compute / related / Compute hooks
 → spec validate
 → append event → project
 → app-local After*
@@ -414,10 +535,16 @@ module.Register(app.Hooks("greeting", engine.Hooks{
 	BeforeCreate: beforeCreateGreeting,
 	AfterCreate:  logGreetingCreated,
 	BeforeUpdate: beforeUpdateGreeting,
+	AfterUpdate:  logGreetingRevised,
 	BeforeDelete: protectPinnedGreetings,
 	AfterDelete:  logGreetingDeleted,
+	Compute: map[string]func(engine.HookContext) (any, error){
+		"shout": computeShout,
+	},
 }))
 ```
+
+`Compute` runs while stored formulas are applied, after `Before*` and before validation. The hook reads `hc.Fields` (the merged row) and returns the field value. `hellospec` uses this for `shout` after the prefix hook has rewritten `message`. Non-stored formulas, including hooks, run again on read.
 
 #### Example: normalize + default (BeforeCreate)
 
@@ -503,6 +630,7 @@ func logGreetingCreated(hc engine.HookContext) error {
 | `AfterUpdate` | After write | patch | updated row |
 | `BeforeDelete` | Before event append | — | row being deleted |
 | `AfterDelete` | After write | — | deleted row |
+| `Compute[field]` | After `Before*`, and again on read when `store: false` | merged row | previous row on update |
 
 Return an error from `Before*` to abort the mutation (GraphQL surfaces it to the client). Use the same `.po` catalogs as the SPA:
 

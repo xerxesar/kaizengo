@@ -73,6 +73,14 @@ bindings:
     hint: true
     inForm: true
 
+  - id: terminal_fullscreen
+    action: element:toggle-terminal-fullscreen
+    keys: alt+shift+t
+    labelKey: keymap.shell.terminal_fullscreen
+    scope: global
+    hint: true
+    inForm: true
+
   - id: sign_out
     action: element:sign-out
     keys: alt+q

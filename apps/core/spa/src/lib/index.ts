@@ -32,6 +32,7 @@ export {
 
 export type * from './types'
 export { registerViewComponent, resolveViewComponent } from './view-components'
+export { registerFieldWidget, resolveFieldWidget, type FieldWidgetProps } from './field-widgets'
 export { firstMenuLeaf, flattenMenuItems } from './menu'
 export { fetchAppMenus } from './menu-client'
 export {

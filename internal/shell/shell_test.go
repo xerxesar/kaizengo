@@ -28,6 +28,125 @@ func TestAddFieldToDoc(t *testing.T) {
 	if _, err := addFieldToDoc(doc, "nope", newField{Name: "x", Type: "string"}); err == nil {
 		t.Fatal("expected missing model error")
 	}
+	got, err = addFieldToDoc(doc, "lead", newField{Name: "owner", Type: "many2one", Relation: "crm.user", Unique: true, OnDelete: "set null"})
+	if err != nil || !strings.Contains(got, "unique: true") || !strings.Contains(got, "onDelete: set null") {
+		t.Fatalf("err %v, doc:\n%s", err, got)
+	}
+}
+
+func TestSetViewAndRemoveField(t *testing.T) {
+	doc := `name: hellospec
+models:
+  - name: greeting
+    fields:
+      - { name: message, type: string }
+      - { name: okok, type: string }
+views:
+  - name: GreetingForm
+    kind: form
+    model: greeting
+    groups:
+      - fields:
+          - field: message
+`
+	got, err := setViewInDoc(doc, "GreetingForm", "kind: form\nmodel: greeting\ngroups:\n  - fields:\n      - field: message\n      - field: okok\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "field: okok") {
+		t.Fatalf("set-view missing okok:\n%s", got)
+	}
+	soft, err := removeFieldFromDoc(got, "greeting", "okok")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(soft, "name: okok") {
+		t.Fatalf("field still present:\n%s", soft)
+	}
+	if _, err := removeFieldFromDoc(doc, "greeting", "missing"); err == nil {
+		t.Fatal("expected missing field error")
+	}
+}
+
+func TestSetFieldRenameInDoc(t *testing.T) {
+	doc := `name: hellospec
+models:
+  - name: greeting
+    fields:
+      - name: message
+        type: string
+      - name: okok
+        type: string
+        required: true
+        indexed: true
+    search:
+      fields: [message, okok]
+views:
+  - name: GreetingForm
+    kind: form
+    model: greeting
+    groups:
+      - fields:
+          - field: message
+          - field: okok
+  - name: GreetingList
+    kind: collection
+    model: greeting
+    groupBy: [okok]
+    columns:
+      - field: okok
+`
+	got, err := setFieldInDoc(doc, "greeting", "okok", newField{Name: "ok", Type: "string"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"name: ok",
+		"required: true",
+		"indexed: true",
+		"field: ok",
+		"groupBy: [ok]",
+		"fields: [message, ok]",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "okok") {
+		t.Fatalf("okok still present:\n%s", got)
+	}
+	if _, err := setFieldInDoc(doc, "greeting", "okok", newField{Name: "message", Type: "string"}); err == nil {
+		t.Fatal("expected duplicate name error")
+	}
+}
+
+func TestAddIndexAndScreenToDoc(t *testing.T) {
+	doc := "name: crm\nmodels:\n  - name: lead\n    fields:\n      - name: title\n        type: string\n"
+	got, err := addIndexToDoc(doc, "lead", "lead_title", "gin", true, []string{"title", "stage"}, nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"indexes:", "name: lead_title", "fields: [title, stage]", "unique: true", "method: gin"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+	board, err := addViewToDoc(doc, "LeadBoard", "collection", "lead", "", "columns:\n  - field: title\n    width: 2fr\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"views:", "name: LeadBoard", "kind: collection", "model: lead", "field: title", "width: 2fr"} {
+		if !strings.Contains(board, want) {
+			t.Fatalf("missing %q in:\n%s", want, board)
+		}
+	}
+	page, err := addViewToDoc(doc, "LeadPage", "", "", "views/Lead.page.tsx", "")
+	if err != nil || !strings.Contains(page, "path: views/Lead.page.tsx") {
+		t.Fatalf("err %v, doc:\n%s", err, page)
+	}
+	if _, err := addViewToDoc(board, "LeadBoard", "form", "lead", "", ""); err == nil {
+		t.Fatal("expected duplicate view error")
+	}
 }
 
 func TestSplit(t *testing.T) {
@@ -65,6 +184,63 @@ func TestHeredocPending(t *testing.T) {
 	for in, want := range cases {
 		if got := HeredocPending(in); got != want {
 			t.Errorf("HeredocPending(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+func TestSplitBackslashContinuation(t *testing.T) {
+	got, err := split("domain add-field hellospec.greeting ok string --migrate=\"UPDATE greetings \\\nSET ok = okok || '$' WHERE ok = '';\"")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"domain", "add-field", "hellospec.greeting", "ok", "string", "--migrate=UPDATE greetings SET ok = okok || '$' WHERE ok = '';"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+	if _, err := split("foo \\"); err == nil {
+		t.Fatal("expected trailing backslash error")
+	}
+}
+
+func TestSplitOpenQuoteMultiline(t *testing.T) {
+	got, err := split("domain add-field x.y ok string --migrate=\"\nUPDATE t SET a = 1;\n\"")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"domain", "add-field", "x.y", "ok", "string", "--migrate=\nUPDATE t SET a = 1;\n"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+	if _, err := split("domain apply --migrate=\"oops"); err == nil {
+		t.Fatal("expected unterminated quote")
+	}
+}
+
+func TestSplitMigrateEqualsWithHeredoc(t *testing.T) {
+	got, err := split("domain apply --migrate=\"ALTER TABLE t RENAME COLUMN a TO b;\" <<EOF\nname: hellospec\nEOF")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"domain", "apply", "--migrate=ALTER TABLE t RENAME COLUMN a TO b;", "name: hellospec\n"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
+func TestInputPending(t *testing.T) {
+	cases := map[string]bool{
+		"query crm.leads":                                           false,
+		"domain apply <<EOF":                                        true,
+		"domain apply <<EOF\nname: x\nEOF":                          false,
+		"domain add-field x.y ok string --migrate=\"":               true,
+		"domain add-field x.y ok string --migrate=\"\nUPDATE t\n\"": false,
+		"foo \\":      true,
+		"foo \\\nbar": false,
+		`--migrate="UPDATE greetings SET ok = okok || '$'"`: false,
+	}
+	for in, want := range cases {
+		if got := InputPending(in); got != want {
+			t.Errorf("InputPending(%q) = %v, want %v", in, got, want)
 		}
 	}
 }

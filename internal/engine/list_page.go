@@ -347,6 +347,9 @@ func (s *modelService) listFilteredPage(ctx context.Context, orgID string, opts 
 	if err := rows.Err(); err != nil {
 		return ListPageResult{}, err
 	}
+	if err := s.loadMany2Many(ctx, out); err != nil {
+		return ListPageResult{}, err
+	}
 	pageSize := opts.PageSize
 	if pageSize <= 0 {
 		pageSize = total
@@ -366,7 +369,7 @@ func (s *modelService) buildFilterSQL(orgID string, opts ListPageOpts, expr *acl
 		}
 		arg = next
 		if frag.Clause != "" {
-			parts = append(parts, "("+frag.Clause+")")
+			parts = append(parts, "("+s.rewriteRelationSQL(frag.Clause)+")")
 			args = append(args, frag.Args...)
 		}
 	}

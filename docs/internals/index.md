@@ -20,7 +20,7 @@ The product-level model (3+1 layers, GraphQL vs gRPC, CLI) is in [Architecture](
 ```text
 cmd/server          → process entry, Host, Load, HTTP listen
 internal/module     → App interface, registry, Host bag, GraphQL registry
-internal/engine     → app.yaml → CRUD, GQL, hooks, install manager, domain layers, platform meta GQL
+internal/engine     → app.yaml → CRUD, GQL, hooks, install manager, domain tip revisions, platform meta GQL
 internal/shell      → CLI grammar behind platformShell (web terminal, palette, native kaizen)
 internal/plugin     → go-plugin host: external Go apps (domain, hooks, handlers, host services)
 internal/extension  → global lifecycle handlers, exports/extends
@@ -180,19 +180,19 @@ ACL for model CRUD is enforced inside `modelService` (`packages/sdk-go/acl` via 
 
 `engine.New` returns a `module.App`. During `Setup` it:
 
-1. Loads the appspec (`apps/<name>/app.yaml`) as the base layer, records it as a `base` revision when it changed, and merges the stored layer onto it (`Domains.resolveCompiled`)
+1. Loads the appspec (`apps/<name>/app.yaml`), ensures a tip revision from code when needed, and mounts the tip snapshot (`Domains.resolveCompiled`; legacy overlays still merge)
 2. Loads `.po` catalogs and registers shell nav
-3. Opens the shared Postgres pool and applies migrations (`SetupEvents` — legacy name, no event store); tables/columns added by layers get additive DDL
+3. Opens the shared Postgres pool and applies migrations (`SetupEvents` — legacy name, no event store); tip additions get additive DDL (force drops only with `--force`)
 4. Registers CRUD GraphQL + `{app}Views` / `{app}Menus`, remembering which root fields came from the spec (`App.ownedQueries` / `ownedMutations`)
 5. Provides the model registry on the host (`ModelsKey(appName)`)
 
-Dynamic apps run the same Setup with an empty base (their stored layer is the whole definition) and generated DDL for every model. Applying a layer later calls `App.remount`: the spec-owned fields are swapped, model services are replaced inside the same `ModelRegistry`, and `Options.Setup`/`Mount` are not re-run. See [Architecture → One domain pipeline](../architecture.md#one-domain-pipeline-base-plus-layers).
+Dynamic apps run the same Setup with an empty tip until the first apply, then generated DDL for every model. Applying a tip later calls `App.remount`: the spec-owned fields are swapped, model services are replaced inside the same `ModelRegistry`, and `Options.Setup`/`Mount` are not re-run. See [Architecture → One domain pipeline](../architecture.md#one-domain-pipeline-tip-revisions-git-like).
 
-## Boot order with domain layers and plugins
+## Boot order with domain revisions and plugins
 
 ```text
 engine.NewManager + engine.NewDomains (kaizengo.domain_revisions)
-→ module.Load(compiled-in apps; each Setup resolves base + stored layer) → Manager.SyncLoaded
+→ module.Load(compiled-in apps; each Setup resolves tip) → Manager.SyncLoaded
 → RegisterPlatformAPI (platformDomain*, platformCatalog) + shell.Register (platformShell*)
 → Domains.LoadAll (apps without code; errors recorded per app, boot continues)
 → plugin.NewManager + plugin.Register (platformPlugins) + host.OnStop(Stop)
@@ -223,10 +223,9 @@ There is **one** shell SPA (`apps/core/spa`). Pages under `apps/<name>/views/*.p
 
 | File | Role in the flows above |
 |------|-------------------------|
-| `apps/hellospec/app.yaml` | Spec → engine Setup |
+| `apps/hellospec/app.yaml` | Spec, `views:`, menus → engine Setup |
 | `apps/hellospec/module.go` | `engine.New` + `module.Register` |
 | `apps/hellospec/hooks.go` | App Before*/After* on the mutation path |
-| `apps/hellospec/views/*.page.tsx` | Shell registry → UI |
 | `apps/hellospec/migrations/` | `greetings` model table |
 
 ## Related reference

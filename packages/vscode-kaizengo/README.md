@@ -1,10 +1,25 @@
 # KaizenGo VS Code extension
 
-Developer tooling for KaizenGo apps: navigation in specs, and completion for models, fields, queries, and commands.
+Developer tooling for KaizenGo apps: a visual spec view, navigation in specs, and completion for models, fields, queries, and commands.
 
 ## What it does
 
-In any `apps/<name>/app.yaml`, **F12** / **Ctrl+click** (Go to Definition) and hover resolve:
+In any `apps/<name>/app.yaml`, the editor title has a **Vis** button (top right). It opens a panel beside the spec:
+
+```text
+Vis
+----
+spec tree
+  view layouts (column / row)
+  models, queries, commands, menus
+----
+```
+
+Each block is the screen layout from `views`: nested rows and columns, and the fields or columns inside a component. Click a block to select it in the YAML. **column** / **row** on a region rewrites that layout direction.
+
+Problems in a view (unknown component, field, model, or kind) show in the panel and as squiggles in the spec.
+
+**F12** / **Ctrl+click** (Go to Definition) and hover also resolve:
 
 | You click | Opens |
 |-----------|--------|
@@ -14,6 +29,9 @@ In any `apps/<name>/app.yaml`, **F12** / **Ctrl+click** (Go to Definition) and h
 | `models:` path | `models/<name>/spec.yaml` |
 | `models` name | generated `__types__/<model>.go` |
 | `relation` / `inverse` | the related model or field in YAML |
+| view `model`, column `field`, `groupBy` | the model or field |
+| layout `component` | that component's `id` |
+| view `path` | the compiled page |
 | `labelKey` | `msgid` in `locale/*.po` (and platform nav catalogs) |
 | `locales` id | `locale/<id>.po` |
 | `extends.handler` | `RegisterNamed("…")` in the app's Go code |
@@ -30,6 +48,10 @@ Suggestions come from every app's `app.yaml` / `models/*/spec.yaml`. Trigger the
 |-------|-----------|
 | `relation`, `search.collection`, `queries` / `commands` model keys, security `resource` | model names (`role`, `identity.user`, `hellospec.greeting`) |
 | `inverse`, `search.fields`, security `fields` / `domain`, `type`, enum `default` | fields, field types, or enum values |
+| `menus.view` | view names (`GreetingList`) |
+| view `kind`, `defaultView`, `widget`, `align`, layout `direction` | the allowed values |
+| view `model`, `field`, `groupBy` | models and fields |
+| layout `component` | component ids on that view |
 | Go `ModelRegistry` methods (`Create`, `FindBy`, `ListAll`, …) and `Hooks` | model name argument |
 | Go `FindBy` / `ListBy` field argument, `map[string]any` keys, `rec["…"]` | fields of that model; enum values after an enum key |
 | `ModelsFromHost(host, "identity")` | that app's models on the bound registry |
@@ -55,8 +77,8 @@ Build a `.vsix` and install it into Cursor or VS Code:
 ```bash
 make vscode-ext-vsix
 
-cursor --install-extension packages/vscode-kaizengo/kaizengo-0.2.0.vsix
-# or: code --install-extension packages/vscode-kaizengo/kaizengo-0.2.0.vsix
+cursor --install-extension packages/vscode-kaizengo/kaizengo-0.3.0.vsix
+# or: code --install-extension packages/vscode-kaizengo/kaizengo-0.3.0.vsix
 ```
 
 Reload the window after install. To remove: `cursor --uninstall-extension kaizengo.kaizengo`.

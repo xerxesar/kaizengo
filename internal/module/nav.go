@@ -9,9 +9,9 @@ import (
 // NavEntry is shown in the core SPA apps dropdown.
 type NavEntry struct {
 	ID       string `json:"id"`
-	Title    string `json:"title"`    // resolved label (from TitleKey at serve time when set)
-	TitleKey string `json:"-"`        // i18n key; preferred source of truth for the menu label
-	Route    string `json:"route"`    // path under /app/
+	Title    string `json:"title"` // resolved label (from TitleKey at serve time when set)
+	TitleKey string `json:"-"`     // i18n key; preferred source of truth for the menu label
+	Route    string `json:"route"` // path under /app/
 	Order    int    `json:"order,omitempty"`
 }
 
@@ -36,6 +36,42 @@ func (h *Host) RegisterNav(e NavEntry) {
 		}
 	}
 	h.nav = append(h.nav, e)
+}
+
+// ReplaceNav inserts or updates the entry with the same id.
+func (h *Host) ReplaceNav(e NavEntry) {
+	if e.ID == "" || e.Route == "" {
+		panic("module: NavEntry requires id and route")
+	}
+	if e.TitleKey == "" && e.Title == "" {
+		panic("module: NavEntry requires titleKey or title")
+	}
+	if e.Title == "" {
+		e.Title = i18n.T(e.TitleKey)
+	}
+	for _, existing := range h.nav {
+		if existing.ID != e.ID && existing.Route == e.Route {
+			panic("module: duplicate nav route: " + e.Route)
+		}
+	}
+	for i, existing := range h.nav {
+		if existing.ID == e.ID {
+			h.nav[i] = e
+			return
+		}
+	}
+	h.nav = append(h.nav, e)
+}
+
+// RemoveNav drops the entry with id, if present.
+func (h *Host) RemoveNav(id string) {
+	out := make([]NavEntry, 0, len(h.nav))
+	for _, e := range h.nav {
+		if e.ID != id {
+			out = append(out, e)
+		}
+	}
+	h.nav = out
 }
 
 // NavEntries returns registered menu entries (copy) with titles resolved for the active locale.

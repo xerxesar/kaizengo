@@ -101,6 +101,10 @@ commands:
         required: true
     returns: app
 
+views:
+  - name: Index
+    path: views/Index.page.tsx
+
 menus:
   - id: apps
     labelKey: appman.menu.apps

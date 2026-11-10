@@ -42,6 +42,7 @@ export type {
   KKanbanBoardProps,
 } from './KKanban'
 export { KCollection } from './KCollection'
+export { ScreenLayout, SpecLayout, SpecScreen, usePageView } from '@/lib/page-view'
 export type {
   KCollectionChartConfig,
   KCollectionFilter,

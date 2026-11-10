@@ -3,6 +3,10 @@ export type ModelColumn = {
   label: string
   width?: string
   align?: string
+  widget?: string | null
+  span?: number | null
+  order?: number | null
+  group?: string | null
 }
 
 export type ModelField = {
@@ -13,6 +17,20 @@ export type ModelField = {
   relation?: string
   inverse?: string
   values?: string[]
+  span?: number | null
+  widget?: string | null
+  group?: string | null
+  order?: number | null
+  width?: string | null
+  align?: string | null
+}
+
+export type ModelViewGroup = {
+  id: string
+  label?: string | null
+  labelKey?: string | null
+  columns?: number | null
+  order?: number | null
 }
 
 export type ModelFilterPreset = {
@@ -37,6 +55,14 @@ export type ModelChartPreset = {
   measure: string
 }
 
+export type ModelLayoutNode = {
+  direction?: string | null
+  component?: string | null
+  size?: string | null
+  span?: number | null
+  items?: ModelLayoutNode[] | null
+}
+
 export type ModelView = {
   name: string
   kind: string
@@ -45,6 +71,12 @@ export type ModelView = {
   fields?: ModelField[]
   filterPresets?: ModelFilterPreset[]
   chartPresets?: ModelChartPreset[]
+  groups?: ModelViewGroup[]
+  defaultView?: string | null
+  views?: string[] | null
+  groupBy?: string[] | null
+  layout?: ModelLayoutNode | null
+  components?: string[] | null
   listQuery?: string | null
   getQuery?: string | null
   createCommand?: string | null
@@ -163,10 +195,21 @@ export async function fetchModelViews(app: string): Promise<ModelView[]> {
       const data = await gql<Record<string, ModelView[]>>(`query {
         ${field} {
           name kind model
-          columns { key label width align }
-          fields { key label type required relation inverse values }
+          columns { key label width align widget span order group }
+          fields { key label type required relation inverse values span widget group order width align }
           filterPresets { id label labelKey domain q searchIn groupBy }
           chartPresets { id label labelKey type types xField yField seriesField measure }
+          groups { id label labelKey columns order }
+          defaultView views groupBy components
+          layout { direction component size span
+            items { direction component size span
+              items { direction component size span
+                items { direction component size span
+                  items { direction component size span }
+                }
+              }
+            }
+          }
           listQuery getQuery createCommand updateCommand deleteCommand
         }
       }`)

@@ -24,13 +24,88 @@ Mirror `apps/hellospec` for CQRS (`queries` / `commands`) and `docs/tutorial/app
 
 - `app.yaml` is source of truth for models, menus, locales, security, keymap includes.
 - With `queries`/`commands`, pages bind via dotted refs: `query="app.field"`, `command="app.field"`.
+- Computed fields use `compute:` (expression or `hook`) or `related:`. They are not form input. `store: false` is filled on read. See hellospec `length`, `label`, `topicName`, `shout`, and `preview`.
+- `one2many` `inverse` must be a `many2one` on the related model in this spec that points back. Indexes: btree keys may be `field:desc`; `include` and `where` are btree-only. `indexed: true` is `(org_id, column)`.
 - Without CQRS, generic GraphQL CRUD still exists; prefer named CQRS for public APIs.
 - Register with `engine.New(...)` in `module.go` + `module.Register`.
 - **Virtual models** (`virtual: true`): no Postgres table; declare fields for `{app}Views`, implement `engine.RegisterModel` List in Setup (before CQRS mounts). Example: appman.
 
-## UI binding
+## Views
 
-List/form metadata from `{app}Views` drives `KTable` / `KForm`. After schema or view changes, ensure list views expose `columns` / `fields` and `listQuery` for search/pagination.
+Declare every screen under `views:`. Do not leave a menu `view:` to a discovered page only, and do not put `kind` / `columns` / `groups` on the view itself.
+
+A screen is a list of `components` plus a `layout` tree. Each component has an `id` and is one collection or form. Catalog name is `{View}.{id}`.
+
+```yaml
+views:
+  - name: GreetingList          # dynamic screen — no path; the shell renders layout
+    layout: column             # shorthand: stack every component; or row
+    components:
+      - id: list
+        kind: collection       # collection | table | kanban | chart | form
+        model: greeting
+        defaultView: table
+        views: [table, kanban]
+        groupBy: [mood]
+        columns:
+          - { field: message, width: 2fr, order: 1 }
+          - { field: mood, order: 2 }
+        filters:               # replaces the model's presets for this component
+          - id: happy
+            labelKey: hellospec.filter.happy
+            domain:
+              - [mood, "=", happy]
+  - name: GreetingForm
+    layout:                    # nested regions; span = track weight, size = track (1fr, 18rem, 40%, auto)
+      direction: column
+      items:
+        - direction: row
+          items:
+            - { component: form, span: 2 }
+            - { component: recent, span: 1, size: 18rem }
+    components:
+      - id: form
+        kind: form
+        model: greeting
+        groups:
+          - labelKey: hellospec.menu.group
+            columns: 2
+            fields:
+              - { field: message, span: 2, widget: textarea, order: 1 }
+              - { field: mood, span: 1, order: 2 }
+      - id: recent
+        kind: collection
+        model: greeting
+        columns:
+          - { field: message, order: 1 }
+  - name: GreetingBoard        # compiled page; .tsx only places the tree
+    path: views/GreetingBoard.page.tsx
+    layout:
+      direction: column
+      items:
+        - { component: composer, size: auto }
+        - { component: board, size: 1fr }
+    components:
+      - id: board
+        kind: collection
+        model: greeting
+        columns:
+          - { field: message, order: 1 }
+  - name: Domains              # bespoke page — path only, no components
+    path: views/Domains.page.tsx
+```
+
+Rules:
+
+- One component: `layout: column` (or `row`) and a single `components` entry. `span` / `size` on that entry apply.
+- Several components: a `layout` mapping. A node is either `component: <id>` or `direction` + `items`. Nest rows inside columns. `span` defaults to 1 (`Nfr`). `size` overrides the track (`1fr`, `2fr`, `18rem`, `40%`, `auto`).
+- `path:` is a compiled `views/<Name>.page.tsx`. The page renders `<SpecLayout />` when it has a layout tree, or `<SpecScreen id="…" />` for one component. Do not hardcode columns, filters, or group-by in the `.tsx`.
+- A page with no model screen (settings chrome, wizards) is `path` only.
+- Do not set both top-level `kind` and `components`.
+- Widgets: `input`, `textarea`, `checkbox`, `select`, `relation`. Any other `widget` id is a compiled `registerFieldWidget` component.
+- Admins edit the same YAML with `domain set-view <app> <View>` (`-ted` in the web terminal).
+
+List/form metadata from `{app}Views` drives `SpecScreen` / `KCollection` / `KForm`. After schema or view changes, components must expose `columns` or `fields` and the CQRS bindings for search and pagination.
 
 ## Keymap
 

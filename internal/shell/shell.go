@@ -39,7 +39,8 @@ var commands map[string]command
 
 func init() {
 	commands = map[string]command{
-		"help":     {"help [command]", "Show commands or one command's usage", cmdHelp},
+		"help":     {"help [command]", "Grouped command list or one command's usage", cmdHelp},
+		"man":      {"man <command> [domain-sub]", "Detailed manual for a command", cmdMan},
 		"whoami":   {"whoami", "Current user, org, and roles", cmdWhoami},
 		"apps":     {"apps", "Apps with callable operations", cmdApps},
 		"ls":       {"ls [app]", "List queries and commands", cmdLs},
@@ -84,6 +85,13 @@ func Run(ctx context.Context, ex Executor, input string) Result {
 	}
 	out, data, err := c.run(&session{ctx: ctx, ex: ex}, tokens[1:])
 	if err != nil {
+		if out != "" || data != nil {
+			// Keep structured payload (e.g. migrateRequired + proposedSpec) for the SPA.
+			if out == "" {
+				out = "error: " + err.Error()
+			}
+			return Result{OK: false, Output: out, Data: data}
+		}
 		return fail(err)
 	}
 	return Result{OK: true, Output: out, Data: data}
@@ -91,24 +99,6 @@ func Run(ctx context.Context, ex Executor, input string) Result {
 
 func fail(err error) Result {
 	return Result{OK: false, Output: "error: " + err.Error()}
-}
-
-func cmdHelp(_ *session, args []string) (string, any, error) {
-	if len(args) > 0 {
-		c, ok := commands[args[0]]
-		if !ok {
-			return "", nil, fmt.Errorf("unknown command %q", args[0])
-		}
-		return c.usage + "\n  " + c.summary, nil, nil
-	}
-	var b strings.Builder
-	rows := [][]string{}
-	for _, c := range Commands() {
-		rows = append(rows, []string{c.Name, c.Summary})
-	}
-	b.WriteString(table([]string{"command", "summary"}, rows))
-	b.WriteString("\nValues: key=value (quote spaces: title=\"Big deal\"); lists: tags=a,b or tags='[\"a\",\"b\"]'.")
-	return b.String(), nil, nil
 }
 
 func cmdWhoami(s *session, _ []string) (string, any, error) {

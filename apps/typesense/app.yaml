@@ -20,6 +20,10 @@ extends:
   - point: platform.search.query
     handler: queryDocuments
     priority: 50
+views:
+  - name: SearchSettings
+    path: views/SearchSettings.page.tsx
+
 exports:
   components:
     - id: platform.SearchBar

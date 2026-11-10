@@ -3,16 +3,20 @@ package shell
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
-// split tokenizes one command line. It supports 'single' and "double" quotes,
-// backslash escapes outside single quotes, and one heredoc per line:
+// split tokenizes one command. It supports 'single' and "double" quotes,
+// bash-like backslash escapes and line continuation, newlines inside open
+// quotes, and one heredoc when the first line ends with <<TAG:
 //
-//	domain apply <<EOF
+//	domain apply --migrate="UPDATE …" <<EOF
 //	name: crm
 //	EOF
 //
-// The heredoc body (without the terminator) becomes a single token.
+// The heredoc body (without the terminator) becomes a single token. When the
+// first line opens a heredoc, later newlines belong to that body — so flag
+// values like --migrate= must be fully closed on the first line.
 func split(input string) ([]string, error) {
 	first, rest, _ := strings.Cut(input, "\n")
 	if tag, ok := heredocTag(first); ok {
@@ -21,20 +25,17 @@ func split(input string) ([]string, error) {
 			return nil, err
 		}
 		idx := strings.LastIndex(first, "<<")
-		tokens, err := splitLine(first[:idx])
+		tokens, err := tokenize(first[:idx])
 		if err != nil {
 			return nil, err
 		}
 		return append(tokens, body), nil
 	}
-	if strings.TrimSpace(rest) != "" {
-		return nil, fmt.Errorf("multi-line input needs a heredoc (<<EOF … EOF)")
-	}
-	return splitLine(first)
+	return tokenize(input)
 }
 
 // HeredocPending reports whether input opens a heredoc on its first line that
-// no later line has closed yet. Interactive clients keep reading while true.
+// no later line has closed yet.
 func HeredocPending(input string) bool {
 	first, rest, _ := strings.Cut(input, "\n")
 	tag, ok := heredocTag(first)
@@ -43,6 +44,19 @@ func HeredocPending(input string) bool {
 	}
 	_, err := heredocBody(rest, tag)
 	return err != nil
+}
+
+// InputPending reports whether interactive clients should keep reading:
+// open heredoc, unclosed quote, or a line ending in an unescaped backslash.
+func InputPending(input string) bool {
+	if HeredocPending(input) {
+		return true
+	}
+	first, _, _ := strings.Cut(input, "\n")
+	if _, ok := heredocTag(first); ok {
+		return false // heredoc is closed (otherwise HeredocPending)
+	}
+	return tokenizeIncomplete(input)
 }
 
 // Quote returns arg as a single token for split (used when rebuilding a line
@@ -77,31 +91,66 @@ func heredocBody(rest, tag string) (string, error) {
 	return "", fmt.Errorf("heredoc: missing terminator %q", tag)
 }
 
-func splitLine(line string) ([]string, error) {
+func tokenize(s string) ([]string, error) {
+	tokens, quote, escaped, err := scan(s, true)
+	if err != nil {
+		return nil, err
+	}
+	if quote != 0 {
+		return nil, fmt.Errorf("unterminated %c quote", quote)
+	}
+	if escaped {
+		return nil, fmt.Errorf("trailing backslash")
+	}
+	return tokens, nil
+}
+
+func tokenizeIncomplete(s string) bool {
+	_, quote, escaped, err := scan(s, false)
+	if err != nil {
+		return false
+	}
+	return quote != 0 || escaped
+}
+
+// scan tokenizes s. If collect is false, tokens are discarded (pending check).
+// Returns the final quote state and whether a backslash escape is open.
+func scan(s string, collect bool) (tokens []string, quote rune, escaped bool, err error) {
 	var (
-		tokens  []string
 		cur     strings.Builder
 		inToken bool
-		quote   rune
-		escaped bool
 	)
 	flush := func() {
 		if inToken {
-			tokens = append(tokens, cur.String())
+			if collect {
+				tokens = append(tokens, cur.String())
+			}
 			cur.Reset()
 			inToken = false
 		}
 	}
-	for _, r := range line {
+	write := func(r rune) {
+		if collect {
+			cur.WriteRune(r)
+		}
+		inToken = true
+	}
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		i += size
 		switch {
 		case escaped:
-			cur.WriteRune(r)
 			escaped = false
+			if r == '\n' {
+				// bash: \ + newline is line continuation (elided), in or out of "
+				continue
+			}
+			write(r)
 		case quote == '\'':
 			if r == '\'' {
 				quote = 0
 			} else {
-				cur.WriteRune(r)
+				write(r)
 			}
 		case quote == '"':
 			switch r {
@@ -110,24 +159,19 @@ func splitLine(line string) ([]string, error) {
 			case '\\':
 				escaped = true
 			default:
-				cur.WriteRune(r)
+				write(r)
 			}
 		case r == '\\':
 			escaped = true
-			inToken = true
 		case r == '\'' || r == '"':
 			quote = r
 			inToken = true
-		case r == ' ' || r == '\t' || r == '\r':
+		case r == ' ' || r == '\t' || r == '\r' || r == '\n':
 			flush()
 		default:
-			cur.WriteRune(r)
-			inToken = true
+			write(r)
 		}
 	}
-	if quote != 0 {
-		return nil, fmt.Errorf("unterminated %c quote", quote)
-	}
 	flush()
-	return tokens, nil
+	return tokens, quote, escaped, nil
 }

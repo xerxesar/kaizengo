@@ -57,3 +57,28 @@ func RegisterNavFromSpec(host *module.Host, appName string, spec appspec.AppSpec
 	})
 	RegisterShellNavResource(appName, spec)
 }
+
+// ReplaceNavFromSpec inserts or updates the shell menu entry from spec.nav.
+func ReplaceNavFromSpec(host *module.Host, appName string, spec appspec.AppSpec) {
+	nav := spec.Nav
+	route := nav.Route
+	if route == "" {
+		route = appName
+	}
+	titleKey := nav.LabelKey
+	title := nav.Label
+	if titleKey == "" && title == "" {
+		titleKey = "nav." + appName
+	}
+	if title == "" {
+		title = spec.Title
+	}
+	host.ReplaceNav(module.NavEntry{
+		ID:       appName,
+		TitleKey: titleKey,
+		Title:    title,
+		Route:    route,
+		Order:    nav.Order,
+	})
+	RegisterShellNavResource(appName, spec)
+}

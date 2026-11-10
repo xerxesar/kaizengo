@@ -6,15 +6,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: views/GreetingList.page.tsx
-msgid "appman.empty"
-msgstr ""
-
-#: views/GreetingForm.page.tsx
-msgid "hellospec.acl_hint"
-msgstr ""
-
-#: app.yaml views/GreetingForm.page.tsx
+#: app.yaml
 msgid "hellospec.create"
 msgstr ""
 
@@ -22,7 +14,7 @@ msgstr ""
 msgid "hellospec.created"
 msgstr ""
 
-#: app.yaml views/GreetingForm.page.tsx
+#: app.yaml
 msgid "hellospec.empty"
 msgstr ""
 
@@ -43,7 +35,27 @@ msgid "hellospec.error.greeting.internal"
 msgstr ""
 
 #: app.yaml
+msgid "hellospec.error.tag.internal"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.error.topic.internal"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.greetings"
+msgstr ""
+
+#: app.yaml
 msgid "hellospec.field.internalNote"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.label"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.length"
 msgstr ""
 
 #: app.yaml
@@ -55,11 +67,39 @@ msgid "hellospec.field.mood"
 msgstr ""
 
 #: app.yaml
+msgid "hellospec.field.name"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.preview"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.shout"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.tagIds"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.topicId"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.field.topicName"
+msgstr ""
+
+#: app.yaml
+msgid "hellospec.filter.happy"
+msgstr ""
+
+#: app.yaml
 msgid "hellospec.greeting.search"
 msgstr ""
 
-#: views/GreetingForm.page.tsx
-msgid "hellospec.internal_note"
+#: app.yaml
+msgid "hellospec.menu.board"
 msgstr ""
 
 #: app.yaml
@@ -78,11 +118,15 @@ msgstr ""
 msgid "hellospec.menu.new"
 msgstr ""
 
-#: views/GreetingForm.page.tsx
-msgid "hellospec.mood"
+#: app.yaml
+msgid "hellospec.menu.tags"
 msgstr ""
 
-#: app.yaml views/GreetingForm.page.tsx
+#: app.yaml
+msgid "hellospec.menu.topics"
+msgstr ""
+
+#: app.yaml
 msgid "hellospec.new_placeholder"
 msgstr ""
 

@@ -121,6 +121,51 @@ commands:
   - name: discardMembership
     delete: membership
 
+views:
+  - name: Overview
+    path: views/Overview.page.tsx
+  - name: Structure
+    path: views/Structure.page.tsx
+  - name: Users
+    path: views/Users.page.tsx
+    layout:
+      direction: column
+      items:
+        - component: create
+          size: auto
+        - component: list
+          size: 1fr
+    components:
+      - id: create
+        kind: form
+        model: user
+        groups:
+          - labelKey: identity.users.create
+            columns: 2
+            fields:
+              - field: name
+                order: 1
+              - field: email
+                order: 2
+      - id: list
+        kind: collection
+        model: user
+        defaultView: table
+        views: [table]
+        columns:
+          - field: name
+            order: 1
+          - field: email
+            order: 2
+          - field: status
+            order: 3
+  - name: Roles
+    path: views/Roles.page.tsx
+  - name: Access
+    path: views/Access.page.tsx
+  - name: Settings
+    path: views/Settings.page.tsx
+
 menus:
   - id: overview
     labelKey: identity.tab.overview

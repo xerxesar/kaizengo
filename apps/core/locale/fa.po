@@ -90,6 +90,9 @@ msgstr "پالت فرمان"
 msgid "keymap.shell.toggle_terminal"
 msgstr "نمایش/پنهان کردن ترمینال"
 
+msgid "keymap.shell.terminal_fullscreen"
+msgstr "تمام‌صفحه ترمینال"
+
 msgid "shell.palette.open"
 msgstr "پالت فرمان"
 
@@ -118,13 +121,31 @@ msgid "shell.terminal.title"
 msgstr "ترمینال"
 
 msgid "shell.terminal.hint"
-msgstr "Tab تکمیل · ↑↓ تاریخچه · Ctrl+L پاک کردن · Esc بستن · <<EOF برای چندخطی"
+msgstr "Tab تکمیل · ↑↓ تاریخچه · Ctrl+L پاک · Esc بستن · Alt+Shift+T تمام‌صفحه · -ted ویرایشگر"
 
 msgid "shell.terminal.placeholder"
 msgstr "help"
 
 msgid "shell.terminal.close"
 msgstr "بستن ترمینال"
+
+msgid "shell.terminal.fullscreen"
+msgstr "تمام‌صفحه ترمینال"
+
+msgid "shell.terminal.resize"
+msgstr "تغییر اندازه ترمینال"
+
+msgid "shell.terminal.ted_title"
+msgstr "ویرایشگر ترمینال"
+
+msgid "shell.terminal.ted_hint"
+msgstr "حالت Vim · :wq اعمال · :q لغو"
+
+msgid "shell.terminal.ted_apply"
+msgstr "اعمال"
+
+msgid "shell.terminal.ted_cancel"
+msgstr "لغو"
 
 msgid "shell.app_not_found"
 msgstr "برنامه مورد نظر یافت نشد"

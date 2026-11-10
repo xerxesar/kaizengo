@@ -24,7 +24,19 @@ models:
     internal: true
     search:
       collection: hellospec.greeting
-      fields: [message, mood]
+      fields: [message, mood, label]
+    indexes:
+      - name: greeting_mood_topic
+        fields: [mood, topicId]
+      - name: greeting_message_gin
+        fields: [message]
+        method: gin
+      - name: greeting_formal
+        fields: [mood]
+        include: [label]
+        where: "mood = 'formal'"
+      - name: greeting_length
+        fields: [length:desc]
     fields:
       - name: message
         type: string
@@ -40,12 +52,70 @@ models:
       # Admin/staff only — member role is denied this field via security.yaml.
       - name: internalNote
         type: string
+      - name: topicId
+        type: many2one
+        relation: topic
+        onDelete: set null
+      - name: tagIds
+        type: many2many
+        relation: tag
+      # Stored formula. Runs after Before* hooks, so the Hello prefix is included.
+      - name: length
+        type: int
+        compute: len(message)
+        depends: [message]
+      - name: label
+        type: string
+        compute: 'message + " · " + mood'
+        depends: [message, mood]
+      # Copied from topic.name when the greeting is saved.
+      - name: topicName
+        type: string
+        related: topicId.name
+        depends: [topicId]
+      # Go hook — see computeShout in hooks.go.
+      - name: shout
+        type: string
+        compute: hook
+        depends: [message]
+      # Not a column. Filled on read from the stored message.
+      - name: preview
+        type: string
+        compute: lower(message)
+        depends: [message]
+        store: false
+  - name: topic
+    internal: true
+    fields:
+      - name: name
+        type: string
+        required: true
+        unique: true
+      - name: greetings
+        type: one2many
+        relation: greeting
+        inverse: topicId
+  - name: tag
+    internal: true
+    fields:
+      - name: name
+        type: string
+        required: true
+        unique: true
 
 queries:
   - name: greetings
     list: greeting
   - name: greeting
     get: greeting
+  - name: topics
+    list: topic
+  - name: topic
+    get: topic
+  - name: tags
+    list: tag
+  - name: tag
+    get: tag
 
 commands:
   - name: postGreeting
@@ -54,6 +124,182 @@ commands:
     update: greeting
   - name: discardGreeting
     delete: greeting
+  - name: postTopic
+    create: topic
+  - name: reviseTopic
+    update: topic
+  - name: discardTopic
+    delete: topic
+  - name: postTag
+    create: tag
+  - name: reviseTag
+    update: tag
+  - name: discardTag
+    delete: tag
+
+views:
+  - name: GreetingList
+    layout: column
+    components:
+      - id: list
+        kind: collection
+        model: greeting
+        defaultView: table
+        views: [table, kanban]
+        groupBy: [mood]
+        columns:
+          - field: message
+            width: 2fr
+            order: 1
+          - field: label
+            order: 2
+          - field: mood
+            width: 8rem
+            align: left
+            order: 3
+          - field: length
+            width: 5rem
+            order: 4
+          - field: topicName
+            order: 5
+          - field: shout
+            order: 6
+          - field: preview
+            order: 7
+          - field: internalNote
+            order: 8
+          - field: updatedAt
+            order: 9
+  - name: GreetingForm
+    layout:
+      direction: column
+      items:
+        - direction: column
+          items:
+            - component: form
+              span: 1
+            - component: recent
+              span: 2
+    components:
+      - id: recent
+        kind: collection
+        model: greeting
+        columns:
+          - field: message
+            width: 1fr
+            order: 1
+          - field: mood
+            order: 2
+      - id: form
+        kind: form
+        model: greeting
+        groups:
+          - labelKey: hellospec.menu.group
+            columns: 2
+            fields:
+              - field: message
+                span: 2
+                widget: textarea
+                order: 1
+              - field: mood
+                span: 1
+                order: 2
+              - field: topicId
+                span: 1
+                order: 3
+              - field: tagIds
+                span: 2
+                order: 4
+              - field: internalNote
+                span: 2
+                order: 5
+  - name: GreetingBoard
+    path: views/GreetingBoard.page.tsx
+    layout:
+      direction: column
+      items:
+        - component: composer
+          size: auto
+        - component: board
+          size: 1fr
+    components:
+      - id: board
+        kind: collection
+        model: greeting
+        defaultView: kanban
+        views: [kanban, table]
+        groupBy: [mood]
+        columns:
+          - field: message
+            width: 2fr
+            order: 1
+          - field: label
+            order: 2
+          - field: mood
+            order: 3
+        filters:
+          - id: happy
+            labelKey: hellospec.filter.happy
+            domain:
+              - - mood
+                - "="
+                - happy
+      - id: composer
+        kind: form
+        model: greeting
+        groups:
+          - labelKey: hellospec.menu.new
+            columns: 1
+            fields:
+              - field: message
+                widget: textarea
+                order: 1
+              - field: mood
+                order: 2
+              - field: topicId
+                order: 3
+  - name: TopicList
+    layout: column
+    components:
+      - id: list
+        kind: collection
+        model: topic
+        columns:
+          - field: name
+            order: 1
+  - name: TopicForm
+    layout: column
+    components:
+      - id: form
+        kind: form
+        model: topic
+        groups:
+          - labelKey: hellospec.menu.topics
+            columns: 1
+            fields:
+              - field: name
+                order: 1
+  - name: TagList
+    layout: column
+    components:
+      - id: list
+        kind: collection
+        model: tag
+        columns:
+          - field: name
+            order: 1
+  - name: TagForm
+    layout: column
+    components:
+      - id: form
+        kind: form
+        model: tag
+        groups:
+          - labelKey: hellospec.menu.tags
+            columns: 1
+            fields:
+              - field: name
+                order: 1
 
 menus:
   - id: greetings
@@ -65,9 +311,30 @@ menus:
           - id: greeting_list
             labelKey: hellospec.menu.list
             view: GreetingList
+          - id: greeting_board
+            labelKey: hellospec.menu.board
+            view: GreetingBoard
           - id: greeting_new
             labelKey: hellospec.menu.new
             view: GreetingForm
+  - id: topics
+    labelKey: hellospec.menu.topics
+    children:
+      - id: topic_list
+        labelKey: hellospec.menu.list
+        view: TopicList
+      - id: topic_new
+        labelKey: hellospec.menu.new
+        view: TopicForm
+  - id: tags
+    labelKey: hellospec.menu.tags
+    children:
+      - id: tag_list
+        labelKey: hellospec.menu.list
+        view: TagList
+      - id: tag_new
+        labelKey: hellospec.menu.new
+        view: TagForm
 
 locales:
   - id: en

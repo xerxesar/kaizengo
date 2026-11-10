@@ -21,7 +21,7 @@ export type SpaMountContext = {
 export function contentAppForMenu(item: MenuItem | null | undefined, hostApp: string): string {
   const fromItem = item?.sourceApp?.trim()
   if (fromItem) return fromItem
-  return hostApp.trim()
+  return (hostApp ?? '').trim()
 }
 
 /** Default ESM URL for an app SPA bundle. */

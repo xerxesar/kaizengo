@@ -7,13 +7,13 @@ import (
 
 // Allowed chart types for KChart (Apache ECharts).
 var chartTypes = map[string]struct{}{
-	"bar":       {},
-	"line":      {},
-	"area":      {},
-	"pie":       {},
-	"doughnut":  {},
-	"scatter":   {},
-	"radar":     {},
+	"bar":      {},
+	"line":     {},
+	"area":     {},
+	"pie":      {},
+	"doughnut": {},
+	"scatter":  {},
+	"radar":    {},
 }
 
 var chartMeasures = map[string]struct{}{
@@ -25,14 +25,14 @@ var chartMeasures = map[string]struct{}{
 // ChartPresetSpec declares a named chart config for KChart (app.yaml models[].charts).
 type ChartPresetSpec struct {
 	ID          string   `yaml:"id"`
-	Label       string   `yaml:"label"`
-	LabelKey    string   `yaml:"labelKey"`
-	Type        string   `yaml:"type"`   // default chart type
-	Types       []string `yaml:"types"`  // allowed types in the UI switcher (default: common set)
-	XField      string   `yaml:"xField"` // category / dimension
-	YField      string   `yaml:"yField"` // numeric measure field (optional for count)
-	SeriesField string   `yaml:"seriesField"`
-	Measure     string   `yaml:"measure"` // count|sum|avg (default count, or sum when yField set)
+	Label       string   `yaml:"label,omitempty"`
+	LabelKey    string   `yaml:"labelKey,omitempty"`
+	Type        string   `yaml:"type,omitempty"`   // default chart type
+	Types       []string `yaml:"types,omitempty"`  // allowed types in the UI switcher (default: common set)
+	XField      string   `yaml:"xField,omitempty"` // category / dimension
+	YField      string   `yaml:"yField,omitempty"` // numeric measure field (optional for count)
+	SeriesField string   `yaml:"seriesField,omitempty"`
+	Measure     string   `yaml:"measure,omitempty"` // count|sum|avg (default count, or sum when yField set)
 }
 
 func validateChartPresets(model string, presets []ChartPresetSpec, fields map[string]struct{}) error {

@@ -17,16 +17,15 @@ const (
 	legacyDomainsTable   = "domains"
 )
 
-// Domain layers. Base is the compiled-in spec as the engine last read it from
-// code; overlay is everything applied at runtime on top of it (for apps without
-// code, the whole definition). An empty overlay spec means "no overlay".
+// Legacy layer labels kept for rows written before snapshot revisions.
+// New writes use LayerRevision ("revision"): the tip is the full document.
 const (
-	LayerBase    = "base"
-	LayerOverlay = "overlay"
+	LayerBase     = "base"
+	LayerOverlay  = "overlay"
+	LayerRevision = "revision"
 )
 
-// DomainRevision is one stored layer revision of an app's domain. Revisions
-// are numbered per app across both layers and never rewritten.
+// DomainRevision is one immutable snapshot (or legacy overlay) of an app's domain.
 type DomainRevision struct {
 	App       string
 	Revision  int64
@@ -37,25 +36,7 @@ type DomainRevision struct {
 	CreatedAt time.Time
 }
 
-// DomainHeads are the latest revision of each layer (nil when absent).
-type DomainHeads struct {
-	Base    *DomainRevision
-	Overlay *DomainRevision
-}
-
-// Revision is the newest of the two heads (0 when there is none).
-func (h DomainHeads) Revision() int64 {
-	var n int64
-	if h.Base != nil {
-		n = h.Base.Revision
-	}
-	if h.Overlay != nil && h.Overlay.Revision > n {
-		n = h.Overlay.Revision
-	}
-	return n
-}
-
-// DomainStore persists layered domain revisions in kaizengo.domain_revisions.
+// DomainStore persists domain revisions in kaizengo.domain_revisions.
 type DomainStore struct {
 	pool *pgxpool.Pool
 }
@@ -135,12 +116,17 @@ func (s *DomainStore) queryRevisions(ctx context.Context, sql string, args ...an
 }
 
 // Append stores the next revision for rec.App and returns it.
+// New callers should set Layer to LayerRevision and Spec to the full document.
 func (s *DomainStore) Append(ctx context.Context, rec DomainRevision) (DomainRevision, error) {
 	rec.App = strings.TrimSpace(rec.App)
 	if rec.App == "" {
 		return DomainRevision{}, fmt.Errorf("domain app name is empty")
 	}
-	if rec.Layer != LayerBase && rec.Layer != LayerOverlay {
+	switch rec.Layer {
+	case LayerBase, LayerOverlay, LayerRevision:
+	case "":
+		rec.Layer = LayerRevision
+	default:
 		return DomainRevision{}, fmt.Errorf("unknown domain layer %q", rec.Layer)
 	}
 	changes, err := json.Marshal(nonNilStrings(rec.Changes))
@@ -154,62 +140,122 @@ func (s *DomainStore) Append(ctx context.Context, rec DomainRevision) (DomainRev
 	`, s.table(), revisionCols), rec.App, rec.Layer, rec.Spec, rec.Source, changes))
 }
 
-// Heads returns the latest base and overlay revision of every app.
-func (s *DomainStore) Heads(ctx context.Context) (map[string]DomainHeads, error) {
+// Tip returns the newest revision for app (any layer label), or nil.
+func (s *DomainStore) Tip(ctx context.Context, appName string) (*DomainRevision, error) {
+	return s.TipAt(ctx, appName, 0)
+}
+
+// TipAt returns the newest revision with revision <= asOf (0 = latest).
+func (s *DomainStore) TipAt(ctx context.Context, appName string, asOf int64) (*DomainRevision, error) {
+	rec, err := scanRevision(s.pool.QueryRow(ctx, fmt.Sprintf(`
+		SELECT %s FROM %s
+		WHERE app = $1 AND ($2 = 0 OR revision <= $2)
+		ORDER BY revision DESC
+		LIMIT 1
+	`, revisionCols, s.table()), appName, asOf))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &rec, nil
+}
+
+// Tips returns the tip revision of every app that has at least one revision.
+func (s *DomainStore) Tips(ctx context.Context) (map[string]DomainRevision, error) {
 	recs, err := s.queryRevisions(ctx, fmt.Sprintf(`
-		SELECT DISTINCT ON (app, layer) %s FROM %s ORDER BY app, layer, revision DESC
+		SELECT DISTINCT ON (app) %s FROM %s ORDER BY app, revision DESC
 	`, revisionCols, s.table()))
 	if err != nil {
 		return nil, err
 	}
-	out := map[string]DomainHeads{}
-	for i := range recs {
-		h := out[recs[i].App]
-		if recs[i].Layer == LayerBase {
-			h.Base = &recs[i]
-		} else {
-			h.Overlay = &recs[i]
-		}
-		out[recs[i].App] = h
+	out := map[string]DomainRevision{}
+	for _, r := range recs {
+		out[r.App] = r
 	}
 	return out, nil
 }
 
-// Head returns the latest revision of each layer for app.
-func (s *DomainStore) Head(ctx context.Context, app string) (DomainHeads, error) {
-	return s.HeadAt(ctx, app, 0)
+// DomainHeads is retained for callers during the snapshot migration.
+// Tip is preferred; Base/Overlay are filled from history when present.
+type DomainHeads struct {
+	Base    *DomainRevision
+	Overlay *DomainRevision
+	TipRev  *DomainRevision
 }
 
-// HeadAt is Head as of revision (0 = latest).
-func (s *DomainStore) HeadAt(ctx context.Context, app string, revision int64) (DomainHeads, error) {
-	recs, err := s.queryRevisions(ctx, fmt.Sprintf(`
-		SELECT DISTINCT ON (layer) %s FROM %s
-		WHERE app = $1 AND ($2 = 0 OR revision <= $2)
-		ORDER BY layer, revision DESC
-	`, revisionCols, s.table()), app, revision)
+// Revision is the tip revision number (0 when none).
+func (h DomainHeads) Revision() int64 {
+	if h.TipRev != nil {
+		return h.TipRev.Revision
+	}
+	var n int64
+	if h.Base != nil {
+		n = h.Base.Revision
+	}
+	if h.Overlay != nil && h.Overlay.Revision > n {
+		n = h.Overlay.Revision
+	}
+	return n
+}
+
+// Heads returns tips keyed by app (legacy shape: TipRev set; Base/Overlay best-effort).
+func (s *DomainStore) Heads(ctx context.Context) (map[string]DomainHeads, error) {
+	tips, err := s.Tips(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]DomainHeads{}
+	for appName, tip := range tips {
+		t := tip
+		h := DomainHeads{TipRev: &t}
+		switch tip.Layer {
+		case LayerBase:
+			h.Base = &t
+		case LayerOverlay:
+			h.Overlay = &t
+		default:
+			h.Overlay = &t
+		}
+		out[appName] = h
+	}
+	return out, nil
+}
+
+// Head returns the tip for app in DomainHeads form.
+func (s *DomainStore) Head(ctx context.Context, appName string) (DomainHeads, error) {
+	return s.HeadAt(ctx, appName, 0)
+}
+
+// HeadAt returns the tip as of revision.
+func (s *DomainStore) HeadAt(ctx context.Context, appName string, revision int64) (DomainHeads, error) {
+	tip, err := s.TipAt(ctx, appName, revision)
 	if err != nil {
 		return DomainHeads{}, err
 	}
-	var h DomainHeads
-	for i := range recs {
-		if recs[i].Layer == LayerBase {
-			h.Base = &recs[i]
-		} else {
-			h.Overlay = &recs[i]
-		}
+	if tip == nil {
+		return DomainHeads{}, nil
+	}
+	h := DomainHeads{TipRev: tip}
+	switch tip.Layer {
+	case LayerBase:
+		h.Base = tip
+	default:
+		h.Overlay = tip
 	}
 	return h, nil
 }
 
 // History returns every revision of app, newest first.
-func (s *DomainStore) History(ctx context.Context, app string) ([]DomainRevision, error) {
-	return s.queryRevisions(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE app = $1 ORDER BY revision DESC`, revisionCols, s.table()), app)
+func (s *DomainStore) History(ctx context.Context, appName string) ([]DomainRevision, error) {
+	return s.queryRevisions(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE app = $1 ORDER BY revision DESC`, revisionCols, s.table()), appName)
 }
 
 // Get returns one revision, or nil when it does not exist.
-func (s *DomainStore) Get(ctx context.Context, app string, revision int64) (*DomainRevision, error) {
+func (s *DomainStore) Get(ctx context.Context, appName string, revision int64) (*DomainRevision, error) {
 	rec, err := scanRevision(s.pool.QueryRow(ctx,
-		fmt.Sprintf(`SELECT %s FROM %s WHERE app = $1 AND revision = $2`, revisionCols, s.table()), app, revision))
+		fmt.Sprintf(`SELECT %s FROM %s WHERE app = $1 AND revision = $2`, revisionCols, s.table()), appName, revision))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

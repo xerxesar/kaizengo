@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"kaizengo/internal/module"
 	"kaizengo/internal/app"
+	"kaizengo/internal/module"
+	"kaizengo/packages/sdk-go/appspec"
 )
 
 // KeymapBinding is one shortcut exposed to the SPA.
@@ -43,9 +44,15 @@ func BuildKeymapCatalog(host *module.Host) KeymapCatalog {
 	seenBinding := map[string]struct{}{}
 
 	for _, manifest := range host.Loaded {
-		spec, err := app.LoadAppSpec(manifest.Name)
-		if err != nil {
-			continue
+		var spec appspec.AppSpec
+		if a, ok := AppFromHost(host, manifest.Name); ok && a.Spec().Name != "" {
+			spec = a.Spec()
+		} else {
+			loaded, err := app.LoadAppSpec(manifest.Name)
+			if err != nil {
+				continue
+			}
+			spec = loaded
 		}
 		km := spec.Keymap
 		for _, id := range km.Disable {

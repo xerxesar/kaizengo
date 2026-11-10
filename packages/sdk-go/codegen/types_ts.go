@@ -53,6 +53,9 @@ func renderModelTS(app string, model appspec.ModelSpec) ([]byte, error) {
 		if f.Readonly {
 			notes = append(notes, "readonly")
 		}
+		if f.Computed() {
+			notes = append(notes, "computed")
+		}
 		if f.Default != nil {
 			notes = append(notes, fmt.Sprintf("default=%v", f.Default))
 		}

@@ -6,6 +6,7 @@ type Menu struct {
 	Label     string
 	LabelKey  string
 	View      string
+	Model     string // generated model list when set (no page file)
 	Route     string
 	Component string // optional addon component id (exports.menus)
 	SourceApp string // addon that contributed this item (empty for local menus)

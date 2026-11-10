@@ -36,8 +36,20 @@ msgstr "موارد"
 msgid "hellospec.menu.list"
 msgstr "همه سلام‌ها"
 
+msgid "hellospec.menu.board"
+msgstr "تابلو"
+
 msgid "hellospec.menu.new"
 msgstr "سلام جدید"
+
+msgid "hellospec.menu.topics"
+msgstr "موضوع‌ها"
+
+msgid "hellospec.menu.tags"
+msgstr "برچسب‌ها"
+
+msgid "hellospec.filter.happy"
+msgstr "شاد"
 
 msgid "hellospec.mood"
 msgstr "حال"

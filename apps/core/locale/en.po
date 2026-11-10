@@ -90,6 +90,9 @@ msgstr "Command palette"
 msgid "keymap.shell.toggle_terminal"
 msgstr "Toggle terminal"
 
+msgid "keymap.shell.terminal_fullscreen"
+msgstr "Terminal fullscreen"
+
 msgid "shell.palette.open"
 msgstr "Command palette"
 
@@ -118,13 +121,31 @@ msgid "shell.terminal.title"
 msgstr "Terminal"
 
 msgid "shell.terminal.hint"
-msgstr "Tab completes · ↑↓ history · Ctrl+L clears · Esc closes · <<EOF for multi-line"
+msgstr "Tab completes · ↑↓ history · Ctrl+L clears · Esc closes · Alt+Shift+T fullscreen · -ted editor"
 
 msgid "shell.terminal.placeholder"
 msgstr "help"
 
 msgid "shell.terminal.close"
 msgstr "Close terminal"
+
+msgid "shell.terminal.fullscreen"
+msgstr "Toggle terminal fullscreen"
+
+msgid "shell.terminal.resize"
+msgstr "Resize terminal"
+
+msgid "shell.terminal.ted_title"
+msgstr "Terminal editor"
+
+msgid "shell.terminal.ted_hint"
+msgstr "Vim mode · :wq apply · :q cancel"
+
+msgid "shell.terminal.ted_apply"
+msgstr "Apply"
+
+msgid "shell.terminal.ted_cancel"
+msgstr "Cancel"
 
 msgid "shell.app_not_found"
 msgstr "App not found"

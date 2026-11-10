@@ -4,6 +4,7 @@ import { I18nProvider } from '@/lib/I18nProvider'
 import { contentAppForMenu } from '@/lib/spa-mount'
 import { getMenuContext } from '@/lib/layout-context'
 import type { MenuItem } from '@/lib/types'
+import { PageViewProvider } from '@/lib/page-view'
 import { resolveView } from '@/lib/views/registry'
 
 type Props = {
@@ -27,13 +28,14 @@ export function ViewHost({ hostApp, onerror }: Props) {
       app: contentApp,
       view: item?.view || undefined,
       component: item?.component || undefined,
+      model: item?.model || undefined,
     })
   }, [contentApp, menu.hasMenus, menu.selected])
 
   const viewMountKey = useMemo(() => {
     if (!ViewComponent) return ''
     const item = menu.hasMenus ? menu.selected : null
-    return `${contentApp}::${item?.view ?? ''}::${item?.component ?? ''}`
+    return `${contentApp}::${item?.view ?? ''}::${item?.component ?? ''}::${item?.model ?? ''}`
   }, [ViewComponent, contentApp, menu.hasMenus, menu.selected])
 
   useEffect(() => {
@@ -64,7 +66,9 @@ export function ViewHost({ hostApp, onerror }: Props) {
     <div className="kg-view-host flex min-h-0 w-full min-w-0 flex-1 flex-col">
       {viewMountKey && ViewComponent ? (
         <I18nProvider app={contentApp} key={viewMountKey}>
-          <ViewComponent />
+          <PageViewProvider app={contentApp} view={menu.selected?.view?.trim() || ''}>
+            <ViewComponent />
+          </PageViewProvider>
         </I18nProvider>
       ) : null}
     </div>
@@ -74,5 +78,6 @@ export function ViewHost({ hostApp, onerror }: Props) {
 function missingViewMessage(app: string, item: MenuItem | null): string {
   if (item?.component) return `No component registered for ${item.component}`
   if (item?.view) return `No view ${app}.${item.view}`
+  if (item?.model) return `No model page for ${app}.${item.model}`
   return `No default view for app ${app}`
 }

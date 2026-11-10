@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { AppIndex, Catalog, SpecDoc } from "./catalog";
-import { classify, sibling, type YamlSymbol } from "./parse";
+import { classify, sibling, viewOwnerModel, type YamlSymbol } from "./parse";
 
 export interface NavTarget {
   file: string;
@@ -278,18 +278,43 @@ function findHandler(appDir: string, handler: string): NavTarget[] {
 }
 
 function resolveModule(root: string, module: string): NavTarget | undefined {
-  let file: string | undefined;
-  if (module.startsWith("@/") || module.startsWith("@kaizengo/spa/")) {
-    const rest = module.startsWith("@/")
-      ? module.slice(2)
-      : module.slice("@kaizengo/spa/".length);
-    file = existing(path.join(root, "apps/core/spa/src", rest));
-  } else if (module.startsWith("@apps/")) {
-    file = existing(path.join(root, "apps", module.slice("@apps/".length)));
-  } else {
-    file = existing(path.join(root, module));
-  }
+  const file = moduleFile(root, module) ?? movedModule(root, module);
   return file ? needleTarget(file, module) : undefined;
+}
+
+function moduleFile(root: string, module: string): string | undefined {
+  if (module.startsWith("@/") || module.startsWith("@kaizengo/spa/")) {
+    const rest = module.startsWith("@/") ? module.slice(2) : module.slice("@kaizengo/spa/".length);
+    return existing(path.join(root, "apps/core/spa/src", rest));
+  }
+  if (module.startsWith("@apps/")) return existing(path.join(root, "apps", module.slice("@apps/".length)));
+  return existing(path.join(root, module));
+}
+
+function movedModule(root: string, module: string): string | undefined {
+  const base = path.basename(module);
+  if (!/\.(tsx|ts|jsx|js)$/.test(base)) return undefined;
+  const hits: string[] = [];
+  const walk = (dir: string) => {
+    if (hits.length > 1) return;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (hits.length > 1) return;
+      if (entry.isDirectory()) {
+        if (entry.name === "node_modules" || entry.name === "dist" || entry.name.startsWith(".")) continue;
+        walk(path.join(dir, entry.name));
+      } else if (entry.name === base) {
+        hits.push(path.join(dir, entry.name));
+      }
+    }
+  };
+  walk(path.join(root, "apps"));
+  return hits.length === 1 ? hits[0] : undefined;
 }
 
 function findComponent(ctx: ResolveContext, id: string): NavTarget | undefined {
@@ -349,6 +374,38 @@ export function resolveDefinition(ctx: ResolveContext, symbol: YamlSymbol): NavT
     }
     case "menu-view":
       return unique([viewPage(app, value), viewYaml(app, value)]);
+    case "view-path": {
+      const file = existing(path.resolve(app.dir, value));
+      return unique([file ? needleTarget(file, value) : undefined]);
+    }
+    case "view-model": {
+      const ref = parseRelation(value, ctx.appName);
+      if (!ref) return [];
+      const target = appOf(ctx, ref.app);
+      if (!target) return [];
+      return unique([modelYaml(target, ref.model), modelGo(target, ref.model)]);
+    }
+    case "view-field": {
+      const modelName = viewOwnerModel(ctx.symbols, symbol.path);
+      if (!modelName) return [];
+      const ref = parseRelation(modelName, ctx.appName);
+      if (!ref) return [];
+      const target = appOf(ctx, ref.app);
+      if (!target) return [];
+      return unique([fieldName(target, ref.model, value)]);
+    }
+    case "screen-component":
+      return [];
+    case "layout-component": {
+      const view = symbol.path.match(/^(views\[\d+\])/);
+      if (!view) return [];
+      const hit = ctx.symbols.find(
+        (s) => s.path.startsWith(`${view[1]}.components[`) && s.path.endsWith(".id") && s.value === value,
+      );
+      return hit
+        ? [{ file: ctx.file, start: hit.range.start, end: hit.range.end, tooltip: `component ${value}` }]
+        : [];
+    }
     case "model-name":
       return unique([modelGo(app, value)]);
     case "relation": {
@@ -446,18 +503,29 @@ export function resolveReferences(ctx: ResolveContext, symbol: YamlSymbol): NavT
       });
     case "model-name":
     case "relation":
-    case "search-collection": {
+    case "search-collection":
+    case "view-model": {
       const ref =
         kind === "model-name" ? { app: ctx.appName, model: value } : parseRelation(value, ctx.appName);
       if (!ref) return [];
       return hitsMatching(ctx, (s, app) => {
         const k = classify(s.path);
         if (k === "model-name") return app.name === ref.app && s.value === ref.model;
-        if (k === "relation" || k === "search-collection") {
+        if (k === "relation" || k === "search-collection" || k === "view-model") {
           const r = parseRelation(s.value, app.name);
           return !!r && r.app === ref.app && r.model === ref.model;
         }
         return false;
+      });
+    }
+    case "screen-component":
+    case "layout-component": {
+      const view = symbol.path.match(/^(views\[\d+\])/);
+      if (!view) return [];
+      return hitsMatching(ctx, (s, app) => {
+        if (app.name !== ctx.appName || !s.path.startsWith(`${view[1]}.`)) return false;
+        const k = classify(s.path);
+        return (k === "screen-component" || k === "layout-component") && s.value === value;
       });
     }
     case "component-id":

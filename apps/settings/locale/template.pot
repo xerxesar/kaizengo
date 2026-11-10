@@ -14,8 +14,120 @@ msgstr ""
 msgid "settings.calendar"
 msgstr ""
 
+#: views/Domains.page.tsx
+msgid "settings.domains.analyze"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.ancestor"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.app"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.applied"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.apply_no_migrate"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.apply_resolutions"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.apply_with_migrate"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.hide_advanced"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.kind"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.migrate_post"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.migrate_pre"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.need_spec"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.no_conflicts"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.ours"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.proposed_spec"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.rebase"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.rebased"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.resolve_conflicts"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.resolve_migrate"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.revision"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.show_advanced"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.still_conflicts"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.still_migrate"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.subtitle"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.take_all_code"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.theirs"
+msgstr ""
+
+#: views/Domains.page.tsx
+msgid "settings.domains.title"
+msgstr ""
+
 #: module.go
 msgid "settings.locale"
+msgstr ""
+
+#: app.yaml
+msgid "settings.menu.domains"
 msgstr ""
 
 #: app.yaml

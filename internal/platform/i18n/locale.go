@@ -33,6 +33,14 @@ func RegisterLocale(info LocaleInfo) {
 	localeMeta[info.ID] = info
 }
 
+// Has reports whether RegisterLocale has recorded this id.
+func Has(localeID string) bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	_, ok := localeMeta[localeID]
+	return ok
+}
+
 // Info returns metadata for a locale (falls back to id + LTR).
 func Info(localeID string) LocaleInfo {
 	mu.RLock()

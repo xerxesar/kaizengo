@@ -15,15 +15,15 @@ import (
 const PageSuffix = ".page.tsx"
 
 type fileSpec struct {
-	Name       string   `yaml:"name"`
-	Title      string   `yaml:"title"`
-	Summary    string   `yaml:"summary"`
-	Depends    []string `yaml:"depends"`
-	Provides   []string `yaml:"provides"`
-	Uses       []string `yaml:"uses"`
-	Extensions *bool    `yaml:"extensions"`
-	Schema     string   `yaml:"schema"`
-	Resource   string   `yaml:"resource"`
+	Name        string       `yaml:"name"`
+	Title       string       `yaml:"title"`
+	Summary     string       `yaml:"summary"`
+	Depends     []string     `yaml:"depends"`
+	Provides    []string     `yaml:"provides"`
+	Uses        []string     `yaml:"uses"`
+	Extensions  *bool        `yaml:"extensions"`
+	Schema      string       `yaml:"schema"`
+	Resource    string       `yaml:"resource"`
 	SPA         *bool        `yaml:"spa"`
 	I18n        *bool        `yaml:"i18n"`
 	AutoInstall *bool        `yaml:"autoInstall"`
@@ -32,12 +32,12 @@ type fileSpec struct {
 	Models      yaml.Node    `yaml:"models"`
 	Queries     []fileCQRS   `yaml:"queries"`
 	Commands    []fileCQRS   `yaml:"commands"`
-	Views       yaml.Node    `yaml:"views"`
-	Locales     []fileLocale `yaml:"locales"`
+	Views       []ViewSpec     `yaml:"views"`
+	Locales     []fileLocale   `yaml:"locales"`
 	Extends     []ExtendSpec `yaml:"extends"`
 	Exports     ExportSpec   `yaml:"exports"`
 	Security    yaml.Node    `yaml:"security"` // list of relative security YAML paths, or an inline mapping
-	Keymap      []string     `yaml:"keymap"`   // relative paths to keymap YAML files
+	Keymap      yaml.Node    `yaml:"keymap"`   // file list, or an inline mapping (dynamic domain documents)
 }
 
 type fileModel struct {
@@ -48,6 +48,7 @@ type fileModel struct {
 	Search   *SearchSpec        `yaml:"search"`
 	Filters  []FilterPresetSpec `yaml:"filters"`
 	Charts   []ChartPresetSpec  `yaml:"charts"`
+	Indexes  []IndexSpec        `yaml:"indexes"`
 }
 
 type fileCQRS struct {
@@ -62,9 +63,10 @@ type fileCQRS struct {
 }
 
 type fileLocale struct {
-	ID   string `yaml:"id"`
-	Name string `yaml:"name"`
-	Dir  string `yaml:"dir"`
+	ID       string            `yaml:"id"`
+	Name     string            `yaml:"name"`
+	Dir      string            `yaml:"dir"`
+	Messages map[string]string `yaml:"messages"`
 }
 
 // LoadFile reads and validates an app.yaml spec from disk, resolving
@@ -123,7 +125,7 @@ func parse(b []byte, appRoot, source string) (AppSpec, error) {
 	if err != nil {
 		return AppSpec{}, err
 	}
-	if err := spec.validate(appRoot != ""); err != nil {
+	if err := spec.validate(appRoot); err != nil {
 		return AppSpec{}, err
 	}
 	return spec, nil
@@ -148,21 +150,18 @@ func decode(b []byte, appRoot, source string) (AppSpec, error) {
 	if err := yaml.Unmarshal(b, &raw); err != nil {
 		return AppSpec{}, fmt.Errorf("parse app spec: %w", err)
 	}
-	if raw.Views.Kind != 0 && !isNullNode(&raw.Views) {
-		return AppSpec{}, fmt.Errorf("views: is not supported; add a %s file under views/ (menus reference the file name)", PageSuffix)
-	}
 	spec := AppSpec{
-		Name:         raw.Name,
-		Title:        raw.Title,
-		Summary:      raw.Summary,
-		Depends:      raw.Depends,
-		Provides:     raw.Provides,
-		Uses:         raw.Uses,
-		Schema:       raw.Schema,
-		Resource:     raw.Resource,
-		EnableAuth:   true,
-		Nav:          raw.Nav,
-		Menus:        raw.Menus,
+		Name:       raw.Name,
+		Title:      raw.Title,
+		Summary:    raw.Summary,
+		Depends:    raw.Depends,
+		Provides:   raw.Provides,
+		Uses:       raw.Uses,
+		Schema:     raw.Schema,
+		Resource:   raw.Resource,
+		EnableAuth: true,
+		Nav:        raw.Nav,
+		Menus:      raw.Menus,
 	}
 	if raw.Extensions != nil {
 		spec.EnableExtensions = *raw.Extensions
@@ -197,6 +196,7 @@ func decode(b []byte, appRoot, source string) (AppSpec, error) {
 			Search:   m.Search,
 			Filters:  m.Filters,
 			Charts:   m.Charts,
+			Indexes:  m.Indexes,
 		})
 	}
 	for _, q := range raw.Queries {
@@ -215,13 +215,17 @@ func decode(b []byte, appRoot, source string) (AppSpec, error) {
 		if err != nil {
 			return AppSpec{}, err
 		}
-		spec.Views = pages
+		merged, err := mergeViews(appRoot, raw.Views, pages)
+		if err != nil {
+			return AppSpec{}, err
+		}
+		spec.Views = merged
+	} else {
+		spec.Views = append([]ViewSpec(nil), raw.Views...)
 	}
 	for _, l := range raw.Locales {
 		spec.Locales = append(spec.Locales, LocaleSpec{
-			ID:   l.ID,
-			Name: l.Name,
-			Dir:  l.Dir,
+			ID: l.ID, Name: l.Name, Dir: l.Dir, Messages: l.Messages,
 		})
 	}
 	spec.Extends = raw.Extends
@@ -231,15 +235,41 @@ func decode(b []byte, appRoot, source string) (AppSpec, error) {
 		return AppSpec{}, err
 	}
 	spec.Security = sec
-	if len(raw.Keymap) > 0 {
-		km, err := loadKeymapFiles(raw.Keymap, appRoot, source)
-		if err != nil {
-			return AppSpec{}, err
-		}
-		spec.Keymap = km
+	km, err := resolveKeymap(&raw.Keymap, appRoot, source)
+	if err != nil {
+		return AppSpec{}, err
 	}
+	spec.Keymap = km
 	spec.ApplyDefaults()
 	return spec, nil
+}
+
+// resolveKeymap accepts keymap: as a list of include paths or an inline mapping.
+func resolveKeymap(node *yaml.Node, appRoot, source string) (KeymapSpec, error) {
+	if node == nil || node.Kind == 0 || isNullNode(node) {
+		return KeymapSpec{}, nil
+	}
+	switch node.Kind {
+	case yaml.SequenceNode:
+		var refs []string
+		if err := node.Decode(&refs); err != nil {
+			return KeymapSpec{}, fmt.Errorf("keymap: %w", err)
+		}
+		if len(refs) == 0 {
+			return KeymapSpec{}, nil
+		}
+		return loadKeymapFiles(refs, appRoot, source)
+	case yaml.MappingNode:
+		var frag fileKeymap
+		if err := node.Decode(&frag); err != nil {
+			return KeymapSpec{}, fmt.Errorf("keymap: %w", err)
+		}
+		var merged KeymapSpec
+		mergeKeymap(&merged, frag)
+		return merged, nil
+	default:
+		return KeymapSpec{}, fmt.Errorf("keymap: expected a list of files or an inline mapping")
+	}
 }
 
 func loadKeymapFiles(refs []string, appRoot, source string) (KeymapSpec, error) {
@@ -545,7 +575,8 @@ func discoverPages(appRoot string) ([]ViewSpec, error) {
 			return fmt.Errorf("duplicate page %q (%s and %s)", viewName, prev, displayPath(appRoot, path))
 		}
 		seen[viewName] = displayPath(appRoot, path)
-		pages = append(pages, ViewSpec{Name: viewName, Type: "page"})
+		rel := filepath.ToSlash(displayPath(appRoot, path))
+		pages = append(pages, ViewSpec{Name: viewName, Type: "page", Path: rel})
 		return nil
 	})
 	if err != nil {

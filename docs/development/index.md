@@ -9,6 +9,7 @@ Product systems (apps, auth, ACL, GraphQL, the CLI) live under [Platform](../pla
 | [Installation](../installation.md) | Clone the repo, install tooling, produce `bin/server` |
 | [Workflow](workflow.md) | Run `make dev`, ports, env vars, Postgres |
 | [Platform APIs](platform.md) | Time, i18n, calendars, settings, fork-vs-patch |
+| [Domains UI](domains-ui.md) | Test Settings → Domains (conflicts + data migrate) |
 
 ## Quick orientation
 

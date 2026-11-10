@@ -7,8 +7,8 @@ import (
 
 // KeymapSpec is the merged declarative keyboard shortcut seed for an app.
 type KeymapSpec struct {
-	Disable  []string
-	Bindings []KeymapBindingSpec
+	Disable  []string            `yaml:"disable,omitempty"`
+	Bindings []KeymapBindingSpec `yaml:"bindings,omitempty"`
 }
 
 // Empty reports whether the spec has nothing to apply.
@@ -27,11 +27,11 @@ type KeymapBindingSpec struct {
 	ID       string `yaml:"id"`
 	Action   string `yaml:"action"`
 	Keys     string `yaml:"keys"`
-	Label    string `yaml:"label"`
-	LabelKey string `yaml:"labelKey"`
-	Scope    string `yaml:"scope"` // global | app | view (default global)
-	Hint     *bool  `yaml:"hint"`  // show badge when Alt is held (default true)
-	InForm   *bool  `yaml:"inForm"` // allow shortcut while focus is in form fields
+	Label    string `yaml:"label,omitempty"`
+	LabelKey string `yaml:"labelKey,omitempty"`
+	Scope    string `yaml:"scope,omitempty"`  // global | app | view (default global)
+	Hint     *bool  `yaml:"hint,omitempty"`   // show badge when Alt is held (default true)
+	InForm   *bool  `yaml:"inForm,omitempty"` // allow shortcut while focus is in form fields
 }
 
 type fileKeymap struct {

@@ -8,6 +8,10 @@ uses:
 nav:
   labelKey: nav.status
   route: status
+views:
+  - name: Index
+    path: views/Index.page.tsx
+
 locales:
   - id: en
     name: English

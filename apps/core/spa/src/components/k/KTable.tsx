@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import type { ModelRecord } from '@/lib/model-client'
+import { resolveFieldWidget } from '@/lib/field-widgets'
 import type { Column } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { buildGroupedTableRows } from './group-by'
@@ -60,6 +61,21 @@ export function KTableView<T extends Record<string, unknown>>(props: KTableViewP
     if (col.render) return col.render(row)
     const val = row[col.key]
     return val == null ? '' : String(val)
+  }
+
+  function renderTableCell(row: T, col: Column<T>): ReactNode {
+    const Widget = resolveFieldWidget(col.widget)
+    if (Widget) {
+      return (
+        <Widget
+          value={row[col.key]}
+          record={row}
+          field={{ key: col.key, label: col.label }}
+          readOnly
+        />
+      )
+    }
+    return col.cell ? col.cell(row) : cellText(row, col)
   }
 
   const colSpan = props.columns.length + (props.actions ? 1 : 0)
@@ -129,7 +145,7 @@ export function KTableView<T extends Record<string, unknown>>(props: KTableViewP
                       paddingLeft: colIndex === 0 ? 16 + entry.level * 28 : undefined,
                     }}
                   >
-                    {col.cell ? col.cell(row) : cellText(row, col)}
+                    {renderTableCell(row, col)}
                   </td>
                 ))}
                 {props.actions ? (

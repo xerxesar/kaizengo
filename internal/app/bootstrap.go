@@ -38,6 +38,28 @@ func MustLoadLocales(appName string) {
 	}
 }
 
+// RegisterSpecLocales records locale metadata and inline messages from a domain document.
+// Compiled apps still load .po catalogs from disk; this covers catalogs shipped in the spec.
+func RegisterSpecLocales(spec appspec.AppSpec) {
+	for _, l := range spec.Locales {
+		dir := i18n.LTR
+		if l.Dir == "rtl" {
+			dir = i18n.RTL
+		}
+		if len(l.Messages) > 0 {
+			i18n.Register(l.ID, l.Messages)
+		}
+		if i18n.Has(l.ID) {
+			continue
+		}
+		name := l.Name
+		if name == "" {
+			name = l.ID
+		}
+		i18n.RegisterLocale(i18n.LocaleInfo{ID: l.ID, Name: name, Dir: dir})
+	}
+}
+
 func LoadLocalesFS(fsys fs.FS, root string) error {
 	return i18n.LoadLocaleFS(fsys, root)
 }
@@ -53,4 +75,3 @@ func RegisterNav(host *module.Host, appName, route string) {
 	})
 	RegisterShellNavResource(appName, appspec.AppSpec{Name: appName, Title: appName, Nav: appspec.NavSpec{Route: route}})
 }
-

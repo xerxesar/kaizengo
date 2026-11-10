@@ -5,6 +5,7 @@ import { offsetToPosition, positionToOffset } from "./offsets";
 import { classify, collectSymbols, symbolAt } from "./parse";
 import { complete, type Completion } from "./complete";
 import { resolveDefinition, resolveReferences, type NavTarget, type ResolveContext } from "./resolve";
+import { isAppYaml, specDiagnostics, ViewEditor } from "./view-editor";
 
 const selector: vscode.DocumentSelector = [
   { scheme: "file", pattern: "**/app.yaml" },
@@ -88,6 +89,31 @@ function toLocation(target: NavTarget): vscode.Location {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  const viewEditor = new ViewEditor(context);
+  const diagnostics = vscode.languages.createDiagnosticCollection("kaizengo");
+  const pending = new Map<string, ReturnType<typeof setTimeout>>();
+
+  const publish = (doc: vscode.TextDocument) => {
+    if (!isAppYaml(doc)) {
+      diagnostics.delete(doc.uri);
+      return;
+    }
+    diagnostics.set(doc.uri, specDiagnostics(doc));
+  };
+
+  const schedule = (doc: vscode.TextDocument) => {
+    const key = doc.uri.toString();
+    const prev = pending.get(key);
+    if (prev) clearTimeout(prev);
+    pending.set(
+      key,
+      setTimeout(() => {
+        pending.delete(key);
+        publish(doc);
+        viewEditor.sync(doc);
+      }, 120),
+    );
+  };
   const watcher = vscode.workspace.createFileSystemWatcher("**/apps/**/*.yaml");
   watcher.onDidChange((uri) => {
     const root = findRepoRoot(uri.fsPath);
@@ -103,11 +129,26 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     watcher,
+    diagnostics,
     vscode.commands.registerCommand("kaizengo.reindex", () => {
       const editor = vscode.window.activeTextEditor;
       const root = editor ? findRepoRoot(editor.document.uri.fsPath) : catalog?.root;
       if (root) reindex(root);
       vscode.window.showInformationMessage("KaizenGo: app.yaml catalog reindexed");
+    }),
+    vscode.commands.registerCommand("kaizengo.openViewEditor", () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || !isAppYaml(editor.document)) {
+        vscode.window.showInformationMessage("KaizenGo: open an app.yaml spec to use Vis");
+        return;
+      }
+      viewEditor.open(editor.document);
+    }),
+    vscode.workspace.onDidOpenTextDocument(publish),
+    vscode.workspace.onDidChangeTextDocument((event) => schedule(event.document)),
+    vscode.workspace.onDidCloseTextDocument((doc) => diagnostics.delete(doc.uri)),
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor && isAppYaml(editor.document)) viewEditor.follow(editor.document);
     }),
     vscode.languages.registerDefinitionProvider(selector, {
       provideDefinition(doc, pos) {
@@ -149,10 +190,14 @@ export function activate(context: vscode.ExtensionContext): void {
         const ctx = resolveCtx(doc);
         if (!ctx) return;
         const sym = symbolAtPosition(ctx, pos);
-        if (!sym || classify(sym.path) === "none") return;
+        if (!sym) return;
+        const kind = classify(sym.path);
+        if (kind === "none") return;
         const defs = resolveDefinition(ctx, sym);
         const refs =
-          classify(sym.path) === "provides" ? resolveReferences(ctx, sym).filter((t) => t.file !== ctx.file || t.start !== sym.range.start) : [];
+          kind === "provides" || kind === "screen-component"
+            ? resolveReferences(ctx, sym).filter((t) => t.file !== ctx.file || t.start !== sym.range.start)
+            : [];
         const md = new vscode.MarkdownString(undefined, true);
         md.isTrusted = false;
         if (defs.length) {
@@ -172,6 +217,7 @@ export function activate(context: vscode.ExtensionContext): void {
       },
     }),
   );
+  for (const doc of vscode.workspace.textDocuments) publish(doc);
 }
 
 export function deactivate(): void {}

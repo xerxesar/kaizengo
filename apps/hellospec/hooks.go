@@ -93,12 +93,33 @@ func beforeUpdateGreeting(hc engine.HookContext) error {
 	return nil
 }
 
+// computeShout uppercases the message after the other Before* hooks have normalized it.
+func computeShout(hc engine.HookContext) (any, error) {
+	msg, _ := hc.Fields["message"].(string)
+	return strings.ToUpper(msg), nil
+}
+
+// logGreetingRevised runs after the update projection, including stored computes.
+func logGreetingRevised(hc engine.HookContext) error {
+	slog.Info("hellospec greeting revised",
+		"id", hc.RecordID,
+		"label", hc.Record["label"],
+		"shout", hc.Record["shout"],
+		"length", hc.Record["length"],
+	)
+	return nil
+}
+
 func greetingHooks() engine.Hooks {
 	return engine.Hooks{
 		BeforeCreate: beforeCreateGreeting,
 		AfterCreate:  logGreetingCreated,
 		BeforeUpdate: beforeUpdateGreeting,
+		AfterUpdate:  logGreetingRevised,
 		BeforeDelete: protectPinnedGreetings,
 		AfterDelete:  logGreetingDeleted,
+		Compute: map[string]func(engine.HookContext) (any, error){
+			"shout": computeShout,
+		},
 	}
 }

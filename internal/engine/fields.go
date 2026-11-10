@@ -12,7 +12,7 @@ import (
 func storedFields(model appspec.ModelSpec) []appspec.FieldSpec {
 	out := make([]appspec.FieldSpec, 0, len(model.Fields))
 	for _, f := range model.Fields {
-		if f.Stored() {
+		if f.Column() {
 			out = append(out, f)
 		}
 	}
@@ -52,6 +52,15 @@ func coerceStoredValue(f appspec.FieldSpec, v any) (any, error) {
 			return nil, fmt.Errorf("field %s must be a list of ids: %w", f.Name, err)
 		}
 		return ids, nil
+	case appspec.TypeMany2One:
+		if v == nil {
+			return nil, nil
+		}
+		s := strings.TrimSpace(fmt.Sprint(v))
+		if s == "" || s == "<nil>" {
+			return nil, nil
+		}
+		return s, nil
 	case appspec.TypeJSON:
 		return asJSONString(v)
 	default:
@@ -60,6 +69,14 @@ func coerceStoredValue(f appspec.FieldSpec, v any) (any, error) {
 }
 
 func isEmptyValue(f appspec.FieldSpec, v any) bool {
+	if v == nil {
+		switch f.CanonicalType() {
+		case appspec.TypeBool, appspec.TypeInt, appspec.TypeNumber:
+			return false
+		default:
+			return true
+		}
+	}
 	switch f.CanonicalType() {
 	case appspec.TypeBool, appspec.TypeInt, appspec.TypeNumber:
 		return false
@@ -91,9 +108,31 @@ func scanPtr(f appspec.FieldSpec) any {
 	case appspec.TypeBool:
 		var v bool
 		return &v
+	case appspec.TypeMany2One:
+		return &nullText{}
 	default:
 		var v string
 		return &v
+	}
+}
+
+// nullText scans a nullable TEXT column. Empty relations are NULL so a foreign key can hold.
+type nullText struct{ String string }
+
+func (n *nullText) Scan(src any) error {
+	if src == nil {
+		n.String = ""
+		return nil
+	}
+	switch v := src.(type) {
+	case string:
+		n.String = v
+		return nil
+	case []byte:
+		n.String = string(v)
+		return nil
+	default:
+		return fmt.Errorf("text scan: %T", src)
 	}
 }
 
@@ -105,6 +144,8 @@ func derefScan(f appspec.FieldSpec, p any) any {
 		return *v
 	case *bool:
 		return *v
+	case *nullText:
+		return v.String
 	case *string:
 		if f.CanonicalType() == appspec.TypeMany2Many {
 			ids, _ := asStringSlice(*v)

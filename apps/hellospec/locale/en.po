@@ -39,8 +39,20 @@ msgstr "Items"
 msgid "hellospec.menu.list"
 msgstr "All greetings"
 
+msgid "hellospec.menu.board"
+msgstr "Board"
+
 msgid "hellospec.menu.new"
 msgstr "New greeting"
+
+msgid "hellospec.menu.topics"
+msgstr "Topics"
+
+msgid "hellospec.menu.tags"
+msgstr "Tags"
+
+msgid "hellospec.filter.happy"
+msgstr "Happy"
 
 msgid "hellospec.mood"
 msgstr "Mood"

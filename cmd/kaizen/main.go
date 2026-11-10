@@ -169,7 +169,7 @@ func repl(c *client, asJSON bool) int {
 		}
 		buf.WriteString(sc.Text())
 		input := buf.String()
-		if shell.HeredocPending(input) {
+		if shell.InputPending(input) {
 			prompt()
 			continue
 		}
@@ -190,7 +190,7 @@ func repl(c *client, asJSON bool) int {
 		fmt.Fprintln(os.Stderr)
 	}
 	if buf.Len() > 0 {
-		fmt.Fprintln(os.Stderr, "kaizen: unterminated heredoc")
+		fmt.Fprintln(os.Stderr, "kaizen: incomplete input (open quote, backslash, or heredoc)")
 		return 1
 	}
 	return status

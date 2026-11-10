@@ -75,6 +75,155 @@ func TestViewCatalogGeneratesListAndFormFromModels(t *testing.T) {
 	}
 }
 
+func TestViewCatalogDeclaredReplaceAndAppend(t *testing.T) {
+	spec := appspec.AppSpec{
+		Name: "hellospec",
+		Models: []appspec.ModelSpec{{
+			Name:   "greeting",
+			Fields: []appspec.FieldSpec{{Name: "message", Type: "string", Required: true}},
+		}},
+		Views: []appspec.ViewSpec{
+			{
+				Name: "GreetingList", Kind: "collection", Model: "greeting",
+				DefaultView: "kanban", Views: []string{"table", "kanban"}, GroupBy: []string{"message"},
+				Columns: []appspec.ViewColumnSpec{{Field: "message", Width: "2fr", Widget: "textarea", Order: 1}},
+			},
+			{
+				Name: "GreetingBoard", Kind: "collection", Model: "greeting",
+				Columns: []appspec.ViewColumnSpec{{Field: "message", Order: 2}, {Field: "updatedAt", Order: 1}},
+			},
+			{Name: "GreetingCustom", Path: "views/GreetingCustom.page.tsx", Type: "page"},
+		},
+	}
+	catalog := viewCatalog(spec)
+	if len(catalog) != 3 {
+		t.Fatalf("expected generated form plus two dynamic views (path ignored), got %d", len(catalog))
+	}
+	list := catalog[0]
+	if list.Name != "GreetingList" || list.DefaultView != "kanban" || list.Columns[0].Width != "2fr" || list.Columns[0].Widget != "textarea" {
+		t.Fatalf("view did not replace generated list: %+v", list)
+	}
+	board := catalog[2]
+	if board.Name != "GreetingBoard" || board.Kind != views.ListView {
+		t.Fatalf("expected appended board, got %+v", board)
+	}
+	if board.Columns[0].Key != "updatedAt" || board.Columns[1].Key != "message" {
+		t.Fatalf("column order: %+v", board.Columns)
+	}
+}
+
+func TestViewCatalogPageKeepsLayout(t *testing.T) {
+	spec := appspec.AppSpec{
+		Name: "hellospec",
+		Models: []appspec.ModelSpec{{
+			Name:   "greeting",
+			Fields: []appspec.FieldSpec{{Name: "message", Type: "string"}, {Name: "mood", Type: "string"}},
+			Filters: []appspec.FilterPresetSpec{{
+				ID: "all", Label: "All", Domain: `[]`,
+			}},
+		}},
+		Views: []appspec.ViewSpec{{
+			Name: "GreetingBoard", Path: "views/GreetingBoard.page.tsx",
+			Kind: "collection", Model: "greeting", GroupBy: []string{"mood"},
+			Columns: []appspec.ViewColumnSpec{{Field: "message", Order: 1}, {Field: "mood", Order: 2}},
+			Filters: []appspec.FilterPresetSpec{{
+				ID: "happy", Label: "Happy", Domain: `[["mood","=","happy"]]`,
+			}},
+		}},
+	}
+	catalog := viewCatalog(spec)
+	var board *views.View
+	for i := range catalog {
+		if catalog[i].Name == "GreetingBoard" {
+			board = &catalog[i]
+			break
+		}
+	}
+	if board == nil {
+		t.Fatal("path page layout was not published")
+	}
+	if board.Columns[0].Key != "message" || len(board.GroupBy) != 1 || board.GroupBy[0] != "mood" {
+		t.Fatalf("layout = %+v", board)
+	}
+	if len(board.FilterPresets) != 1 || board.FilterPresets[0].ID != "happy" {
+		t.Fatalf("filters = %+v", board.FilterPresets)
+	}
+}
+
+func TestViewCatalogPageComponents(t *testing.T) {
+	spec := appspec.AppSpec{
+		Name: "hellospec",
+		Models: []appspec.ModelSpec{{
+			Name:   "greeting",
+			Fields: []appspec.FieldSpec{{Name: "message", Type: "string"}, {Name: "mood", Type: "string"}},
+		}},
+		Views: []appspec.ViewSpec{{
+			Name: "GreetingBoard", Path: "views/GreetingBoard.page.tsx",
+			Components: []appspec.ViewComponentSpec{
+				{ID: "board", Kind: "collection", Model: "greeting", GroupBy: []string{"mood"},
+					Columns: []appspec.ViewColumnSpec{{Field: "message"}}},
+				{ID: "composer", Kind: "form", Model: "greeting",
+					Groups: []appspec.ViewGroupSpec{{Label: "New", Fields: []appspec.ViewColumnSpec{{Field: "message"}}}}},
+			},
+		}},
+	}
+	catalog := viewCatalog(spec)
+	names := map[string]views.Kind{}
+	for _, v := range catalog {
+		names[v.Name] = v.Kind
+	}
+	if names["GreetingBoard.board"] != views.ListView || names["GreetingBoard.composer"] != views.FormView {
+		t.Fatalf("catalog names = %+v", names)
+	}
+}
+
+func TestViewCatalogDynamicScreen(t *testing.T) {
+	spec := appspec.AppSpec{
+		Name: "hellospec",
+		Models: []appspec.ModelSpec{{
+			Name:   "greeting",
+			Fields: []appspec.FieldSpec{{Name: "message", Type: "string"}},
+		}},
+		Views: []appspec.ViewSpec{{
+			Name: "GreetingForm",
+			Layout: appspec.ViewLayoutSpec{
+				Direction: "column",
+				Items: []appspec.ViewLayoutSpec{{
+					Direction: "row",
+					Items: []appspec.ViewLayoutSpec{
+						{Component: "form", Span: 2},
+						{Component: "recent", Span: 1, Size: "18rem"},
+					},
+				}},
+			},
+			Components: []appspec.ViewComponentSpec{
+				{ID: "form", Kind: "form", Model: "greeting",
+					Groups: []appspec.ViewGroupSpec{{Label: "New", Fields: []appspec.ViewColumnSpec{{Field: "message"}}}}},
+				{ID: "recent", Kind: "collection", Model: "greeting",
+					Columns: []appspec.ViewColumnSpec{{Field: "message"}}},
+			},
+		}},
+	}
+	catalog := viewCatalog(spec)
+	var screen *views.View
+	for i := range catalog {
+		if catalog[i].Name == "GreetingForm" {
+			screen = &catalog[i]
+			break
+		}
+	}
+	if screen == nil || screen.Kind != views.ScreenView || screen.Layout == nil {
+		t.Fatalf("screen = %+v", screen)
+	}
+	row := screen.Layout.Items
+	if screen.Layout.Direction != "column" || len(row) != 1 || row[0].Direction != "row" || len(row[0].Items) != 2 {
+		t.Fatalf("layout = %+v", screen.Layout)
+	}
+	if row[0].Items[0].Component != "form" || row[0].Items[0].Span != 2 || row[0].Items[1].Size != "18rem" {
+		t.Fatalf("regions = %+v", row[0].Items)
+	}
+}
+
 func TestViewCatalogIncludesRegisteredModels(t *testing.T) {
 	t.Cleanup(func() {
 		registry.mu.Lock()

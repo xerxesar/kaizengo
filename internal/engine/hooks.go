@@ -31,6 +31,7 @@ func (hc HookContext) Tf(key string, args ...any) string {
 }
 
 // Hooks are optional Go callbacks for custom controller logic.
+// Compute fills fields whose spec says `compute: hook`, keyed by field name.
 type Hooks struct {
 	BeforeCreate func(HookContext) error
 	AfterCreate  func(HookContext) error
@@ -38,6 +39,7 @@ type Hooks struct {
 	AfterUpdate  func(HookContext) error
 	BeforeDelete func(HookContext) error
 	AfterDelete  func(HookContext) error
+	Compute      map[string]func(HookContext) (any, error)
 }
 
 // HookRegistry maps model name → hooks.

@@ -67,7 +67,13 @@ func (s *modelService) listAll(ctx context.Context) ([]Record, error) {
 		}
 		out = append(out, rec)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := s.loadMany2Many(ctx, out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (s *modelService) findBy(ctx context.Context, field, value string) (Record, error) {
@@ -86,10 +92,40 @@ func (s *modelService) findBy(ctx context.Context, field, value string) (Record,
 		}
 		return nil, err
 	}
+	if err := s.loadMany2Many(ctx, []Record{rec}); err != nil {
+		return nil, err
+	}
 	return rec, nil
 }
 
 func (s *modelService) listBy(ctx context.Context, orgID, field, value string) ([]Record, error) {
+	if f, ok := s.fieldBy(field); ok && f.CanonicalType() == appspec.TypeMany2Many {
+		jt := quoteIdent(s.schema) + "." + quoteIdent(junctionTable(s.model.Name, f.Name))
+		rows, err := s.pool.Query(ctx, fmt.Sprintf(`
+			SELECT %s FROM %s WHERE org_id = $1 AND deleted = false AND EXISTS (
+				SELECT 1 FROM %s r WHERE r.org_id = %s.org_id AND r.left_id = %s.id AND r.right_id = $2
+			) ORDER BY updated_at DESC
+		`, s.selectList(), s.qtable(), jt, s.qtable(), s.qtable()), orgID, value)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+		out := []Record{}
+		for rows.Next() {
+			rec, err := s.scan(rows)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, rec)
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+		if err := s.loadMany2Many(ctx, out); err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
 	col, err := s.columnFor(field)
 	if err != nil {
 		return nil, err
@@ -109,20 +145,32 @@ func (s *modelService) listBy(ctx context.Context, orgID, field, value string) (
 		}
 		out = append(out, rec)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := s.loadMany2Many(ctx, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (s *modelService) fieldBy(name string) (appspec.FieldSpec, bool) {
+	return fieldByName(s.model, name)
 }
 
 func (s *modelService) columnFor(field string) (string, error) {
 	switch field {
-	case "id", "orgId", "authorId":
+	case "id", "orgId", "authorId", "createdAt", "updatedAt", "deleted":
 		return colName(field), nil
 	}
-	for _, f := range s.model.Fields {
-		if f.Name == field {
-			return colName(f.Name), nil
-		}
+	f, ok := s.fieldBy(field)
+	if !ok {
+		return "", fmt.Errorf("unknown field %q on model %q", field, s.model.Name)
 	}
-	return "", fmt.Errorf("unknown field %q on model %q", field, s.model.Name)
+	if !f.Column() {
+		return "", fmt.Errorf("field %q is not a column", field)
+	}
+	return colName(f.Name), nil
 }
 
 func (s *modelService) Get(ctx context.Context, orgID, id string) (Record, error) {
@@ -179,11 +227,17 @@ func (s *modelService) Create(ctx context.Context, orgID, authorID string, field
 	if err := runExtensions(modelPoint(s.spec.Name, s.model.Name, "beforeCreate"), hc, true); err != nil {
 		return nil, err
 	}
+	if err := s.stampComputes(ctx, orgID, hc.Fields, nil); err != nil {
+		return nil, err
+	}
 	if err := validateSpecFields(s.model, hc.Fields); err != nil {
 		return nil, err
 	}
 
 	if err := s.insertRecord(ctx, hc.Fields); err != nil {
+		return nil, err
+	}
+	if err := s.syncMany2Many(ctx, orgID, id, hc.Fields, true); err != nil {
 		return nil, err
 	}
 	// Load without ACL mask for hooks; mask on return for external callers.
@@ -244,11 +298,17 @@ func (s *modelService) Update(ctx context.Context, orgID, id string, fields map[
 	if err := runExtensions(modelPoint(s.spec.Name, s.model.Name, "beforeUpdate"), hc, true); err != nil {
 		return nil, err
 	}
+	if err := s.stampComputes(ctx, orgID, hc.Fields, rec); err != nil {
+		return nil, err
+	}
 	if err := validateSpecFields(s.model, hc.Fields); err != nil {
 		return nil, err
 	}
 
 	if err := s.updateRecord(ctx, id, hc.Fields); err != nil {
+		return nil, err
+	}
+	if err := s.syncMany2Many(ctx, orgID, id, hc.Fields, false); err != nil {
 		return nil, err
 	}
 	updated, err := s.getRaw(ctx, id)
@@ -298,6 +358,9 @@ func (s *modelService) Delete(ctx context.Context, orgID, id string) error {
 	if err := s.softDeleteRecord(ctx, id); err != nil {
 		return err
 	}
+	if err := s.clearMany2Many(ctx, orgID, id); err != nil {
+		return err
+	}
 	_ = s.runHook(s.hooks.AfterDelete, hc)
 	_ = runExtensions(modelPoint(s.spec.Name, s.model.Name, "afterDelete"), hc, false)
 	syncSearchIndex(ctx, s.spec, s.model, orgID, rec, true)
@@ -314,6 +377,9 @@ func (s *modelService) runHook(fn func(HookContext) error, hc HookContext) error
 func (s *modelService) normalizeFields(in map[string]any, requireAll bool) (map[string]any, error) {
 	out := map[string]any{}
 	for _, f := range s.model.Fields {
+		if f.Computed() {
+			continue
+		}
 		if f.Readonly && !requireAll {
 			// Updates may not change readonly fields.
 			continue
@@ -370,6 +436,8 @@ func fieldZero(f appspec.FieldSpec) any {
 		return false
 	case appspec.TypeMany2Many:
 		return []string{}
+	case appspec.TypeMany2One:
+		return nil
 	default:
 		return ""
 	}
@@ -389,7 +457,7 @@ func (s *modelService) insertRecord(ctx context.Context, p map[string]any) error
 	cols := []string{"id", "org_id", "author_id", "deleted", "created_at", "updated_at"}
 	args := []any{str(p["id"]), str(p["orgId"]), str(p["authorId"]), false, now, now}
 	for _, f := range s.model.Fields {
-		if !f.Stored() {
+		if !f.Column() {
 			continue
 		}
 		cols = append(cols, colName(f.Name))
@@ -401,7 +469,7 @@ func (s *modelService) insertRecord(ctx context.Context, p map[string]any) error
 	}
 	setters := []string{"updated_at = excluded.updated_at", "deleted = excluded.deleted"}
 	for _, f := range s.model.Fields {
-		if !f.Stored() {
+		if !f.Column() {
 			continue
 		}
 		setters = append(setters, fmt.Sprintf("%s = excluded.%s", quoteIdent(colName(f.Name)), quoteIdent(colName(f.Name))))
@@ -419,7 +487,7 @@ func (s *modelService) updateRecord(ctx context.Context, id string, p map[string
 	args := []any{id, now}
 	i := 3
 	for _, f := range s.model.Fields {
-		if _, ok := p[f.Name]; !ok || !f.Stored() {
+		if _, ok := p[f.Name]; !ok || !f.Column() {
 			continue
 		}
 		sets = append(sets, fmt.Sprintf("%s = $%d", quoteIdent(colName(f.Name)), i))
@@ -444,6 +512,9 @@ func (s *modelService) getRaw(ctx context.Context, id string) (Record, error) {
 		if strings.Contains(err.Error(), "no rows") {
 			return nil, errNotFound
 		}
+		return nil, err
+	}
+	if err := s.loadMany2Many(ctx, []Record{rec}); err != nil {
 		return nil, err
 	}
 	return rec, nil
@@ -517,4 +588,104 @@ func str(v any) string {
 func boolVal(v any) bool {
 	b, _ := v.(bool)
 	return b
+}
+
+func (s *modelService) many2ManyFields() []appspec.FieldSpec {
+	var out []appspec.FieldSpec
+	for _, f := range s.model.Fields {
+		if f.CanonicalType() == appspec.TypeMany2Many {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+func (s *modelService) junctionSQL(field string) string {
+	return quoteIdent(s.schema) + "." + quoteIdent(junctionTable(s.model.Name, field))
+}
+
+// loadMany2Many fills many2many id lists with one query per field.
+func (s *modelService) loadMany2Many(ctx context.Context, recs []Record) error {
+	fields := s.many2ManyFields()
+	if len(fields) == 0 || len(recs) == 0 {
+		return nil
+	}
+	byOrg := map[string][]Record{}
+	for _, rec := range recs {
+		for _, f := range fields {
+			rec[f.Name] = []string{}
+		}
+		byOrg[str(rec["orgId"])] = append(byOrg[str(rec["orgId"])], rec)
+	}
+	for orgID, group := range byOrg {
+		ids := make([]string, len(group))
+		index := map[string]Record{}
+		for i, rec := range group {
+			ids[i] = str(rec["id"])
+			index[ids[i]] = rec
+		}
+		for _, f := range fields {
+			rows, err := s.pool.Query(ctx, fmt.Sprintf(
+				`SELECT left_id, right_id FROM %s WHERE org_id = $1 AND left_id = ANY($2::text[])`,
+				s.junctionSQL(f.Name),
+			), orgID, ids)
+			if err != nil {
+				return err
+			}
+			for rows.Next() {
+				var left, right string
+				if err := rows.Scan(&left, &right); err != nil {
+					rows.Close()
+					return err
+				}
+				rec := index[left]
+				rec[f.Name] = append(rec[f.Name].([]string), right)
+			}
+			err = rows.Err()
+			rows.Close()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return s.fillComputed(ctx, recs)
+}
+
+// syncMany2Many replaces junction rows for fields present in the payload.
+// replaceAll writes every many2many field, including an empty list.
+func (s *modelService) syncMany2Many(ctx context.Context, orgID, id string, fields map[string]any, replaceAll bool) error {
+	for _, f := range s.many2ManyFields() {
+		v, ok := fields[f.Name]
+		if !ok && !replaceAll {
+			continue
+		}
+		ids, err := asStringSlice(v)
+		if err != nil {
+			return err
+		}
+		jt := s.junctionSQL(f.Name)
+		if _, err := s.pool.Exec(ctx, fmt.Sprintf(`DELETE FROM %s WHERE org_id = $1 AND left_id = $2`, jt), orgID, id); err != nil {
+			return err
+		}
+		if len(ids) == 0 {
+			continue
+		}
+		if _, err := s.pool.Exec(ctx, fmt.Sprintf(
+			`INSERT INTO %s (org_id, left_id, right_id) SELECT $1, $2, x FROM unnest($3::text[]) AS x`, jt,
+		), orgID, id, ids); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *modelService) clearMany2Many(ctx context.Context, orgID, id string) error {
+	for _, f := range s.many2ManyFields() {
+		if _, err := s.pool.Exec(ctx, fmt.Sprintf(
+			`DELETE FROM %s WHERE org_id = $1 AND left_id = $2`, s.junctionSQL(f.Name),
+		), orgID, id); err != nil {
+			return err
+		}
+	}
+	return nil
 }

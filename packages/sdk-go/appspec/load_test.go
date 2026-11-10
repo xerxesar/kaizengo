@@ -88,17 +88,32 @@ fields:
 	}
 }
 
-func TestParseRejectsViewsKey(t *testing.T) {
-	_, err := appspec.Parse([]byte(`
+func TestParseAcceptsViewsKey(t *testing.T) {
+	spec, err := appspec.Parse([]byte(`
 name: demo
 title: Demo
 summary: Demo
+models:
+  - name: item
+    fields:
+      - name: title
+        type: string
 views:
-  - name: Items
-    type: page
+  - name: ItemList
+    kind: collection
+    model: item
+    columns:
+      - field: title
+menus:
+  - id: items
+    label: Items
+    view: ItemList
 `))
-	if err == nil {
-		t.Fatal("expected views: error")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(spec.Views) != 1 || spec.Views[0].Name != "ItemList" || spec.Views[0].Kind != "collection" {
+		t.Fatalf("views = %+v", spec.Views)
 	}
 }
 

@@ -291,6 +291,14 @@ function Shell() {
               >
                 <SquareTerminal size={16} />
               </button>
+              <button
+                type="button"
+                className="sr-only"
+                tabIndex={-1}
+                data-keymap-id="toggle-terminal-fullscreen"
+                aria-label={t('shell.terminal.fullscreen')}
+                onClick={() => openTerminal({ toggleFullscreen: true })}
+              />
               <span className="user-name">{user.name}</span>
               {user.roles.includes('admin') ? (
                 <span className="admin-badge">{t('shell.admin')}</span>
